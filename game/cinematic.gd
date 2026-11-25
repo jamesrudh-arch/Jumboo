@@ -12,6 +12,7 @@ var generation := 0
 var completion: Callable
 var shot: Node3D
 var previous_camera: Camera3D
+var hold_answer_shot := false
 var skip_armed := false
 
 func _ready() -> void:
@@ -66,6 +67,7 @@ func _ready() -> void:
 	canvas.hide()
 
 func opening(done: Callable) -> void:
+	close_held_shot()
 	generation += 1
 	var current := generation
 	completion = done
@@ -90,6 +92,7 @@ func opening(done: Callable) -> void:
 		_finish()
 
 func prologue(done: Callable) -> void:
+	close_held_shot()
 	generation += 1
 	var current := generation
 	completion = done
@@ -127,6 +130,7 @@ func prologue(done: Callable) -> void:
 
 func answer_phone(done: Callable) -> void:
 	generation += 1
+	hold_answer_shot = true
 	var current := generation
 	completion = done
 	skip_armed = false
@@ -164,9 +168,17 @@ func _close_shot() -> void:
 		previous_camera.make_current()
 	previous_camera = null
 
+func close_held_shot() -> void:
+	if hold_answer_shot:
+		hold_answer_shot = false
+		_close_shot()
+
 func _finish() -> void:
 	generation += 1
-	_close_shot()
+	if hold_answer_shot and is_instance_valid(shot):
+		shot.complete_pickup()
+	else:
+		_close_shot()
 	backdrop.show()
 	subtitle.offset_top = 0
 	subtitle.offset_bottom = 115

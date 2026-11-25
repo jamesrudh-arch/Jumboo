@@ -5,7 +5,7 @@
 ## Comparison with the brief
 
 - Opening: extruded 3D studio and title text, a dimensional ring emblem and a timed 3D workshop prologue exist. Their visual quality and cinematic impact have not been assessed in a rendered run. This is not a finished CAD-quality logo or a finished story cinematic.
-- Phone: an animated 3D phone shot exists. The answer path now has an experimental stock-rig pickup and procedural reach toward the ear. It is not an authored, visually verified performance; hand contact, framing and believability are unverified.
+- Phone: the answer path combines a stock-rig pickup with custom arm pose keys and a hand-relative phone attachment; the 3D shot continues during the voiced call. It is still a provisional performance: hand contact, framing, phone-to-ear placement and believability are not visually verified; facial performance and lip sync are not implemented.
 - Character and city: temporary stock rigged character, imported props and simple blockout buildings. They are not final character or world art.
 - Audio: the call, Tessa's lines, witness encounter and collector confrontation have AI-synthesized voices, licensed stock music and synthetic effects. Descriptions and incidental text remain unvoiced; the mix and performances have not been reviewed in-engine or on iPhone.
 - Play: the short prototype continues from the witness to a 3D van and a collector encounter with a confirmed bargain, withdrawal, or basic timed combat. The saved outcome changes Tessa's immediate response. Fulfilling the bargain, later Sade consequences, driving and a 60-minute campaign are not implemented. The named dialogue and characters are proposed, not established canon.
