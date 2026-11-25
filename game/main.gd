@@ -25,11 +25,16 @@ var dialog_title: Label
 var dialog_text: Label
 var button_box: VBoxContainer
 var controls: Control
+var cinematic: CanvasLayer
 
 func _ready() -> void:
 	_build_world()
 	_build_ui()
-	_show_title()
+	cinematic = preload("res://cinematic.gd").new()
+	add_child(cinematic)
+	controls.hide()
+	overlay.hide()
+	cinematic.opening(_show_title)
 
 func _build_world() -> void:
 	var environment := WorldEnvironment.new()
@@ -215,7 +220,9 @@ func _new_game() -> void:
 	witness_choice = ""
 	player.position = Vector3(0, 0, 7)
 	game_started = true
-	_call_screen()
+	overlay.hide()
+	controls.hide()
+	cinematic.prologue(_call_screen)
 
 func _continue_game() -> void:
 	var saved := _read_save()
