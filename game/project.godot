@@ -1,0 +1,16 @@
+; LEVERAGE: Cinder City — clearly labelled vertical-slice blockout.
+config_version=5
+
+[application]
+config/name="LEVERAGE: Cinder City — Blockout"
+run/main_scene="res://main.tscn"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/handheld/orientation=1
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
