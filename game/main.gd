@@ -114,7 +114,7 @@ func _build_world() -> void:
 	district.name = "CinderDistrict"
 	add_child(district)
 	player = _person(Color("90c4ca"), Vector3(0, 0, 18.0))
-	witness = _person(Color("e8a8bb"), Vector3(-3.8, 0, -7))
+	witness = _person(Color("e8a8bb"), Vector3(-3.8, 0, -7), "res://assets/characters/rocketbox/aisha_formal.glb")
 	var witness_marker := Label3D.new()
 	witness_marker.name = "WitnessMarker"
 	witness_marker.text = "SADE"
@@ -162,8 +162,9 @@ func _prop(asset: String, pos: Vector3, size_factor: float) -> void:
 	instance.scale = Vector3.ONE * size_factor
 	add_child(instance)
 
-func _person(color: Color, pos: Vector3) -> Node3D:
+func _person(color: Color, pos: Vector3, model_path := "res://assets/characters/rocketbox/andre_casual.glb") -> Node3D:
 	var person := preload("res://character.gd").new()
+	person.model_path = model_path
 	person.coat_color = color.darkened(0.58)
 	person.position = pos
 	add_child(person)

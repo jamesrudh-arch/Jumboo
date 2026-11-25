@@ -17,6 +17,7 @@ func _run() -> void:
 	root.add_child(main)
 	await process_frame
 	check(main.cinematic.canvas.visible, "opening starts")
+	check(int(ProjectSettings.get_setting("audio/general/ios/session_category")) == 3 and ProjectSettings.get_setting("audio/general/ios/mix_with_others") == true, "iOS playback audio category and mixing are configured")
 	check(is_instance_valid(main.cinematic.shot), "3D studio shot starts")
 	check(main.cinematic.shot.phase == "studio", "3D studio mark displayed during opening")
 	var ident_players = main.cinematic.shot.find_children("*", "AudioStreamPlayer", true, false)
@@ -31,7 +32,9 @@ func _run() -> void:
 	check(game_title_mesh is TextMesh and game_title_mesh.depth > 0.0 and game_title_mesh.get_faces().size() > 0, "game title has extruded geometry")
 	main.cinematic.shot._process(1.0)
 	check(main.cinematic.shot.city_text.visible, "Cinder City reveal appears")
-	check(main.player.players.size() == 2, "rigged body and clothing loaded")
+	check(main.player.players.size() == 1 and main.player.has_node("HumanModel"), "textured rigged human loaded for gameplay")
+	check(main.witness.model_path.ends_with("aisha_formal.glb") and main.encounter.collector.model_path.ends_with("carlos_casual.glb"), "witness and collector use distinct human models")
+	check(main.encounter.van.has_node("PassengerVanModel"), "detailed van model replaces box vehicle")
 	check(main.player.players.all(func(p): return p.has_animation("Walk") and p.has_animation("Idle")), "walk and idle clips imported")
 	var district = main.get_node("CinderDistrict")
 	var names := {}
@@ -48,11 +51,13 @@ func _run() -> void:
 	main.title_screen._new_game()
 	check(main.cinematic.canvas.visible, "new game starts prologue")
 	check(is_instance_valid(main.cinematic.shot) and main.cinematic.shot.has_method("_make_ambience"), "prologue starts in the 3D workshop")
-	check(main.cinematic.shot.actor.players.size() == 2 and main.cinematic.shot.ambience.stream != null, "workshop contains rigged character and ambience")
+	check(main.cinematic.shot.actor.players.size() == 1 and main.cinematic.shot.ambience.stream != null, "workshop contains rigged human and ambience")
 	var performer: Node3D = main.cinematic.shot.actor
 	var shot_camera: Camera3D = main.cinematic.shot.camera
 	check(not shot_camera.is_position_behind(performer.global_position + Vector3(0, 1, 0)), "workshop camera faces the performer")
-	check(performer.find_children("*", "MeshInstance3D", true, false).all(func(m): return m.visible and m.extra_cull_margin >= 2.0), "character meshes are enabled with animated cull margin")
+	var original_outfit = performer.find_child("Outfit_original", true, false)
+	var formal_outfit = performer.find_child("Outfit_formal", true, false)
+	check(original_outfit != null and original_outfit.visible and formal_outfit != null and not formal_outfit.visible and original_outfit.extra_cull_margin >= 2.0, "character uses one outfit with animated cull margin")
 	Engine.time_scale = 30.0
 	await create_timer(14.0).timeout
 	check(is_instance_valid(main.cinematic.shot) and main.cinematic.shot.has_method("_box") and "phone_light" in main.cinematic.shot, "3D phone shot follows workshop")

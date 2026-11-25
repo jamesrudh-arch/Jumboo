@@ -63,6 +63,15 @@ func _ready() -> void:
 	haptics.button_pressed = preload("res://haptics.gd").enabled
 	haptics.toggled.connect(func(enabled: bool): preload("res://haptics.gd").enabled = enabled)
 	canvas.add_child(haptics)
+	var sound := CheckButton.new()
+	sound.text = "SOUND"
+	sound.position = Vector2(1020, 630)
+	sound.custom_minimum_size = Vector2(180, 44)
+	sound.add_theme_font_override("font", font)
+	sound.add_theme_font_size_override("font_size", 19)
+	sound.button_pressed = not AudioServer.is_bus_mute(AudioServer.get_bus_index("Master"))
+	sound.toggled.connect(func(enabled: bool): AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), not enabled))
+	canvas.add_child(sound)
 	_label("STORY / M01     •     WORK IN PROGRESS", Vector2(691, 682), Vector2(400, 28), 14, Color("a1b1b4"))
 	canvas.hide()
 
