@@ -7,6 +7,7 @@ var studio_group: Node3D
 var title_group: Node3D
 var city_text: MeshInstance3D
 var key_light: OmniLight3D
+var emblem_ring: Node3D
 var timer := 0.0
 var phase := "studio"
 
@@ -34,6 +35,19 @@ func _ready() -> void:
 	cyan.emission_energy_multiplier = 0.28
 	studio_group = Node3D.new()
 	add_child(studio_group)
+	# Machined outer signature: actual 3D concentric rings and index marks,
+	# placed behind the extruded monogram instead of a flat overlay.
+	emblem_ring = Node3D.new()
+	emblem_ring.position = Vector3(0, 1.12, -0.16)
+	studio_group.add_child(emblem_ring)
+	_ring(emblem_ring, 1.22, 1.17, silver)
+	_ring(emblem_ring, 1.11, 1.09, cyan)
+	for i in 12:
+		var angle := TAU * float(i) / 12.0
+		var tick := Node3D.new()
+		tick.rotation.z = angle
+		emblem_ring.add_child(tick)
+		_bar(tick, Vector3(0, 1.145, 0), Vector3(0.025, 0.085, 0.04), silver)
 	_make_text(studio_group, "DY", 1.1, 1.65, 0.16, silver)
 	_make_text(studio_group, "D’YOUNGS GAMES", -0.27, 4.9, 0.09, silver)
 	_make_text(studio_group, "P R E S E N T S", -0.85, 2.25, 0.025, cyan)
@@ -89,6 +103,18 @@ func _make_text(parent: Node3D, text: String, y: float, width: float, depth: flo
 	instance.position.y = y
 	return instance
 
+func _ring(parent: Node3D, outer: float, inner: float, material: Material) -> void:
+	var mesh := TorusMesh.new()
+	mesh.outer_radius = outer
+	mesh.inner_radius = inner
+	mesh.rings = 48
+	mesh.ring_segments = 8
+	var part := MeshInstance3D.new()
+	part.mesh = mesh
+	part.rotation.x = PI * 0.5
+	part.material_override = material
+	parent.add_child(part)
+
 func _bar(parent: Node3D, pos: Vector3, size: Vector3, material: Material) -> void:
 	var mesh := BoxMesh.new()
 	mesh.size = size
@@ -112,5 +138,7 @@ func _process(delta: float) -> void:
 	active.rotation.y = lerpf(-0.26, 0.0, reveal)
 	active.position.z = lerpf(-0.85, 0.0, reveal)
 	key_light.position.x = lerpf(-3.2, 2.4, minf(timer / 4.0, 1.0))
+	if phase == "studio":
+		emblem_ring.rotation.z = lerpf(-0.14, 0.0, reveal)
 	if phase == "title" and timer >= 0.9:
 		city_text.show()

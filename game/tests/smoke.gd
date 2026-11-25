@@ -21,8 +21,9 @@ func _run() -> void:
 	check(main.cinematic.shot.phase == "studio", "3D studio mark displayed during opening")
 	var ident_players = main.cinematic.shot.find_children("*", "AudioStreamPlayer", true, false)
 	check(ident_players.size() == 1 and ident_players[0].stream != null, "studio ident sound loaded")
-	var title_mesh = main.cinematic.shot.studio_group.get_child(1).mesh
+	var title_mesh = main.cinematic.shot.studio_group.get_child(2).mesh
 	check(title_mesh is TextMesh and title_mesh.depth > 0.0 and title_mesh.get_faces().size() > 0, "studio name has extruded geometry")
+	check(main.cinematic.shot.emblem_ring.get_child(0).mesh is TorusMesh, "studio emblem uses three-dimensional ring geometry")
 	main.cinematic.shot.reveal_title()
 	check(main.cinematic.shot.title_group.visible and not main.cinematic.shot.studio_group.visible, "3D game title replaces studio mark")
 	var game_title_mesh = main.cinematic.shot.title_group.get_child(0).mesh
@@ -37,14 +38,21 @@ func _run() -> void:
 	check(main.title_screen.canvas.visible, "title menu appears after confirmed skip")
 	main.title_screen._new_game()
 	check(main.cinematic.canvas.visible, "new game starts prologue")
+	check(is_instance_valid(main.cinematic.shot) and main.cinematic.shot.has_method("_make_ambience"), "prologue starts in the 3D workshop")
+	check(main.cinematic.shot.actor.players.size() == 2 and main.cinematic.shot.ambience.stream != null, "workshop contains rigged character and ambience")
 	Engine.time_scale = 30.0
-	await create_timer(12.5).timeout
-	check(is_instance_valid(main.cinematic.shot), "3D phone shot starts")
+	await create_timer(14.0).timeout
+	check(is_instance_valid(main.cinematic.shot) and main.cinematic.shot.has_method("_box") and "phone_light" in main.cinematic.shot, "3D phone shot follows workshop")
 	main.cinematic._skip()
 	main.cinematic._skip()
 	await process_frame
 	check(not is_instance_valid(main.cinematic.shot), "skipping frees phone shot")
 	check(main.overlay.visible, "call choice appears")
+	var x_key := InputEventKey.new()
+	x_key.keycode = KEY_X
+	x_key.pressed = true
+	main._unhandled_input(x_key)
+	check(main.dialog_title.text.contains("INCOMING CALL"), "X does not choose between answer and decline")
 	main._answer_call()
 	check(is_instance_valid(main.cinematic.shot) and main.cinematic.shot.skeletons.size() == 2, "answer opens rigged pickup performance")
 	var pickup = main.cinematic.shot
@@ -63,6 +71,12 @@ func _run() -> void:
 	main.cinematic._skip()
 	main.cinematic._skip()
 	check(main.dialog_title.text.contains("ELI"), "answer performance leads to dialogue")
+	check(main.dialog_text.text.contains("window"), "call begins with first dialogue beat")
+	main._unhandled_input(x_key)
+	check(main.call_line_index == 1, "X advances an unambiguous dialogue beat")
+	for i in 3:
+		main._next_call_line()
+	check(main.dialog_text.text.contains("disconnects"), "call dialogue advances to disconnect")
 	main._finish_call()
 	check(main.stage == 1 and main.controls.visible, "call completes and movement starts")
 	main.player.play_motion("Walk")
@@ -91,6 +105,11 @@ func _run() -> void:
 	check(is_instance_valid(automatic.cinematic.shot) and automatic.cinematic.shot.phase == "title", "opening naturally advances to 3D title")
 	await create_timer(5.0).timeout
 	check(automatic.title_screen.canvas.visible and not is_instance_valid(automatic.cinematic.shot), "opening naturally reaches menu and frees shot")
+	automatic.title_screen._new_game()
+	await create_timer(21.0).timeout
+	check(automatic.overlay.visible and automatic.dialog_title.text.contains("INCOMING CALL"), "workshop and phone naturally reach call choice")
+	automatic._decline_call()
+	check(automatic.dialog_title.text == "MISSED CALL", "decline path remains available")
 	automatic.queue_free()
 	await process_frame
 	Engine.time_scale = 1.0
