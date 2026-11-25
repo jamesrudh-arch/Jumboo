@@ -42,20 +42,34 @@ func _ready() -> void:
 	studio_group.add_child(emblem_ring)
 	_ring(emblem_ring, 1.22, 1.17, silver)
 	_ring(emblem_ring, 1.11, 1.09, cyan)
+	var backing := MeshInstance3D.new()
+	var disk := CylinderMesh.new()
+	disk.top_radius = 1.07
+	disk.bottom_radius = 1.07
+	disk.height = 0.18
+	backing.mesh = disk
+	backing.rotation.x = PI * 0.5
+	backing.position.z = -0.18
+	var gunmetal := StandardMaterial3D.new()
+	gunmetal.albedo_color = Color("263943")
+	gunmetal.metallic = 0.72
+	gunmetal.roughness = 0.36
+	backing.material_override = gunmetal
+	emblem_ring.add_child(backing)
 	for i in 12:
 		var angle := TAU * float(i) / 12.0
 		var tick := Node3D.new()
 		tick.rotation.z = angle
 		emblem_ring.add_child(tick)
 		_bar(tick, Vector3(0, 1.145, 0), Vector3(0.025, 0.085, 0.04), silver)
-	_make_text(studio_group, "DY", 1.1, 1.65, 0.16, silver)
-	_make_text(studio_group, "D’YOUNGS GAMES", -0.27, 4.9, 0.09, silver)
+	_make_text(studio_group, "DY", 1.1, 1.65, 0.30, silver)
+	_make_text(studio_group, "D’YOUNGS GAMES", -0.27, 4.9, 0.20, silver)
 	_make_text(studio_group, "P R E S E N T S", -0.85, 2.25, 0.025, cyan)
 	_bar(studio_group, Vector3(-1.0, 0.35, 0.03), Vector3(1.9, 0.025, 0.06), cyan)
 	_bar(studio_group, Vector3(1.0, 0.35, 0.03), Vector3(1.9, 0.025, 0.06), cyan)
 	title_group = Node3D.new()
 	add_child(title_group)
-	_make_text(title_group, "LEVERAGE", 0.55, 6.1, 0.19, silver)
+	_make_text(title_group, "LEVERAGE", 0.55, 6.1, 0.40, silver)
 	city_text = _make_text(title_group, "C I N D E R   C I T Y", -0.45, 4.4, 0.07, cyan)
 	_make_text(title_group, "EVERYONE HAS LEVERAGE ON YOU.", -1.02, 3.6, 0.025, silver)
 	title_group.hide()
@@ -85,7 +99,7 @@ func _ready() -> void:
 
 func _make_text(parent: Node3D, text: String, y: float, width: float, depth: float, material: Material) -> MeshInstance3D:
 	var geometry := TextMesh.new()
-	geometry.font = load("res://assets/fonts/Oswald.ttf")
+	geometry.font = load("res://assets/fonts/BebasNeue-Regular.ttf")
 	geometry.font_size = 48
 	geometry.pixel_size = 0.01
 	geometry.depth = depth
@@ -135,8 +149,9 @@ func _process(delta: float) -> void:
 	timer += delta
 	var reveal := smoothstep(0.0, 1.6, timer)
 	var active := studio_group if phase == "studio" else title_group
-	active.rotation.y = lerpf(-0.26, 0.0, reveal)
-	active.position.z = lerpf(-0.85, 0.0, reveal)
+	active.rotation.y = lerpf(-0.42, -0.025, reveal)
+	active.rotation.x = lerpf(0.10, 0.0, reveal)
+	active.position.z = lerpf(-1.1, 0.0, reveal)
 	key_light.position.x = lerpf(-3.2, 2.4, minf(timer / 4.0, 1.0))
 	if phase == "studio":
 		emblem_ring.rotation.z = lerpf(-0.14, 0.0, reveal)

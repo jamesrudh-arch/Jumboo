@@ -5,10 +5,11 @@ var actions: VBoxContainer
 var callback_new: Callable
 var callback_continue: Callable
 var font: Font
+var subtitles_enabled := false
 
 func _ready() -> void:
 	layer = 5
-	font = load("res://assets/fonts/Oswald.ttf")
+	font = load("res://assets/fonts/BebasNeue-Regular.ttf")
 	canvas = Control.new()
 	canvas.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(canvas)
@@ -44,6 +45,15 @@ func _ready() -> void:
 	actions.custom_minimum_size = Vector2(350, 0)
 	actions.add_theme_constant_override("separation", 12)
 	canvas.add_child(actions)
+	var captions := CheckButton.new()
+	captions.text = "SUBTITLES / CAPTIONS"
+	captions.position = Vector2(69, 580)
+	captions.custom_minimum_size = Vector2(350, 48)
+	captions.add_theme_font_override("font", font)
+	captions.add_theme_font_size_override("font_size", 19)
+	captions.button_pressed = subtitles_enabled
+	captions.toggled.connect(func(enabled: bool): subtitles_enabled = enabled)
+	canvas.add_child(captions)
 	_label("STORY / M01     •     WORK IN PROGRESS", Vector2(69, 667), Vector2(400, 28), 14, Color("a1b1b4"))
 	canvas.hide()
 

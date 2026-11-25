@@ -28,6 +28,8 @@ func _color_mesh(mesh: MeshInstance3D, clothed: bool) -> void:
 	else:
 		mat.albedo_color = Color("805846")
 	mat.roughness = 0.85
+	# Avoid aggressively culling animated extremities outside the rest-pose AABB.
+	mesh.extra_cull_margin = 2.0
 	mesh.material_override = mat
 
 func play_motion(name: String) -> void:

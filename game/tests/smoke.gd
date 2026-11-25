@@ -32,6 +32,11 @@ func _run() -> void:
 	check(main.cinematic.shot.city_text.visible, "Cinder City reveal appears")
 	check(main.player.players.size() == 2, "rigged body and clothing loaded")
 	check(main.player.players.all(func(p): return p.has_animation("Walk") and p.has_animation("Idle")), "walk and idle clips imported")
+	var district = main.get_node("CinderDistrict")
+	var names := {}
+	for sign in district.find_children("*", "Label3D", true, false):
+		names[sign.text] = true
+	check(names.size() >= 6, "district builds distinct 3D storefronts")
 	main.cinematic._skip()
 	check(main.cinematic.canvas.visible, "skip requires confirmation")
 	main.cinematic._skip()
@@ -41,21 +46,19 @@ func _run() -> void:
 	check(main.cinematic.canvas.visible, "new game starts prologue")
 	check(is_instance_valid(main.cinematic.shot) and main.cinematic.shot.has_method("_make_ambience"), "prologue starts in the 3D workshop")
 	check(main.cinematic.shot.actor.players.size() == 2 and main.cinematic.shot.ambience.stream != null, "workshop contains rigged character and ambience")
+	var performer: Node3D = main.cinematic.shot.actor
+	var shot_camera: Camera3D = main.cinematic.shot.camera
+	check(not shot_camera.is_position_behind(performer.global_position + Vector3(0, 1, 0)), "workshop camera faces the performer")
+	check(performer.find_children("*", "MeshInstance3D", true, false).all(func(m): return m.visible and m.extra_cull_margin >= 2.0), "character meshes are enabled with animated cull margin")
 	Engine.time_scale = 30.0
 	await create_timer(14.0).timeout
 	check(is_instance_valid(main.cinematic.shot) and main.cinematic.shot.has_method("_box") and "phone_light" in main.cinematic.shot, "3D phone shot follows workshop")
+	check(main.cinematic.shot.phone.has_node("Phone_ELI"), "3D phone displays Eli's name")
+	check(not main.hud.visible and main.cinematic.subtitle.text == "", "HUD and subtitles stay hidden during cinematic by default")
 	main.cinematic._skip()
 	main.cinematic._skip()
-	await process_frame
-	check(not is_instance_valid(main.cinematic.shot), "skipping frees phone shot")
-	check(main.overlay.visible, "call choice appears")
-	var x_key := InputEventKey.new()
-	x_key.keycode = KEY_X
-	x_key.pressed = true
-	main._unhandled_input(x_key)
-	check(main.dialog_title.text.contains("INCOMING CALL"), "X does not choose between answer and decline")
-	main._answer_call()
-	check(is_instance_valid(main.cinematic.shot) and main.cinematic.shot.skeletons.size() == 2, "answer opens rigged pickup performance")
+	check(is_instance_valid(main.cinematic.shot) and main.cinematic.shot.skeletons.size() == 2, "phone is answered automatically without a choice panel")
+	check(not main.overlay.visible, "no incoming-call page interrupts the shot")
 	var pickup = main.cinematic.shot
 	pickup._process(0.6)
 	check(pickup.attached and pickup.phone.position.distance_to(pickup._hand_position()) < 0.001, "phone follows the hand after pickup")
@@ -74,27 +77,14 @@ func _run() -> void:
 	check(skel.get_bone_global_pose(hand_bone).origin.distance_to(clothes.get_bone_global_pose(clothes.find_bone("hand_r")).origin) < 0.001, "body and clothing arm poses match")
 	main.cinematic._skip()
 	main.cinematic._skip()
-	check(main.dialog_title.text.contains("ELI"), "answer performance leads to dialogue")
-	check(main.cinematic.hold_answer_shot and is_instance_valid(main.cinematic.shot), "3D performance remains visible during the call")
+	check(main.cinematic.hold_answer_shot and is_instance_valid(main.cinematic.shot), "3D performance remains visible during automatic call")
 	check(main.cinematic.shot.attached and main.cinematic.shot.speaker == "eli", "skipped pickup resolves to held pose and listening beat")
-	check(main.overlay.position.y >= 450.0, "call subtitles use the lower screen instead of replacing the scene")
-	check(main.dialog_text.text.contains("window"), "call begins with first dialogue beat")
-	check(main.audio_director.voice.stream.resource_path.ends_with("eli_window.wav"), "Eli's first voiced line loads")
-	main._unhandled_input(x_key)
-	check(main.call_line_index == 1, "X advances an unambiguous dialogue beat")
-	check(main.cinematic.shot.speaker == "marcus", "performance responds to the active speaker")
-	check(main.audio_director.voice.stream.resource_path.ends_with("marcus_accounts.wav"), "advancing replaces the voice with Marcus's line")
-	main._next_call_line()
-	main._next_call_line()
-	check(main.audio_director.effects.stream.resource_path.ends_with("engine_cut.wav"), "engine cutoff effect accompanies Eli's warning")
-	for i in 3:
-		main._next_call_line()
-	check(main.dialog_text.text.contains("disconnects"), "call dialogue advances to disconnect")
-	check(main.audio_director.current_track == main.audio_director.TENSION, "disconnect changes the music cue")
-	check(main.audio_director.effects.stream.resource_path.ends_with("call_lost.wav"), "disconnect plays the story effect")
-	main._finish_call()
+	check(not main.overlay.visible and not main.cinematic.canvas.visible, "call plays without text by default")
+	check(main.audio_director.voice.stream.resource_path.ends_with("eli_window.wav"), "Eli's first voiced line loads automatically")
+	await create_timer(35.0).timeout
+	check(main.stage == 1 and main.controls.visible and main.hud.visible, "automatic call ends and starts gameplay")
 	check(not main.cinematic.hold_answer_shot and not is_instance_valid(main.cinematic.shot), "call completion releases performance and restores gameplay")
-	check(main.stage == 1 and main.controls.visible, "call completes and movement starts")
+	check(main.player.position.z > 15.0, "player begins at the warehouse checkpoint")
 	main.player.play_motion("Walk")
 	check(main.player.players.all(func(p): return p.current_animation == "Walk"), "body and clothing play same walk clip")
 	main.player.position = main.witness.position + Vector3(1, 0, 0)
@@ -182,24 +172,14 @@ func _run() -> void:
 	check(is_instance_valid(automatic.cinematic.shot) and automatic.cinematic.shot.phase == "title", "opening naturally advances to 3D title")
 	await create_timer(5.0).timeout
 	check(automatic.title_screen.canvas.visible and not is_instance_valid(automatic.cinematic.shot), "opening naturally reaches menu and frees shot")
+	automatic.title_screen.subtitles_enabled = true
 	automatic.title_screen._new_game()
-	await create_timer(21.0).timeout
-	check(automatic.overlay.visible and automatic.dialog_title.text.contains("INCOMING CALL"), "workshop and phone naturally reach call choice")
-	automatic._decline_call()
-	check(automatic.dialog_title.text == "MISSED CALL", "decline path remains available")
-	check(automatic.audio_director.voice.stream.resource_path.ends_with("tessa_missed.wav"), "Tessa's missed-call line is voiced")
-	automatic._call_screen()
-	automatic._answer_call()
-	automatic.cinematic._skip()
-	automatic.cinematic._skip()
-	var early = automatic.cinematic.shot
-	check(is_instance_valid(early) and early.attached and early.phone.position.distance_to(early._hand_position()) < 0.001, "immediate skip still attaches the phone to the hand")
-	automatic._finish_call()
-	automatic._call_screen()
-	automatic._answer_call()
-	await create_timer(5.0).timeout
-	check(automatic.overlay.visible and automatic.cinematic.hold_answer_shot and is_instance_valid(automatic.cinematic.shot), "timed pickup naturally continues into held 3D dialogue")
-	automatic._finish_call()
+	await create_timer(22.0).timeout
+	check(automatic.cinematic.hold_answer_shot and is_instance_valid(automatic.cinematic.shot), "workshop and ringing naturally transition to pickup")
+	await create_timer(8.0).timeout
+	check(automatic.cinematic.show_captions and automatic.cinematic.canvas.visible and not automatic.overlay.visible, "optional captions display without a choice page")
+	await create_timer(30.0).timeout
+	check(automatic.stage == 1 and not automatic.cinematic.hold_answer_shot, "voiced call naturally finishes at the checkpoint")
 	automatic.queue_free()
 	await process_frame
 	Engine.time_scale = 1.0

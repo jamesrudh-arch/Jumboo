@@ -13,6 +13,7 @@ var completion: Callable
 var shot: Node3D
 var previous_camera: Camera3D
 var hold_answer_shot := false
+var show_captions := false
 var skip_armed := false
 
 func _ready() -> void:
@@ -104,7 +105,7 @@ func prologue(done: Callable) -> void:
 	headline.text = ""
 	subtitle.offset_top = 220
 	subtitle.offset_bottom = 290
-	subtitle.text = "HEARTHLINE  /  LATE NIGHT"
+	subtitle.text = "HEARTHLINE  /  LATE NIGHT" if show_captions else ""
 	previous_camera = get_viewport().get_camera_3d()
 	shot = preload("res://workshop_shot.gd").new()
 	shot.position = Vector3(250, 0, 250)
@@ -123,7 +124,7 @@ func prologue(done: Callable) -> void:
 	shot = preload("res://phone_shot.gd").new()
 	shot.position = Vector3(200, 0, 200)
 	get_parent().add_child(shot)
-	subtitle.text = "[Phone vibrating]"
+	subtitle.text = "[Phone vibrating]" if show_captions else ""
 	await get_tree().create_timer(6.0).timeout
 	if current == generation:
 		_finish()
@@ -167,6 +168,24 @@ func _close_shot() -> void:
 	if is_instance_valid(previous_camera):
 		previous_camera.make_current()
 	previous_camera = null
+
+func show_call_caption(text: String) -> void:
+	if not show_captions:
+		return
+	backdrop.hide()
+	shade.color = Color(0, 0, 0, 0)
+	headline.text = ""
+	subtitle.text = text
+	subtitle.offset_top = 220
+	subtitle.offset_bottom = 290
+	canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	skip_button.hide()
+	canvas.show()
+
+func end_call_captions() -> void:
+	canvas.hide()
+	canvas.mouse_filter = Control.MOUSE_FILTER_STOP
+	skip_button.show()
 
 func close_held_shot() -> void:
 	if hold_answer_shot:
