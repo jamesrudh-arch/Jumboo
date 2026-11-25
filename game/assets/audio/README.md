@@ -5,12 +5,12 @@ This build uses **temporary licensed score**, not music composed exclusively for
 - `prologue_theme.ogg`: **Prologue Theme** by Cleyton Kauffman, CC0 1.0. Original: https://opengameart.org/content/prologue-theme ; artist: https://soundcloud.com/cleytonkauffman/ . The included Ogg conversion came from https://github.com/mattyan1053/pj-legion/tree/a19c2b849295d5e42b459584b777c5d85d8a06a9/assets/audio/oga-bgm-sets ; that mirror reports conversion from WAV to Ogg Vorbis and removal of metadata.
 - `confrontation.ogg`: **The Confrontation** by Umplix, CC0 1.0. Original: https://opengameart.org/content/the-confrontation ; artist: https://opengameart.org/users/umplix . Included Ogg came from https://github.com/mattyan1053/pj-legion/tree/a19c2b849295d5e42b459584b777c5d85d8a06a9/assets/audio/oga-talk ; mirror reports conversion from WAV to Ogg Vorbis, metadata removal and silence trimming.
 - CC0 text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
-- `engine_cut.wav`, `call_lost.wav`, and `phone_pickup.wav` are original synthetic effects generated for this project with `tools/create_opening_sfx.py` in the source repository. They are stylized effects, not field recordings.
+- `engine_cut.wav`, `call_lost.wav`, `phone_pickup.wav`, `strike.wav` and `impact.wav` are original synthetic effects generated for this project with `tools/create_opening_sfx.py` in the source repository. They are stylized effects, not field recordings.
 - Existing `phone_vibration.wav` and `studio_ident.wav` were procedurally synthesized for the prototype. Workshop ambience is generated at runtime.
 
 ## Dialogue
 
-The files in `../voice/` are AI-synthesized spoken performances selected for Marcus, Eli, Tessa and Sade in this session. The answered call, Tessa's missed-call line and Sade's witness encounter are voiced. Narrative descriptions and incidental gameplay text are not spoken. The performances are preliminary; voice direction, editing, sound mix, phone processing and listening/device review remain outstanding.
+The files in `../voice/` are AI-synthesized spoken performances. The user selected Marcus, Eli, Tessa and Sade; the collector was automatically assigned because only one suitable voice was available in the audition. The answered call, Tessa's lines, Sade's witness encounter and the collector conversation are voiced. Narrative descriptions and incidental gameplay text are not spoken. The performances are preliminary; voice direction, editing, sound mix, phone processing and listening/device review remain outstanding.
 
 ## Design references
 

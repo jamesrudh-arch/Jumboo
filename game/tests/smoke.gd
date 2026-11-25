@@ -101,12 +101,67 @@ func _run() -> void:
 	check(main.audio_director.voice.stream.resource_path.ends_with("sade_pressure.wav"), "pressure plays its corresponding Sade line")
 	main._choose_witness("reassure")
 	check(main.audio_director.voice.stream.resource_path.ends_with("sade_reassure.wav"), "reassurance plays the corresponding Sade line")
-	main._finish_slice()
+	main._follow_lead()
 	var previous_x: float = main.player.position.x
 	main.touch_directions["right"] = true
 	main._process(0.25)
 	main.touch_directions["right"] = false
-	check(main.stage == 2 and main.player.position.x > previous_x, "movement continues after finishing the slice")
+	check(main.stage == 2 and main.player.position.x > previous_x and main.encounter.van.visible, "witness lead unlocks the 3D van")
+	main.player.position = main.encounter.van.position + Vector3(0, 0, 2)
+	main._interact()
+	check(main.stage == 3 and main.audio_director.voice.stream.resource_path.ends_with("marcus_van.wav"), "van investigation yields the voiced route clue")
+	main._collector_warning()
+	check(main.audio_director.voice.stream.resource_path.ends_with("collector_warning.wav"), "collector confrontation is voiced")
+	main._bargain()
+	main._bargain_agreement()
+	check(main.stage == 3 and main.encounter_choice == "", "bargain is not committed before confirmation")
+	main._complete_encounter("bargain")
+	check(main.stage == 4 and main._read_save().get("encounter_choice") == "bargain", "confirmed obligation survives save")
+	check(main.audio_director.voice.stream.resource_path.ends_with("tessa_bargain.wav"), "Tessa responds to the bargain")
+	main._continue_game()
+	check(main.stage == 4 and main.encounter_choice == "bargain" and not main.encounter.collector.visible, "continue restores the committed result")
+	main.stage = 3
+	main.encounter_choice = ""
+	main.encounter.set_progress(3)
+	main._start_fight()
+	main.player.position = main.encounter.collector.position + Vector3(0, 0, 1)
+	main.enemy_timer = 0.0
+	main._process_fight(0.01)
+	check(main.telegraph, "enemy attack has an advance warning")
+	main._guard()
+	main.enemy_timer = 0.0
+	main._process_fight(0.01)
+	check(main.player_health == 3, "timed guard prevents an in-range hit")
+	main.guard_timer = 0.0
+	main.telegraph = true
+	main.enemy_timer = 0.0
+	main._process_fight(0.01)
+	check(main.player_health == 2, "unguarded attack causes damage")
+	main.player.position = main.encounter.collector.position + Vector3(0, 0, 4)
+	main.telegraph = true
+	main.enemy_timer = 0.0
+	main._process_fight(0.01)
+	check(main.player_health == 2, "moving out of range avoids the telegraphed hit")
+	main._fight_failed()
+	check(not main.combat_active and main.encounter_choice == "", "defeat offers retry without committing a result")
+	main._start_fight()
+	main.player.position = main.encounter.collector.position + Vector3(0, 0, 1)
+	for i in 3:
+		main.strike_cooldown = 0.0
+		main._strike()
+	check(main.stage == 4 and main.encounter_choice == "fight" and main._read_save().get("encounter_choice") == "fight", "three in-range hits resolve and save the fight")
+	main._complete_encounter("withdraw")
+	check(main._read_save().get("encounter_choice") == "withdraw" and main.audio_director.voice.stream.resource_path.ends_with("tessa_escape.wav"), "withdrawal records no bargain and plays its response")
+	var save_file := FileAccess.open(main.SAVE_PATH, FileAccess.WRITE)
+	save_file.store_string(JSON.stringify({"version": 1, "stage": 2, "witness_choice": "pressure", "x": 0.0, "z": -7.0}))
+	save_file.close()
+	check(main._read_save().get("stage") == 2, "version one witness checkpoint remains readable")
+	main._continue_game()
+	check(main.stage == 2 and main.witness_choice == "pressure" and main.encounter.van.visible, "legacy checkpoint continues to the van")
+	save_file = FileAccess.open(main.SAVE_PATH, FileAccess.WRITE)
+	save_file.store_string(JSON.stringify({"version": 2, "stage": 4, "witness_choice": "pressure", "encounter_choice": "unknown", "x": 0.0, "z": 0.0}))
+	save_file.close()
+	check(main._read_save().is_empty(), "invalid encounter outcomes are rejected")
 	# Let timers from the skipped opening/prologue resume and release their coroutines.
 	await create_timer(9.0).timeout
 	Engine.time_scale = 1.0

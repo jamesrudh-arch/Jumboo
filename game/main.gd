@@ -2,14 +2,29 @@ extends Node3D
 
 # Vertical-slice blockout. Geometry and characters are temporary; no claim of final art.
 const SAVE_PATH := "user://leverage_blockout.json"
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 const CYAN := Color("00f0ff")
 const PINK := Color("ff007f")
 const WHITE := Color("edf1f4")
 const MUTED := Color("a9b7c3")
 
-var stage := 0 # 0: call, 1: find Sade, 2: complete
+# 0 call, 1 witness, 2 investigate van, 3 collector, 4 lead recorded.
+var stage := 0
 var witness_choice := ""
+var encounter_choice := ""
+var combat_active := false
+var player_health := 3
+var enemy_health := 3
+var enemy_timer := 1.5
+var telegraph := false
+var guard_timer := 0.0
+var guard_cooldown := 0.0
+var strike_cooldown := 0.0
+var enemy_stagger := 0.0
+var encounter: Node3D
+var interact_button: Button
+var strike_button: Button
+var guard_button: Button
 var move_touch := Vector2.ZERO
 var touch_directions := {"up": false, "down": false, "left": false, "right": false}
 var game_started := false
@@ -83,6 +98,16 @@ func _build_world() -> void:
 		_box(Vector3(5, 4.5, 4.8), Vector3(-8.5, 2.25, z), Color("28303b"))
 		_box(Vector3(5, 5.5, 4.8), Vector3(8.5, 2.75, z), Color("33333e"))
 		_box(Vector3(1.8, 0.12, 0.05), Vector3(-5.98, 3.5, z), PINK if z == 2.0 else Color("57727b"))
+		# Repeated bays and window recesses give the block a readable scale.
+		for offset in [-1.35, 0.0, 1.35]:
+			_box(Vector3(0.06, 1.1, 0.78), Vector3(-5.96, 2.2, z + offset), Color("62747a"))
+			_box(Vector3(0.06, 1.1, 0.78), Vector3(5.96, 2.8, z + offset), Color("475f69"))
+		_box(Vector3(0.14, 0.18, 4.7), Vector3(-5.95, 1.25, z), Color("6b716c"))
+		_box(Vector3(0.14, 0.18, 4.7), Vector3(5.95, 1.3, z), Color("6b716c"))
+	for z in [-11.0, -7.0, -3.0, 1.0, 5.0, 9.0]:
+		_box(Vector3(0.10, 0.015, 1.25), Vector3(0, 0.095, z), Color("a99e87"))
+	_box(Vector3(0.16, 4.2, 0.16), Vector3(4.9, 2.1, -1.0), Color("3d4649"))
+	_box(Vector3(0.7, 0.08, 0.18), Vector3(4.6, 4.15, -1.0), Color("8d928b"))
 	_box(Vector3(3.0, 0.08, 0.4), Vector3(0, 0.12, -3), Color("c5b69b"))
 	player = _person(Color("90c4ca"), Vector3(0, 0, 7))
 	witness = _person(Color("e8a8bb"), Vector3(-3.8, 0, -7))
@@ -99,6 +124,8 @@ func _build_world() -> void:
 	_prop("wooden_crate", Vector3(-4.6, 0, -9.3), 0.6)
 	_prop("tyre", Vector3(4.5, 0.35, -4), 0.8)
 	_prop("hanging_lamp", Vector3(-3.8, 3.6, -7), 0.65)
+	encounter = preload("res://market_encounter.gd").new()
+	add_child(encounter)
 	var lamp := OmniLight3D.new()
 	lamp.position = Vector3(-3, 4, -6)
 	lamp.light_color = CYAN
@@ -131,8 +158,9 @@ func _prop(asset: String, pos: Vector3, size_factor: float) -> void:
 	instance.scale = Vector3.ONE * size_factor
 	add_child(instance)
 
-func _person(_color: Color, pos: Vector3) -> Node3D:
+func _person(color: Color, pos: Vector3) -> Node3D:
 	var person := preload("res://character.gd").new()
+	person.coat_color = color.darkened(0.58)
 	person.position = pos
 	add_child(person)
 	return person
@@ -168,11 +196,23 @@ func _build_ui() -> void:
 	_direction_button("◀", Vector2(32, 540), "left")
 	_direction_button("▼", Vector2(96, 540), "down")
 	_direction_button("▶", Vector2(160, 540), "right")
-	var interact := _button("B  INTERACT")
-	interact.position = Vector2(1020, 570)
-	interact.size = Vector2(200, 70)
-	interact.pressed.connect(_interact)
-	controls.add_child(interact)
+	interact_button = _button("B  INTERACT")
+	interact_button.position = Vector2(1020, 570)
+	interact_button.size = Vector2(200, 70)
+	interact_button.pressed.connect(_interact)
+	controls.add_child(interact_button)
+	strike_button = _button("A  STRIKE")
+	strike_button.position = Vector2(1020, 570)
+	strike_button.size = Vector2(200, 70)
+	strike_button.pressed.connect(_strike)
+	controls.add_child(strike_button)
+	guard_button = _button("B  GUARD")
+	guard_button.position = Vector2(1020, 485)
+	guard_button.size = Vector2(200, 70)
+	guard_button.pressed.connect(_guard)
+	controls.add_child(guard_button)
+	strike_button.hide()
+	guard_button.hide()
 	overlay = PanelContainer.new()
 	overlay.position = Vector2(280, 115)
 	overlay.size = Vector2(720, 490)
@@ -260,6 +300,9 @@ func _new_game() -> void:
 	audio_director.play_music(audio_director.PROLOGUE)
 	stage = 0
 	witness_choice = ""
+	encounter_choice = ""
+	combat_active = false
+	encounter.set_progress(stage)
 	player.position = Vector3(0, 0, 7)
 	game_started = true
 	overlay.hide()
@@ -274,6 +317,9 @@ func _continue_game() -> void:
 	audio_director.play_music(audio_director.TENSION)
 	stage = int(saved.get("stage", 0))
 	witness_choice = str(saved.get("witness_choice", ""))
+	encounter_choice = str(saved.get("encounter_choice", ""))
+	combat_active = false
+	encounter.set_progress(stage)
 	player.position = Vector3(float(saved.get("x", 0.0)), 0, float(saved.get("z", 7.0)))
 	game_started = true
 	_update_camera()
@@ -333,8 +379,16 @@ func _interact() -> void:
 		_dialog("SADE  /  MARKET STALL", "MARCUS: I'm looking for my brother. Did you see a man here?")
 		audio_director.play_voice("res://assets/voice/marcus_witness.wav")
 		_option("NEXT  /  X", _witness_reply)
-	else:
+	elif stage == 2 and player.position.distance_to(encounter.van.position) < 3.2:
+		_inspect_van()
+	elif stage == 3 and not combat_active and player.position.distance_to(encounter.collector.position) < 3.2:
+		_collector_warning()
+	elif stage == 1:
 		message.text = "Move closer to Sade's stall to interact."
+	elif stage == 2:
+		message.text = "Move closer to the damaged van to inspect it."
+	elif stage == 3 and not combat_active:
+		message.text = "Approach the collector to continue."
 
 func _witness_reply() -> void:
 	_dialog("SADE  /  MARKET STALL", "SADE: I saw a van. I didn't see who was inside.")
@@ -348,43 +402,201 @@ func _choose_witness(choice: String) -> void:
 	var line := "SADE: Back corner was dented. Blue tarp over the cargo. It went toward the market."
 	if choice == "pressure":
 		line = "SADE: I gave you what I saw. Don't bring this to my stall. The van had a dented back corner and a blue tarp."
-	_dialog("LEAD FOUND", line + "\n\nYour choice and the lead are recorded in the blockout save. Further consequences are not yet implemented.")
+	_dialog("LEAD FOUND", line)
 	var voice_path := "res://assets/voice/sade_pressure.wav" if choice == "pressure" else "res://assets/voice/sade_reassure.wav"
 	audio_director.play_voice(voice_path)
-	_option("FINISH SLICE", _finish_slice)
+	_option("FOLLOW THE LEAD", _follow_lead)
 
-func _finish_slice() -> void:
+func _follow_lead() -> void:
+	encounter.set_progress(stage)
 	_save_game()
 	_close_dialog()
 
+func _inspect_van() -> void:
+	stage = 3
+	encounter.set_progress(stage)
+	_dialog("DAMAGED VAN  /  ROUTE DOCKET", "MARCUS: Dented corner, blue tarp. Sade's van. Where did they take you, Eli?\n\nA dispatch docket names a garage. It identifies a route, not who took him.")
+	audio_director.play_voice("res://assets/voice/marcus_van.wav")
+	_option("CONTINUE", _collector_warning)
+	_save_game()
+
+func _collector_warning() -> void:
+	_dialog("COLLECTOR  /  STREET PRESSURE", "COLLECTOR: Your brother left a debt on our books. Tell me where he is, and this doesn't have to get ugly.")
+	audio_director.play_voice("res://assets/voice/collector_warning.wav")
+	_option("BARGAIN  /  Promise one delivery", _bargain)
+	_option("WITHDRAW  /  Leave with the docket", func(): _complete_encounter("withdraw"))
+	_option("FIGHT  /  Stand your ground", _fight_warning)
+
+func _bargain() -> void:
+	_dialog("MARCUS  /  AN OFFER", "MARCUS: I don't know where he is. Let me find him, and I'll bring you the delivery he owes.")
+	audio_director.play_voice("res://assets/voice/marcus_bargain.wav")
+	_option("CONTINUE", _bargain_agreement)
+
+func _bargain_agreement() -> void:
+	_dialog("COLLECTOR  /  AGREEMENT", "COLLECTOR: One delivery. You miss it, that debt becomes yours. Take the route docket and don't make me come looking.\n\nA delivery obligation will be recorded.")
+	audio_director.play_voice("res://assets/voice/collector_agreement.wav")
+	_option("ACCEPT OBLIGATION", func(): _complete_encounter("bargain"))
+	_option("BACK", _collector_warning)
+
+func _fight_warning() -> void:
+	_dialog("COLLECTOR  /  FIGHT", "COLLECTOR: Fine. You asked for this. Let's see how long you stay standing.\n\nMove to dodge. Strike in range with A; B guards briefly. A red warning appears before an attack.")
+	audio_director.play_voice("res://assets/voice/collector_threat.wav")
+	_option("FIGHT", _start_fight)
+	_option("BACK", _collector_warning)
+
+func _start_fight() -> void:
+	player_health = 3
+	enemy_health = 3
+	enemy_timer = 1.5
+	telegraph = false
+	guard_timer = 0.0
+	guard_cooldown = 0.0
+	strike_cooldown = 0.0
+	enemy_stagger = 0.0
+	encounter.collector.position = Vector3(1.0, 0, -7.4)
+	encounter.collector_label.text = "COLLECTOR"
+	combat_active = true
+	_close_dialog()
+
+func _strike() -> void:
+	if not combat_active or interaction_open or strike_cooldown > 0.0:
+		return
+	strike_cooldown = 0.65
+	player.play_motion("Punch_Jab")
+	audio_director.play_effect("res://assets/audio/strike.wav")
+	if player.position.distance_to(encounter.collector.position) <= 2.3:
+		enemy_health -= 1
+		enemy_stagger = 0.45
+		encounter.collector.play_motion("Hit_Chest")
+		telegraph = false
+		enemy_timer = 1.4
+		encounter.collector_label.text = "COLLECTOR"
+		encounter.collector_label.modulate = Color("efc3af")
+		if enemy_health <= 0:
+			_complete_encounter("fight")
+	_update_hud()
+
+func _guard() -> void:
+	if not combat_active or interaction_open or guard_cooldown > 0.0:
+		return
+	guard_timer = 1.0
+	guard_cooldown = 1.8
+	_update_hud()
+
+func _process_fight(delta: float) -> void:
+	guard_timer = maxf(0.0, guard_timer - delta)
+	guard_cooldown = maxf(0.0, guard_cooldown - delta)
+	strike_cooldown = maxf(0.0, strike_cooldown - delta)
+	enemy_stagger = maxf(0.0, enemy_stagger - delta)
+	var opponent: Node3D = encounter.collector
+	var distance := player.position.distance_to(opponent.position)
+	if enemy_stagger <= 0.0:
+		if not telegraph and distance > 1.8:
+			var target := Vector3(player.position.x, opponent.position.y, player.position.z)
+			opponent.position = opponent.position.move_toward(target, delta * 1.3)
+			opponent.rotation.y = atan2(player.position.x - opponent.position.x, player.position.z - opponent.position.z)
+			opponent.play_motion("Walk")
+		else:
+			opponent.play_motion("Idle")
+		enemy_timer -= delta
+		if enemy_timer <= 0.0 and not telegraph and distance <= 2.5:
+			telegraph = true
+			enemy_timer = 0.85
+			encounter.collector_label.text = "INCOMING!"
+			encounter.collector_label.modulate = Color("ff867c")
+		elif enemy_timer <= 0.0 and telegraph:
+			telegraph = false
+			enemy_timer = 1.6
+			encounter.collector_label.text = "COLLECTOR"
+			encounter.collector_label.modulate = Color("efc3af")
+			opponent.play_motion("Punch_Jab")
+			if distance <= 2.3 and guard_timer <= 0.0:
+				player_health -= 1
+				audio_director.play_effect("res://assets/audio/impact.wav")
+				if player_health <= 0:
+					_fight_failed()
+					return
+	_update_hud()
+
+func _fight_failed() -> void:
+	combat_active = false
+	_dialog("KNOCKED DOWN", "Marcus loses the fight. Retry from this encounter, or withdraw with the route docket. No bargain has been recorded.")
+	_option("RETRY", _start_fight)
+	_option("WITHDRAW", func(): _complete_encounter("withdraw"))
+
+func _complete_encounter(choice: String) -> void:
+	combat_active = false
+	encounter_choice = choice
+	stage = 4
+	encounter.set_progress(stage)
+	_save_game()
+	var text := "TESSA: You got away. Good. Don't mistake a route docket for proof of who took Eli. Bring it to me and we'll check the dispatch records."
+	var voice_path := "res://assets/voice/tessa_escape.wav"
+	if choice == "bargain":
+		text = "TESSA: You promised them a delivery? Marcus, that debt has a way of growing. Bring me the route docket and we'll find another way."
+		voice_path = "res://assets/voice/tessa_bargain.wav"
+	elif choice == "fight":
+		text = "TESSA: You didn't have to fight him. Bring me the route docket, Marcus. We need answers, not another debt on the street."
+		voice_path = "res://assets/voice/tessa_fight.wav"
+	_dialog("TESSA  /  PHONE", text)
+	audio_director.play_voice(voice_path)
+	_option("CONTINUE", _close_dialog)
+
 func _update_hud() -> void:
-	if stage == 1:
+	interact_button.visible = not combat_active
+	strike_button.visible = combat_active
+	guard_button.visible = combat_active
+	if combat_active:
+		objective.text = "STREET PRESSURE  /  Marcus %d   •   Collector %d" % [player_health, enemy_health]
+		hint.text = "INCOMING! Move away or guard." if telegraph else "A: strike nearby   •   B: guard briefly   •   Move to evade"
+		message.text = "GUARDING" if guard_timer > 0.0 else ("Guard recovering" if guard_cooldown > 0.0 else "Guard ready")
+	elif stage == 1:
 		objective.text = "OBJECTIVE  /  Find the witness at the market stall"
 		hint.text = "Move with touch arrows or WASD. Approach Sade and interact."
+		message.text = ""
 	elif stage == 2:
-		objective.text = "LEAD RECORDED  /  Dented van, blue tarp"
-		hint.text = "Story blockout complete. Your choice: " + witness_choice.to_upper()
+		objective.text = "OBJECTIVE  /  Inspect the damaged van"
+		hint.text = "Follow the road to the vehicle marked DAMAGED VAN."
+		message.text = "Sade: " + witness_choice.to_upper()
+	elif stage == 3:
+		objective.text = "OBJECTIVE  /  Deal with the collector"
+		hint.text = "Approach the collector and interact."
+		message.text = "The docket shows a route, not who took Eli."
+	elif stage == 4:
+		objective.text = "LEAD RECORDED  /  Check the garage dispatch"
+		hint.text = "This prototype stops here. Outcome: " + encounter_choice.to_upper()
+		message.text = "One delivery owed." if encounter_choice == "bargain" else "No delivery obligation recorded."
 	else:
 		objective.text = "OBJECTIVE  /  Answer Eli's call"
 		hint.text = ""
-	message.text = "EARLY BLOCKOUT • No combat, driving, final art or device tuning yet"
+		message.text = ""
 
 func _process(delta: float) -> void:
 	if not game_started or interaction_open or stage == 0:
 		return
+	if combat_active:
+		_process_fight(delta)
+		if interaction_open:
+			return
 	var x := float(Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT) or touch_directions["right"]) - float(Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT) or touch_directions["left"])
 	var z := float(Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN) or touch_directions["down"]) - float(Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP) or touch_directions["up"])
 	var direction := Vector2(x, z).limit_length(1.0)
 	if direction.length_squared() > 0.001:
 		player.rotation.y = lerp_angle(player.rotation.y, atan2(direction.x, direction.y), minf(delta * 9.0, 1.0))
-		player.play_motion("Walk")
+		if not combat_active or strike_cooldown <= 0.30:
+			player.play_motion("Walk")
 	else:
-		player.play_motion("Idle")
+		if not combat_active or strike_cooldown <= 0.30:
+			player.play_motion("Idle")
 	player.position.x = clampf(player.position.x + direction.x * 2.0 * delta, -5.4, 5.4)
 	player.position.z = clampf(player.position.z + direction.y * 2.0 * delta, -12.0, 12.0)
 	_update_camera()
-	if Input.is_action_just_pressed("ui_accept"):
+	if Input.is_action_just_pressed("ui_accept") and not combat_active:
 		_interact()
+	if combat_active and Input.is_key_pressed(KEY_J):
+		_strike()
+	if combat_active and Input.is_key_pressed(KEY_K):
+		_guard()
 
 func _unhandled_input(event: InputEvent) -> void:
 	# X advances a single dialogue beat, never silently chooses between options.
@@ -402,7 +614,7 @@ func _save_game() -> void:
 	if file == null:
 		message.text = "Save failed. This blockout does not yet provide save recovery."
 		return
-	file.store_string(JSON.stringify({"version": SAVE_VERSION, "stage": stage, "witness_choice": witness_choice, "x": player.position.x, "z": player.position.z}))
+	file.store_string(JSON.stringify({"version": SAVE_VERSION, "stage": stage, "witness_choice": witness_choice, "encounter_choice": encounter_choice, "x": player.position.x, "z": player.position.z}))
 	file.close()
 
 func _read_save() -> Dictionary:
@@ -415,9 +627,20 @@ func _read_save() -> Dictionary:
 	if not result is Dictionary:
 		return {}
 	var data: Dictionary = result
-	if int(data.get("version", -1)) != SAVE_VERSION or int(data.get("stage", -1)) < 1 or int(data.get("stage", -1)) > 2:
+	var version := int(data.get("version", -1))
+	var saved_stage := int(data.get("stage", -1))
+	if version not in [1, SAVE_VERSION] or saved_stage < 1 or saved_stage > (2 if version == 1 else 4):
 		return {}
 	var choice := str(data.get("witness_choice", ""))
-	if (int(data["stage"]) == 1 and choice != "") or (int(data["stage"]) == 2 and choice not in ["reassure", "pressure"]):
+	var outcome := str(data.get("encounter_choice", ""))
+	if (saved_stage == 1 and choice != "") or (saved_stage >= 2 and choice not in ["reassure", "pressure"]):
 		return {}
+	if (saved_stage < 4 and outcome != "") or (saved_stage == 4 and outcome not in ["bargain", "withdraw", "fight"]):
+		return {}
+	if not (data.get("x") is int or data.get("x") is float) or not (data.get("z") is int or data.get("z") is float):
+		return {}
+	if not is_finite(float(data["x"])) or not is_finite(float(data["z"])):
+		return {}
+	data["x"] = clampf(float(data["x"]), -5.4, 5.4)
+	data["z"] = clampf(float(data["z"]), -12.0, 12.0)
 	return data
