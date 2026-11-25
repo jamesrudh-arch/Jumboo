@@ -6,6 +6,7 @@ var actor: Node3D
 var skeletons: Array[Skeleton3D] = []
 var phone: Node3D
 var camera: Camera3D
+var pickup_sound: AudioStreamPlayer
 var elapsed := 0.0
 var attached := false
 const GRAB_TIME := 0.55
@@ -54,6 +55,10 @@ func _ready() -> void:
 	add_child(camera)
 	camera.look_at(global_position + Vector3(0, 1.15, -0.1), Vector3.UP)
 	camera.make_current()
+	pickup_sound = AudioStreamPlayer.new()
+	pickup_sound.stream = load("res://assets/audio/phone_pickup.wav")
+	pickup_sound.volume_db = -6.0
+	add_child(pickup_sound)
 	_pose_animations(0.0)
 
 func _pose_animations(time: float) -> void:
@@ -70,6 +75,8 @@ func _process(delta: float) -> void:
 	elapsed += delta
 	_pose_animations(minf(elapsed, 1.0))
 	if elapsed >= GRAB_TIME:
+		if not attached:
+			pickup_sound.play()
 		attached = true
 		# Experimental CCD reach: rotate upper/lower arm toward the side of
 		# the head, applied to both matching rigs to keep the clothing aligned.
