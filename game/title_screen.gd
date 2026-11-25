@@ -78,6 +78,9 @@ func show_menu(start: Callable, resume: Callable, has_save: bool) -> void:
 	if has_save:
 		_add_button("CONTINUE", _continue_game)
 	canvas.show()
+	var available := actions.get_children().filter(func(child): return not child.is_queued_for_deletion())
+	if not available.is_empty():
+		available[0].call_deferred("grab_focus")
 
 func _add_button(text: String, action: Callable) -> void:
 	var b := Button.new()

@@ -25,8 +25,11 @@ var encounter: Node3D
 var interact_button: Button
 var strike_button: Button
 var guard_button: Button
-var move_touch := Vector2.ZERO
-var touch_directions := {"up": false, "down": false, "left": false, "right": false}
+var touch_stick: Control
+var navigation: Control
+var map_button: Button
+var camera_yaw := 0.0
+var camera_touch_id := -1
 var game_started := false
 var interaction_open := false
 var player: Node3D
@@ -66,6 +69,7 @@ var cinematic: CanvasLayer
 var title_screen: CanvasLayer
 
 func _ready() -> void:
+	preload("res://input_setup.gd").configure()
 	_build_world()
 	_build_ui()
 	audio_director = preload("res://audio_director.gd").new()
@@ -159,8 +163,10 @@ func _person(color: Color, pos: Vector3) -> Node3D:
 	return person
 
 func _update_camera() -> void:
-	camera.position = player.position + Vector3(0, 3.3, 6.2)
-	camera.look_at(player.position + Vector3(0, 1.0, -1.0), Vector3.UP)
+	var offset := Vector3(0, 3.3, 6.2).rotated(Vector3.UP, camera_yaw)
+	camera.position = player.position + offset
+	var look_offset := Vector3(0, 1.0, -1.0).rotated(Vector3.UP, camera_yaw)
+	camera.look_at(player.position + look_offset, Vector3.UP)
 
 func _build_ui() -> void:
 	var layer := CanvasLayer.new()
@@ -186,10 +192,18 @@ func _build_ui() -> void:
 	controls.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(controls)
-	_direction_button("▲", Vector2(96, 475), "up")
-	_direction_button("◀", Vector2(32, 540), "left")
-	_direction_button("▼", Vector2(96, 540), "down")
-	_direction_button("▶", Vector2(160, 540), "right")
+	touch_stick = preload("res://touch_stick.gd").new()
+	touch_stick.position = Vector2(44, 446)
+	touch_stick.size = Vector2(200, 200)
+	controls.add_child(touch_stick)
+	navigation = preload("res://navigation_map.gd").new()
+	controls.add_child(navigation)
+	map_button = _button("Y  MAP")
+	map_button.position = Vector2(1040, 125)
+	map_button.custom_minimum_size = Vector2(190, 48)
+	map_button.size = Vector2(190, 48)
+	map_button.pressed.connect(_toggle_map)
+	controls.add_child(map_button)
 	interact_button = _button("B  INTERACT")
 	interact_button.position = Vector2(1020, 570)
 	interact_button.size = Vector2(200, 70)
@@ -241,17 +255,9 @@ func _button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.custom_minimum_size = Vector2(180, 52)
+	button.focus_mode = Control.FOCUS_NONE
 	button.add_theme_font_size_override("font_size", 20)
 	return button
-
-func _direction_button(text: String, pos: Vector2, direction: String) -> void:
-	var button := _button(text)
-	button.custom_minimum_size = Vector2(58, 58)
-	button.position = pos
-	button.size = Vector2(58, 58)
-	button.button_down.connect(func(): touch_directions[direction] = true)
-	button.button_up.connect(func(): touch_directions[direction] = false)
-	controls.add_child(button)
 
 func _clear_buttons() -> void:
 	for child in button_box.get_children():
@@ -261,7 +267,8 @@ func _dialog(title: String, text: String) -> void:
 	if is_instance_valid(audio_director):
 		audio_director.stop_voice()
 	interaction_open = true
-	touch_directions = {"up": false, "down": false, "left": false, "right": false}
+	touch_stick.reset()
+	camera_touch_id = -1
 	if is_instance_valid(player):
 		player.play_motion("Idle")
 	controls.hide()
@@ -280,8 +287,15 @@ func _dialog(title: String, text: String) -> void:
 
 func _option(text: String, action: Callable) -> void:
 	var button := _button(text)
+	button.focus_mode = Control.FOCUS_ALL
 	button.pressed.connect(action)
+	var first := true
+	for child in button_box.get_children():
+		if not child.is_queued_for_deletion():
+			first = false
 	button_box.add_child(button)
+	if first:
+		button.call_deferred("grab_focus")
 
 func _close_dialog() -> void:
 	audio_director.stop_voice()
@@ -290,6 +304,10 @@ func _close_dialog() -> void:
 	controls.show()
 	hud.show()
 	_update_hud()
+	_update_navigation()
+	var focused := get_viewport().gui_get_focus_owner()
+	if is_instance_valid(focused):
+		focused.release_focus()
 
 func _show_title() -> void:
 	audio_director.stop_voice()
@@ -305,6 +323,7 @@ func _new_game() -> void:
 	witness_choice = ""
 	encounter_choice = ""
 	combat_active = false
+	camera_yaw = 0.0
 	encounter.set_progress(stage)
 	player.position = Vector3(0, 0, 18.0)
 	_update_camera()
@@ -545,7 +564,26 @@ func _complete_encounter(choice: String) -> void:
 	audio_director.play_voice(voice_path)
 	_option("CONTINUE", _close_dialog)
 
+func _toggle_map() -> void:
+	navigation.set_expanded(not navigation.expanded)
+
+func _update_navigation() -> void:
+	var target := Vector3.ZERO
+	var label := ""
+	match stage:
+		1:
+			target = witness.position
+			label = "SADE"
+		2:
+			target = encounter.van.position
+			label = "VAN"
+		3:
+			target = encounter.collector.position
+			label = "COLLECTOR"
+	navigation.set_navigation(player.position, player.rotation.y, target, label, not label.is_empty())
+
 func _update_hud() -> void:
+	_update_navigation()
 	interact_button.visible = not combat_active
 	strike_button.visible = combat_active
 	guard_button.visible = combat_active
@@ -555,7 +593,7 @@ func _update_hud() -> void:
 		message.text = "GUARDING" if guard_timer > 0.0 else ("Guard recovering" if guard_cooldown > 0.0 else "Guard ready")
 	elif stage == 1:
 		objective.text = "OBJECTIVE  /  Find the witness at the market stall"
-		hint.text = "Move with touch arrows or WASD. Approach Sade and interact."
+		hint.text = "Follow the map to Sade. B: interact. Drag right side to look."
 		message.text = ""
 	elif stage == 2:
 		objective.text = "OBJECTIVE  /  Inspect the damaged van"
@@ -581,55 +619,69 @@ func _process(delta: float) -> void:
 		_process_fight(delta)
 		if interaction_open:
 			return
-	var x := float(Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT) or touch_directions["right"]) - float(Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT) or touch_directions["left"])
-	var z := float(Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN) or touch_directions["down"]) - float(Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP) or touch_directions["up"])
-	var direction := Vector2(x, z).limit_length(1.0)
-	if direction.length_squared() > 0.001:
-		player.rotation.y = lerp_angle(player.rotation.y, atan2(direction.x, direction.y), minf(delta * 9.0, 1.0))
+	var direction := Input.get_vector("move_left", "move_right", "move_forward", "move_back", 0.18)
+	if touch_stick.value.length_squared() > direction.length_squared():
+		direction = touch_stick.value
+	var camera_input := Input.get_axis("camera_left", "camera_right")
+	camera_yaw -= camera_input * delta * 1.8
+	var world_direction := Vector3(direction.x, 0, direction.y).rotated(Vector3.UP, camera_yaw)
+	if world_direction.length_squared() > 0.001:
+		player.rotation.y = lerp_angle(player.rotation.y, atan2(world_direction.x, world_direction.z), minf(delta * 9.0, 1.0))
 		if not combat_active or strike_cooldown <= 0.30:
 			player.play_motion("Walk")
 	else:
 		if not combat_active or strike_cooldown <= 0.30:
 			player.play_motion("Idle")
-	player.position.x = clampf(player.position.x + direction.x * 2.0 * delta, -10.5, 10.5)
-	player.position.z = clampf(player.position.z + direction.y * 2.0 * delta, -12.0, 20.5)
+	player.position.x = clampf(player.position.x + world_direction.x * 2.0 * delta, -10.5, 10.5)
+	player.position.z = clampf(player.position.z + world_direction.z * 2.0 * delta, -12.0, 20.5)
 	_update_camera()
-	if Input.is_action_just_pressed("ui_accept") and not combat_active:
-		_interact()
-	if combat_active and Input.is_key_pressed(KEY_J):
-		_strike()
-	if combat_active and Input.is_key_pressed(KEY_K):
-		_guard()
+	_update_navigation()
 
 func _unhandled_input(event: InputEvent) -> void:
-	# X advances a single dialogue beat, never silently chooses between options.
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_X and interaction_open and overlay.visible:
-		var available: Array[Button] = []
-		for child in button_box.get_children():
-			if child is Button and not child.is_queued_for_deletion():
-				available.append(child)
-		if available.size() == 1:
-			available[0].pressed.emit()
-			get_viewport().set_input_as_handled()
+	# X advances a single dialogue beat, but never silently selects a choice.
+	if interaction_open and overlay.visible:
+		if event.is_action_pressed("game_dialogue"):
+			var available: Array[Button] = []
+			for child in button_box.get_children():
+				if child is Button and not child.is_queued_for_deletion():
+					available.append(child)
+			if available.size() == 1:
+				available[0].pressed.emit()
+				get_viewport().set_input_as_handled()
+		return
+	if not game_started or stage == 0:
+		return
+	if event.is_action_pressed("game_map"):
+		_toggle_map()
+		get_viewport().set_input_as_handled()
+	elif combat_active and event.is_action_pressed("game_strike"):
+		_strike()
+		get_viewport().set_input_as_handled()
+	elif combat_active and event.is_action_pressed("game_guard"):
+		_guard()
+		get_viewport().set_input_as_handled()
+	elif not combat_active and event.is_action_pressed("game_interact"):
+		_interact()
+		get_viewport().set_input_as_handled()
+	elif event is InputEventScreenTouch:
+		if event.pressed and camera_touch_id == -1 and event.position.x > 500 and not navigation.get_global_rect().has_point(event.position):
+			camera_touch_id = event.index
+		elif not event.pressed and event.index == camera_touch_id:
+			camera_touch_id = -1
+	elif event is InputEventScreenDrag and event.index == camera_touch_id:
+		camera_yaw -= event.relative.x * 0.006
+		_update_camera()
 
 func _save_game() -> void:
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if file == null:
-		message.text = "Save failed. This blockout does not yet provide save recovery."
-		return
-	file.store_string(JSON.stringify({"version": SAVE_VERSION, "stage": stage, "witness_choice": witness_choice, "encounter_choice": encounter_choice, "x": player.position.x, "z": player.position.z}))
-	file.close()
+	var data := {"version": SAVE_VERSION, "stage": stage, "witness_choice": witness_choice, "encounter_choice": encounter_choice, "x": player.position.x, "z": player.position.z}
+	if not preload("res://save_store.gd").write(data, _validate_save):
+		message.text = "Save failed. The last valid checkpoint remains available."
 
 func _read_save() -> Dictionary:
-	if not FileAccess.file_exists(SAVE_PATH):
-		return {}
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if file == null:
-		return {}
-	var result: Variant = JSON.parse_string(file.get_as_text())
-	if not result is Dictionary:
-		return {}
-	var data: Dictionary = result
+	return preload("res://save_store.gd").read(_validate_save)
+
+func _validate_save(source: Dictionary) -> Dictionary:
+	var data := source.duplicate(true)
 	var version := int(data.get("version", -1))
 	var saved_stage := int(data.get("stage", -1))
 	if version not in [1, SAVE_VERSION] or saved_stage < 1 or saved_stage > (2 if version == 1 else 4):

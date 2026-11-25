@@ -83,6 +83,25 @@ func _run() -> void:
 	check(main.audio_director.voice.stream.resource_path.ends_with("eli_window.wav"), "Eli's first voiced line loads automatically")
 	await create_timer(35.0).timeout
 	check(main.stage == 1 and main.controls.visible and main.hud.visible, "automatic call ends and starts gameplay")
+	check(main.navigation.has_target and main.navigation.target_name == "SADE" and main.navigation.target_position == main.witness.position, "map points to the active witness")
+	check(InputMap.has_action("move_left") and InputMap.has_action("game_interact") and InputMap.has_action("game_map"), "keyboard and gamepad semantic actions are configured")
+	var touch := InputEventScreenTouch.new()
+	touch.index = 2
+	touch.pressed = true
+	touch.position = main.touch_stick.global_position + main.touch_stick.size * 0.5 + Vector2(50, 0)
+	main.touch_stick._input(touch)
+	check(main.touch_stick.finger == 2 and main.touch_stick.value.x > 0.0, "analog touch stick captures a finger")
+	var other := InputEventScreenTouch.new()
+	other.index = 3
+	other.pressed = false
+	main.touch_stick._input(other)
+	check(main.touch_stick.finger == 2, "other finger release does not cancel movement")
+	touch.pressed = false
+	main.touch_stick._input(touch)
+	check(main.touch_stick.finger == -1 and main.touch_stick.value == Vector2.ZERO, "touch release resets movement")
+	main._toggle_map()
+	check(main.navigation.expanded, "map expands")
+	main._toggle_map()
 	check(not main.cinematic.hold_answer_shot and not is_instance_valid(main.cinematic.shot), "call completion releases performance and restores gameplay")
 	check(main.player.position.z > 15.0, "player begins at the warehouse checkpoint")
 	main.player.play_motion("Walk")
@@ -100,9 +119,9 @@ func _run() -> void:
 	check(main.audio_director.voice.stream.resource_path.ends_with("sade_reassure.wav"), "reassurance plays the corresponding Sade line")
 	main._follow_lead()
 	var previous_x: float = main.player.position.x
-	main.touch_directions["right"] = true
+	main.touch_stick.value = Vector2.RIGHT
 	main._process(0.25)
-	main.touch_directions["right"] = false
+	main.touch_stick.reset()
 	check(main.stage == 2 and main.player.position.x > previous_x and main.encounter.van.visible, "witness lead unlocks the 3D van")
 	main.player.position = main.encounter.van.position + Vector3(0, 0, 2)
 	main._interact()
@@ -112,8 +131,17 @@ func _run() -> void:
 	main._bargain()
 	main._bargain_agreement()
 	check(main.stage == 3 and main.encounter_choice == "", "bargain is not committed before confirmation")
+	for slot in ["user://leverage_save_a.json", "user://leverage_save_b.json"]:
+		DirAccess.remove_absolute(slot)
 	main._complete_encounter("bargain")
+	main._update_navigation()
 	check(main.stage == 4 and main._read_save().get("encounter_choice") == "bargain", "confirmed obligation survives save")
+	check(not main.navigation.has_target, "map removes marker when the playable lead ends")
+	main._save_game()
+	var slot_b := FileAccess.open("user://leverage_save_b.json", FileAccess.WRITE)
+	slot_b.store_string("corrupt")
+	slot_b.close()
+	check(main._read_save().get("encounter_choice") == "bargain", "damaged latest snapshot falls back to previous checkpoint")
 	check(main.audio_director.voice.stream.resource_path.ends_with("tessa_bargain.wav"), "Tessa responds to the bargain")
 	main._continue_game()
 	check(main.stage == 4 and main.encounter_choice == "bargain" and not main.encounter.collector.visible, "continue restores the committed result")
@@ -149,6 +177,8 @@ func _run() -> void:
 	check(main.stage == 4 and main.encounter_choice == "fight" and main._read_save().get("encounter_choice") == "fight", "three in-range hits resolve and save the fight")
 	main._complete_encounter("withdraw")
 	check(main._read_save().get("encounter_choice") == "withdraw" and main.audio_director.voice.stream.resource_path.ends_with("tessa_escape.wav"), "withdrawal records no bargain and plays its response")
+	for slot in ["user://leverage_save_a.json", "user://leverage_save_b.json"]:
+		DirAccess.remove_absolute(slot)
 	var save_file := FileAccess.open(main.SAVE_PATH, FileAccess.WRITE)
 	save_file.store_string(JSON.stringify({"version": 1, "stage": 2, "witness_choice": "pressure", "x": 0.0, "z": -7.0}))
 	save_file.close()
