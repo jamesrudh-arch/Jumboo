@@ -44,7 +44,7 @@ func _ready() -> void:
 	actions.custom_minimum_size = Vector2(350, 0)
 	actions.add_theme_constant_override("separation", 12)
 	canvas.add_child(actions)
-	_label("STORY / M01     •     BUILD 02", Vector2(69, 667), Vector2(400, 28), 14, Color("a1b1b4"))
+	_label("STORY / M01     •     BUILD 03", Vector2(69, 667), Vector2(400, 28), 14, Color("a1b1b4"))
 	canvas.hide()
 
 func _label(text: String, pos: Vector2, size: Vector2, points: int, color: Color) -> Label:

@@ -1,20 +1,18 @@
 extends CanvasLayer
 
-# Temporary presentation: generated still artwork, real UI text, no character animation.
-# The intent is to establish sequence and pacing before a final cinematic is produced.
+# Studio/title use a 3D shot; the subsequent story setup still uses temporary
+# still artwork and does not yet contain the requested character performance.
 var canvas: Control
 var backdrop: TextureRect
 var shade: ColorRect
 var headline: Label
 var subtitle: Label
-var phone: PanelContainer
 var skip_button: Button
 var generation := 0
 var completion: Callable
 var shot: Node3D
 var previous_camera: Camera3D
 var skip_armed := false
-var studio_mark: Control
 
 func _ready() -> void:
 	layer = 10
@@ -56,31 +54,6 @@ func _ready() -> void:
 	subtitle.add_theme_font_size_override("font_size", 25)
 	subtitle.add_theme_color_override("font_color", Color("bceff2"))
 	canvas.add_child(subtitle)
-	studio_mark = preload("res://studio_mark.gd").new()
-	studio_mark.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	studio_mark.position = Vector2(-43, -220)
-	studio_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	canvas.add_child(studio_mark)
-	phone = PanelContainer.new()
-	phone.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	phone.offset_left = -150
-	phone.offset_right = 150
-	phone.offset_top = 95
-	phone.offset_bottom = 260
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("eafaff")
-	style.border_color = Color("95f8ff")
-	style.set_border_width_all(4)
-	style.set_corner_radius_all(18)
-	phone.add_theme_stylebox_override("panel", style)
-	var phone_text := Label.new()
-	phone_text.text = "INCOMING CALL\nELI"
-	phone_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	phone_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	phone_text.add_theme_font_size_override("font_size", 23)
-	phone_text.add_theme_color_override("font_color", Color("172b34"))
-	phone.add_child(phone_text)
-	canvas.add_child(phone)
 	skip_button = Button.new()
 	skip_button.text = "SKIP INTRO"
 	skip_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -99,19 +72,19 @@ func opening(done: Callable) -> void:
 	skip_armed = false
 	skip_button.text = "SKIP INTRO"
 	canvas.show()
-	phone.hide()
-	shade.color = Color(0.01, 0.01, 0.02, 0.94)
-	studio_mark.show()
 	headline.add_theme_font_override("font", load("res://assets/fonts/Oswald.ttf"))
-	headline.text = "D’YOUNGS GAMES"
-	subtitle.text = "PRESENTS"
+	headline.text = ""
+	subtitle.text = ""
+	backdrop.hide()
+	shade.color = Color(0, 0, 0, 0)
+	previous_camera = get_viewport().get_camera_3d()
+	shot = preload("res://studio_intro_3d.gd").new()
+	shot.position = Vector3(400, 0, 400)
+	get_parent().add_child(shot)
 	await get_tree().create_timer(3.5).timeout
 	if current != generation:
 		return
-	studio_mark.hide()
-	shade.color = Color(0.02, 0.03, 0.05, 0.64)
-	headline.text = "LEVERAGE"
-	subtitle.text = "C I N D E R   C I T Y\nEVERYONE HAS LEVERAGE ON YOU."
+	shot.reveal_title()
 	await get_tree().create_timer(4.5).timeout
 	if current == generation:
 		_finish()
@@ -123,8 +96,6 @@ func prologue(done: Callable) -> void:
 	skip_armed = false
 	skip_button.text = "SKIP CINEMATIC"
 	canvas.show()
-	phone.hide()
-	studio_mark.hide()
 	shade.color = Color(0.02, 0.03, 0.05, 0.5)
 	headline.text = "CINDER CITY"
 	subtitle.text = "A city that never forgets what it is owed."
@@ -190,7 +161,6 @@ func _finish() -> void:
 	subtitle.offset_top = 0
 	subtitle.offset_bottom = 115
 	canvas.hide()
-	phone.hide()
 	var done := completion
 	completion = Callable()
 	if done.is_valid():
