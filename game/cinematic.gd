@@ -14,6 +14,7 @@ var completion: Callable
 var shot: Node3D
 var previous_camera: Camera3D
 var skip_armed := false
+var studio_mark: Control
 
 func _ready() -> void:
 	layer = 10
@@ -55,6 +56,11 @@ func _ready() -> void:
 	subtitle.add_theme_font_size_override("font_size", 25)
 	subtitle.add_theme_color_override("font_color", Color("bceff2"))
 	canvas.add_child(subtitle)
+	studio_mark = preload("res://studio_mark.gd").new()
+	studio_mark.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	studio_mark.position = Vector2(-43, -220)
+	studio_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(studio_mark)
 	phone = PanelContainer.new()
 	phone.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	phone.offset_left = -150
@@ -95,11 +101,14 @@ func opening(done: Callable) -> void:
 	canvas.show()
 	phone.hide()
 	shade.color = Color(0.01, 0.01, 0.02, 0.94)
+	studio_mark.show()
+	headline.add_theme_font_override("font", load("res://assets/fonts/Oswald.ttf"))
 	headline.text = "D’YOUNGS GAMES"
 	subtitle.text = "PRESENTS"
 	await get_tree().create_timer(3.5).timeout
 	if current != generation:
 		return
+	studio_mark.hide()
 	shade.color = Color(0.02, 0.03, 0.05, 0.64)
 	headline.text = "LEVERAGE"
 	subtitle.text = "C I N D E R   C I T Y\nEVERYONE HAS LEVERAGE ON YOU."
@@ -115,6 +124,7 @@ func prologue(done: Callable) -> void:
 	skip_button.text = "SKIP CINEMATIC"
 	canvas.show()
 	phone.hide()
+	studio_mark.hide()
 	shade.color = Color(0.02, 0.03, 0.05, 0.5)
 	headline.text = "CINDER CITY"
 	subtitle.text = "A city that never forgets what it is owed."
@@ -152,6 +162,11 @@ func prologue(done: Callable) -> void:
 	await get_tree().create_timer(5.0).timeout
 	if current == generation:
 		_finish()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if canvas.visible and event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_X:
+		_skip()
+		get_viewport().set_input_as_handled()
 
 func _skip() -> void:
 	if not skip_armed:

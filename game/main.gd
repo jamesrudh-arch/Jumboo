@@ -26,12 +26,15 @@ var dialog_text: Label
 var button_box: VBoxContainer
 var controls: Control
 var cinematic: CanvasLayer
+var title_screen: CanvasLayer
 
 func _ready() -> void:
 	_build_world()
 	_build_ui()
 	cinematic = preload("res://cinematic.gd").new()
 	add_child(cinematic)
+	title_screen = preload("res://title_screen.gd").new()
+	add_child(title_screen)
 	controls.hide()
 	overlay.hide()
 	cinematic.opening(_show_title)
@@ -62,6 +65,10 @@ func _build_world() -> void:
 	player = _person(Color("90c4ca"), Vector3(0, 0, 7))
 	witness = _person(Color("e8a8bb"), Vector3(-3.8, 0, -7))
 	_box(Vector3(2.0, 1.0, 1.1), Vector3(-5.0, 0.5, -7), Color("65584f"))
+	_prop("wooden_crate", Vector3(-4.65, 0, -8.2), 0.8)
+	_prop("wooden_crate", Vector3(-4.6, 0, -9.3), 0.6)
+	_prop("tyre", Vector3(4.5, 0.35, -4), 0.8)
+	_prop("hanging_lamp", Vector3(-3.8, 3.6, -7), 0.65)
 	var lamp := OmniLight3D.new()
 	lamp.position = Vector3(-3, 4, -6)
 	lamp.light_color = CYAN
@@ -87,21 +94,18 @@ func _box(size: Vector3, pos: Vector3, color: Color) -> MeshInstance3D:
 	add_child(node)
 	return node
 
-func _person(color: Color, pos: Vector3) -> Node3D:
-	var root := Node3D.new()
-	root.position = pos
-	add_child(root)
-	var body := MeshInstance3D.new()
-	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.35
-	mesh.height = 1.6
-	body.mesh = mesh
-	body.position.y = 0.8
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	body.material_override = mat
-	root.add_child(body)
-	return root
+func _prop(asset: String, pos: Vector3, size_factor: float) -> void:
+	var scene := load("res://assets/props/" + asset + ".glb") as PackedScene
+	var instance := scene.instantiate() as Node3D
+	instance.position = pos
+	instance.scale = Vector3.ONE * size_factor
+	add_child(instance)
+
+func _person(_color: Color, pos: Vector3) -> Node3D:
+	var person := preload("res://character.gd").new()
+	person.position = pos
+	add_child(person)
+	return person
 
 func _update_camera() -> void:
 	camera.position = player.position + Vector3(0, 7.0, 10.0)
@@ -210,10 +214,10 @@ func _close_dialog() -> void:
 	_update_hud()
 
 func _show_title() -> void:
-	_dialog("D’YOUNGS GAMES  /  LEVERAGE", "CINDER CITY\nEVERYONE HAS LEVERAGE ON YOU.\n\nM01: LAST CALL — temporary 3D story blockout\nThis is an early test, not final art or a complete game.")
-	_option("NEW GAME", _new_game)
-	if _read_save().size() > 0:
-		_option("CONTINUE", _continue_game)
+	interaction_open = true
+	overlay.hide()
+	controls.hide()
+	title_screen.show_menu(_new_game, _continue_game, not _read_save().is_empty())
 
 func _new_game() -> void:
 	stage = 0
@@ -295,8 +299,13 @@ func _process(delta: float) -> void:
 	var x := float(Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT) or touch_directions["right"]) - float(Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT) or touch_directions["left"])
 	var z := float(Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN) or touch_directions["down"]) - float(Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP) or touch_directions["up"])
 	var direction := Vector2(x, z).limit_length(1.0)
-	player.position.x = clampf(player.position.x + direction.x * 4.0 * delta, -5.4, 5.4)
-	player.position.z = clampf(player.position.z + direction.y * 4.0 * delta, -12.0, 12.0)
+	if direction.length_squared() > 0.001:
+		player.rotation.y = lerp_angle(player.rotation.y, atan2(direction.x, direction.y), minf(delta * 9.0, 1.0))
+		player.play_motion("Walk")
+	else:
+		player.play_motion("Idle")
+	player.position.x = clampf(player.position.x + direction.x * 2.0 * delta, -5.4, 5.4)
+	player.position.z = clampf(player.position.z + direction.y * 2.0 * delta, -12.0, 12.0)
 	_update_camera()
 	if Input.is_action_just_pressed("ui_accept"):
 		_interact()
