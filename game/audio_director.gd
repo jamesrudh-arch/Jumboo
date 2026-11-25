@@ -46,11 +46,16 @@ func play_music(path: String) -> void:
 	music.play()
 	_fade_music(MUSIC_DUCKED if voice.playing else MUSIC_NORMAL, 1.0)
 
-func play_voice(path: String) -> void:
+func play_voice(path: String) -> float:
 	voice.stop()
-	voice.stream = load(path) as AudioStream
+	voice.stream = load(path) as AudioStream if ResourceLoader.exists(path) else null
+	if voice.stream == null:
+		push_warning("Voice asset could not be loaded: " + path)
+		_fade_music(MUSIC_NORMAL, 0.7)
+		return 0.0
 	_fade_music(MUSIC_DUCKED, 0.12)
 	voice.play()
+	return voice.stream.get_length()
 
 func stop_voice() -> void:
 	voice.stop()

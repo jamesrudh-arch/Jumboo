@@ -8,6 +8,7 @@ var title_group: Node3D
 var city_text: MeshInstance3D
 var key_light: OmniLight3D
 var emblem_ring: Node3D
+var title_backdrop: MeshInstance3D
 var timer := 0.0
 var phase := "studio"
 
@@ -67,6 +68,19 @@ func _ready() -> void:
 	_make_text(studio_group, "P R E S E N T S", -0.85, 2.25, 0.025, cyan)
 	_bar(studio_group, Vector3(-1.0, 0.35, 0.03), Vector3(1.9, 0.025, 0.06), cyan)
 	_bar(studio_group, Vector3(1.0, 0.35, 0.03), Vector3(1.9, 0.025, 0.06), cyan)
+	# Original AI-generated key art is a flat cinematic backdrop, not 3D
+	# characters. Keep it behind the actual extruded title geometry.
+	title_backdrop = MeshInstance3D.new()
+	var art_plane := QuadMesh.new()
+	art_plane.size = Vector2(12.6, 7.09)
+	title_backdrop.mesh = art_plane
+	title_backdrop.position = Vector3(0, 0, -1.0)
+	var art_material := StandardMaterial3D.new()
+	art_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	art_material.albedo_texture = load("res://assets/title_character_backdrop.png")
+	title_backdrop.material_override = art_material
+	title_backdrop.hide()
+	add_child(title_backdrop)
 	title_group = Node3D.new()
 	add_child(title_group)
 	_make_text(title_group, "LEVERAGE", 0.55, 6.1, 0.40, silver)
@@ -142,6 +156,7 @@ func reveal_title() -> void:
 	phase = "title"
 	timer = 0.0
 	studio_group.hide()
+	title_backdrop.show()
 	title_group.show()
 	city_text.hide()
 

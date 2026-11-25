@@ -88,6 +88,8 @@ func opening(done: Callable) -> void:
 	if current != generation:
 		return
 	shot.reveal_title()
+	# Carry the score from the title reveal into the menu and opening.
+	get_parent().audio_director.play_music(get_parent().audio_director.PROLOGUE)
 	await get_tree().create_timer(4.5).timeout
 	if current == generation:
 		_finish()
