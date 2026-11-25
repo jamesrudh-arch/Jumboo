@@ -26,6 +26,7 @@ func _run() -> void:
 	check(main.cinematic.shot.emblem_ring.get_child(0).mesh is TorusMesh, "studio emblem uses three-dimensional ring geometry")
 	main.cinematic.shot.reveal_title()
 	check(main.cinematic.shot.title_group.visible and not main.cinematic.shot.studio_group.visible, "3D game title replaces studio mark")
+	check(main.cinematic.shot.title_backdrop.visible and main.cinematic.shot.title_backdrop.material_override.albedo_texture != null, "title reveals character and city artwork behind 3D lettering")
 	var game_title_mesh = main.cinematic.shot.title_group.get_child(0).mesh
 	check(game_title_mesh is TextMesh and game_title_mesh.depth > 0.0 and game_title_mesh.get_faces().size() > 0, "game title has extruded geometry")
 	main.cinematic.shot._process(1.0)
@@ -81,6 +82,7 @@ func _run() -> void:
 	check(main.cinematic.shot.attached and main.cinematic.shot.speaker == "eli", "skipped pickup resolves to held pose and listening beat")
 	check(not main.overlay.visible and not main.cinematic.canvas.visible, "call plays without text by default")
 	check(main.audio_director.voice.stream.resource_path.ends_with("eli_window.wav"), "Eli's first voiced line loads automatically")
+	check(main.audio_director.play_voice("res://assets/voice/not_a_real_clip.wav") == 0.0, "missing voice reports a bounded fallback rather than dereferencing null")
 	await create_timer(35.0).timeout
 	check(main.stage == 1 and main.controls.visible and main.hud.visible, "automatic call ends and starts gameplay")
 	check(main.navigation.has_target and main.navigation.target_name == "SADE" and main.navigation.target_position == main.witness.position, "map points to the active witness")

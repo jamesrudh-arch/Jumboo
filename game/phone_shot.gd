@@ -31,7 +31,7 @@ func _ready() -> void:
 	_phone_text("INCOMING CALL", -0.16, 27, Color("a9d9e1"))
 	_phone_text("ELI", -0.06, 66, Color("f1fbff"))
 	_phone_text("BROTHER", 0.035, 27, Color("b8c9d1"))
-	_phone_text("ANSWERING...", 0.17, 24, Color("a9e6d7"))
+	_phone_text("INCOMING", 0.17, 24, Color("a9e6d7"))
 	_box(phone, Vector3(0.055, 0.005, 0.012), Vector3(0, 0.057, -0.275), Color("121820"), 0.3)
 	phone_light = OmniLight3D.new()
 	phone_light.position = Vector3(0, 0.12, 0)

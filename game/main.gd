@@ -372,8 +372,10 @@ func _play_automatic_call() -> void:
 		cinematic.show_call_caption(CALL_LINES[i])
 		var duration := 1.3
 		if CALL_VOICES[i] != "":
-			audio_director.play_voice(CALL_VOICES[i])
-			duration = audio_director.voice.stream.get_length() + 0.3
+			var voice_length: float = audio_director.play_voice(CALL_VOICES[i])
+			# Never strand the story on a missing or invalid audio resource.
+			# A timed beat does not prove sound was audible on a device.
+			duration = clampf(voice_length + 0.3, 1.5, 20.0)
 		else:
 			audio_director.stop_voice()
 			audio_director.play_music(audio_director.TENSION)

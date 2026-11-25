@@ -60,6 +60,14 @@ func _ready() -> void:
 	var hand := _hand_position()
 	_box(self, Vector3(1.8, 0.08, 0.85), Vector3(hand.x, hand.y - 0.05, hand.z), Color("514940"))
 	_box(self, Vector3(1.8, 0.8, 0.06), Vector3(hand.x, hand.y + 0.35, hand.z - 0.45), Color("293138"))
+	# Steel workbench supports and small dressing make the pickup surface part
+	# of the room rather than a floating slab. Placement is still provisional.
+	for x in [-0.78, 0.78]:
+		for z in [-0.32, 0.32]:
+			_box(self, Vector3(0.06, maxf(hand.y - 0.1, 0.2), 0.06), Vector3(hand.x + x, (hand.y - 0.1) * 0.5, hand.z + z), Color("252c2f"))
+	_box(self, Vector3(1.7, 0.035, 0.035), Vector3(hand.x, hand.y - 0.15, hand.z + 0.39), Color("76817e"))
+	_add_prop("wooden_crate", Vector3(-2.0, 0, -1.1), 0.55)
+	_add_prop("generator", Vector3(2.0, 0, -1.25), 0.55)
 	phone = Node3D.new()
 	add_child(phone)
 	phone.position = hand
@@ -145,6 +153,15 @@ func complete_pickup() -> void:
 	# Confirming skip resolves to the held pose, never a phone left on the table.
 	if elapsed < 2.3:
 		_process(2.3 - elapsed)
+
+func _add_prop(asset: String, pos: Vector3, factor: float) -> void:
+	var scene := load("res://assets/props/" + asset + ".glb") as PackedScene
+	if scene == null:
+		return
+	var prop := scene.instantiate() as Node3D
+	prop.position = pos
+	prop.scale = Vector3.ONE * factor
+	add_child(prop)
 
 func _box(parent: Node3D, size: Vector3, pos: Vector3, color: Color) -> MeshInstance3D:
 	var node := MeshInstance3D.new()
