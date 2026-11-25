@@ -38,6 +38,8 @@ func _run() -> void:
 	for sign in district.find_children("*", "Label3D", true, false):
 		names[sign.text] = true
 	check(names.size() >= 6, "district builds distinct 3D storefronts")
+	var facade = district.get_node("FactoryExterior")
+	check(facade.find_child("Facade_wall_door_garage_door_01", true, false) != null and facade.find_child("Facade_door_garage_door_01", true, false) != null, "textured factory facade modules are assembled in the district")
 	main.cinematic._skip()
 	check(main.cinematic.canvas.visible, "skip requires confirmation")
 	main.cinematic._skip()
@@ -55,6 +57,8 @@ func _run() -> void:
 	await create_timer(14.0).timeout
 	check(is_instance_valid(main.cinematic.shot) and main.cinematic.shot.has_method("_box") and "phone_light" in main.cinematic.shot, "3D phone shot follows workshop")
 	check(main.cinematic.shot.phone.has_node("Phone_ELI"), "3D phone displays Eli's name")
+	check(main.cinematic.shot.has_node("TexturedWoodTable") and is_equal_approx(main.cinematic.shot.phone.scale.x, 0.27), "phone close-up uses textured table and plausible handset scale")
+	check(preload("res://surface_materials.gd").get_asphalt().albedo_texture != null, "asphalt material loads")
 	var wood: StandardMaterial3D = preload("res://surface_materials.gd").get_wood()
 	check(wood.albedo_texture != null and wood.normal_enabled and wood.normal_texture != null and wood.roughness_texture != null, "2K wood color, normal and roughness maps load")
 	var concrete: StandardMaterial3D = preload("res://surface_materials.gd").get_concrete(true)

@@ -16,6 +16,7 @@ func _ready() -> void:
 	_prop("plastic_crate", Vector3(-4.7, 0, -6.8), 0.8)
 	_prop("aircon_unit", Vector3(9.8, 3.8, -3.0), 0.7)
 	_hideout()
+	_factory_exterior()
 	_harbor()
 
 func _shop(side: int, z: float, name: String, wall: String, accent: String, style: int) -> void:
@@ -95,6 +96,15 @@ func _hideout() -> void:
 	lamp.light_energy = 1.25
 	lamp.omni_range = 7
 	add_child(lamp)
+
+func _factory_exterior() -> void:
+	# Textured industrial facade at the end of the block. It is a backdrop,
+	# not yet a walkable or collision-enabled building.
+	var facade := preload("res://factory_facade.gd").new()
+	facade.name = "FactoryExterior"
+	facade.position = Vector3(-7.0, 0.0, -14.0)
+	facade.rotation.y = PI
+	add_child(facade)
 
 func _harbor() -> void:
 	# Distant harbor silhouettes set the city context; not a navigable waterfront.

@@ -6,3 +6,4 @@ Two CC0 Poly Haven materials, downloaded without resizing/recompression from com
 - Concrete Floor Worn 001, photography Dimitrios Savva, processing Rico Cilliers, https://polyhaven.com/a/concrete_floor_worn_001 — files from https://github.com/zuujis-cc0/polyhaven-textures-concrete/tree/aec5170acc4bcfe672a09f5103e2bb5f016db73d/concrete_floor_worn_001/2k
 
 Source license: https://polyhaven.com/license (CC0). The scene's wet road uses the concrete material with lower roughness; that does not add rain, puddles, or true screen-space reflections.
+- Asphalt 03, photography Charlotte Baglioni and processing Dario Barresi, https://polyhaven.com/a/asphalt_03 — 2K color, OpenGL normal and roughness from https://github.com/zuujis-cc0/polyhaven-textures-asphalt-and-bitumen/tree/a6078abb83dd42a754203a3df95007e2735b0159/asphalt_03/2k. Source resolution unchanged; reduced roughness in-game is an approximation of wet asphalt.

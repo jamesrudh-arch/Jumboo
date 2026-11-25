@@ -10,14 +10,20 @@ var elapsed := 0.0
 var was_buzzing := false
 
 func _ready() -> void:
-	var table := _box(self, Vector3(4.8, 0.12, 3.4), Vector3(0, -0.06, 0), Color("3b3937"), 0.82)
-	table.material_override = preload("res://surface_materials.gd").get_wood()
+	# Source model is a 1.13 m wide textured table; top at world y = 0.
+	var table := (load("res://assets/realistic/wooden_table_02/wooden_table_02_2k.gltf") as PackedScene).instantiate() as Node3D
+	table.name = "TexturedWoodTable"
+	table.position.y = -0.7994
+	add_child(table)
 	# Framing elements are deliberately restrained so the incoming call is the focus.
 	_box(self, Vector3(2.4, 1.3, 0.12), Vector3(0, 0.65, -1.15), Color("242a2c"), 0.9)
 	_box(self, Vector3(0.65, 0.05, 0.11), Vector3(-0.65, 0.035, -0.45), Color("8b8c87"), 0.38)
 	_box(self, Vector3(0.11, 0.04, 0.46), Vector3(0.79, 0.03, -0.35), Color("6a6b64"), 0.48)
 	phone = Node3D.new()
 	add_child(phone)
+	# The original close-up geometry was over half a metre long. Scale it to
+	# approximately 18 cm while keeping the designed screen and vibration.
+	phone.scale = Vector3.ONE * 0.27
 	phone.rotation_degrees.y = -12.0
 	_box(phone, Vector3(0.34, 0.034, 0.68), Vector3(0, 0.03, 0), Color("20252c"), 0.28)
 	_box(phone, Vector3(0.315, 0.004, 0.635), Vector3(0, 0.05, 0), Color("080b0f"), 0.18)
@@ -54,7 +60,8 @@ func _ready() -> void:
 	cool.omni_range = 3.5
 	add_child(cool)
 	camera = Camera3D.new()
-	camera.position = Vector3(0.7, 1.15, 1.75)
+	camera.position = Vector3(0.20, 0.33, 0.50)
+	camera.near = 0.02
 	camera.fov = 32.0
 	add_child(camera)
 	camera.look_at(global_position + Vector3(0, 0.02, 0), Vector3.UP)
