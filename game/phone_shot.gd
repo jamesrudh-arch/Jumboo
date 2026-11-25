@@ -7,9 +7,11 @@ var screen_material: StandardMaterial3D
 var phone_light: OmniLight3D
 var audio: AudioStreamPlayer
 var elapsed := 0.0
+var was_buzzing := false
 
 func _ready() -> void:
-	_box(self, Vector3(4.8, 0.12, 3.4), Vector3(0, -0.06, 0), Color("3b3937"), 0.82)
+	var table := _box(self, Vector3(4.8, 0.12, 3.4), Vector3(0, -0.06, 0), Color("3b3937"), 0.82)
+	table.material_override = preload("res://surface_materials.gd").get_wood()
 	# Framing elements are deliberately restrained so the incoming call is the focus.
 	_box(self, Vector3(2.4, 1.3, 0.12), Vector3(0, 0.65, -1.15), Color("242a2c"), 0.9)
 	_box(self, Vector3(0.65, 0.05, 0.11), Vector3(-0.65, 0.035, -0.45), Color("8b8c87"), 0.38)
@@ -83,6 +85,9 @@ func _process(delta: float) -> void:
 	# One repeating buzz pattern: motion, sound and light share the same rhythm.
 	var phase := fposmod(elapsed, 2.4)
 	var buzzing := phase < 0.72 or (phase >= 0.92 and phase < 1.64)
+	if buzzing and not was_buzzing:
+		preload("res://haptics.gd").pulse(130, 0.30, 0.12)
+	was_buzzing = buzzing
 	var amount := 1.0 if buzzing else 0.0
 	phone.position.x = sin(elapsed * 85.0) * 0.004 * amount
 	phone.rotation_degrees.z = sin(elapsed * 72.0) * 0.55 * amount

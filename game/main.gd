@@ -98,8 +98,15 @@ func _build_world() -> void:
 	sun.light_color = Color("b7cae4")
 	sun.light_energy = 0.55
 	add_child(sun)
-	_box(Vector3(30, 0.2, 42), Vector3(0, -0.1, 3), Color("303a43"))
-	_box(Vector3(7.5, 0.12, 38), Vector3(0, 0.02, 3), Color("19232d"))
+	var ground := _box(Vector3(30, 0.2, 42), Vector3(0, -0.1, 3), Color("303a43"))
+	var ground_mat := preload("res://surface_materials.gd").get_concrete().duplicate() as StandardMaterial3D
+	ground_mat.uv1_scale = Vector3(10, 14, 1)
+	ground.material_override = ground_mat
+	var road := _box(Vector3(7.5, 0.12, 38), Vector3(0, 0.02, 3), Color("19232d"))
+	var road_mat := preload("res://surface_materials.gd").get_concrete(true).duplicate() as StandardMaterial3D
+	road_mat.uv1_scale = Vector3(3, 12, 1)
+	road_mat.albedo_color = Color("9ea8aa")
+	road.material_override = road_mat
 	for z in [-11.0, -7.0, -3.0, 1.0, 5.0, 9.0, 13.0]:
 		_box(Vector3(0.10, 0.015, 1.25), Vector3(0, 0.095, z), Color("a99e87"))
 	_box(Vector3(3.0, 0.08, 0.4), Vector3(0, 0.12, -3), Color("c5b69b"))
@@ -490,6 +497,7 @@ func _strike() -> void:
 	audio_director.play_effect("res://assets/audio/strike.wav")
 	if player.position.distance_to(encounter.collector.position) <= 2.3:
 		enemy_health -= 1
+		preload("res://haptics.gd").pulse(70, 0.25, 0.10)
 		enemy_stagger = 0.45
 		encounter.collector.play_motion("Hit_Chest")
 		telegraph = false
@@ -536,6 +544,7 @@ func _process_fight(delta: float) -> void:
 			opponent.play_motion("Punch_Jab")
 			if distance <= 2.3 and guard_timer <= 0.0:
 				player_health -= 1
+				preload("res://haptics.gd").pulse(150, 0.4, 0.3)
 				audio_director.play_effect("res://assets/audio/impact.wav")
 				if player_health <= 0:
 					_fight_failed()

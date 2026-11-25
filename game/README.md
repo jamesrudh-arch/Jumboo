@@ -37,3 +37,5 @@ Left stick / WASD moves relative to the camera. Right stick / Q and E rotates it
 
 ### Opening troubleshooting
 If the call appears stuck or silent in Xogot, allow imports to complete, check device volume and the Xogot debugger, and record the Xogot/Godot version and exact error if available. Captions can be enabled in the title menu for diagnosis; the intended call still advances automatically. The current fallback prevents a missing voice file from stopping progression, but device playback and the reported hang have not been verified fixed. The title background is original AI-generated 2D key art, not footage of the game.
+
+The title menu has an optional vibration toggle. Phone buzzes and combat impacts request handheld vibration or controller rumble; actual behavior depends on hardware, iOS settings and Xogot and has not been device-tested. The new 2K wood and concrete material maps are credited in `assets/materials/README.md`; they are an early physical-material pass, not the finished realistic world.
