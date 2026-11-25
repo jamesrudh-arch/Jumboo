@@ -271,6 +271,14 @@ func _dialog(title: String, text: String) -> void:
 	if is_instance_valid(player):
 		player.play_motion("Idle")
 	controls.hide()
+	# The answered call stays in the 3D performance instead of replacing it
+	# with a full-screen page. Other dialogue retains the existing layout.
+	if title == "ELI  /  CALL" and cinematic.hold_answer_shot:
+		overlay.position = Vector2(130, 470)
+		overlay.size = Vector2(1020, 220)
+	else:
+		overlay.position = Vector2(280, 115)
+		overlay.size = Vector2(720, 490)
 	overlay.show()
 	dialog_title.text = title
 	dialog_text.text = text
@@ -310,6 +318,7 @@ func _new_game() -> void:
 	cinematic.prologue(_call_screen)
 
 func _continue_game() -> void:
+	cinematic.close_held_shot()
 	var saved := _read_save()
 	if saved.is_empty():
 		_show_title()
@@ -340,6 +349,9 @@ func _answer_dialogue() -> void:
 
 func _show_call_line() -> void:
 	_dialog("ELI  /  CALL", CALL_LINES[call_line_index])
+	if cinematic.hold_answer_shot and is_instance_valid(cinematic.shot):
+		var speaker := "marcus" if call_line_index in [1, 4] else ("eli" if call_line_index < 6 else "")
+		cinematic.shot.set_speaker(speaker)
 	if CALL_VOICES[call_line_index] != "":
 		audio_director.play_voice(CALL_VOICES[call_line_index])
 	else:
@@ -366,6 +378,7 @@ func _decline_call() -> void:
 	_option("CONTINUE", _finish_call)
 
 func _finish_call() -> void:
+	cinematic.close_held_shot()
 	audio_director.stop_voice()
 	audio_director.play_music(audio_director.TENSION)
 	stage = 1
