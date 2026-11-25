@@ -10,7 +10,7 @@ This build uses **temporary licensed score**, not music composed exclusively for
 
 ## Dialogue
 
-The files in `../voice/` are AI-synthesized spoken performances. The user selected Marcus, Eli, Tessa and Sade; the collector was automatically assigned because only one suitable voice was available in the audition. The answered call, Tessa's lines, Sade's witness encounter and the collector conversation are voiced. Narrative descriptions and incidental gameplay text are not spoken. The performances are preliminary; voice direction, editing, sound mix, phone processing and listening/device review remain outstanding.
+The files in `../voice/` are AI-synthesized spoken performances. The user selected Marcus, Eli, Tessa and Sade; the collector was automatically assigned because only one suitable voice was available in the audition. The automatically answered call, Tessa's later lines, Sade's witness encounter and the collector conversation are voiced. The previous Tessa missed-call line remains in the project but is not used by the automatic opening. Narrative descriptions and incidental gameplay text are not spoken. The performances are preliminary; voice direction, editing, sound mix, phone processing and listening/device review remain outstanding.
 
 ## Design references
 

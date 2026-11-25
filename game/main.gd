@@ -40,6 +40,8 @@ var dialog_title: Label
 var dialog_text: Label
 var button_box: VBoxContainer
 var controls: Control
+var hud: Control
+var call_sequence_id := 0
 var call_line_index := 0
 const CALL_LINES := [
 	"ELI: You still owe me for the window.",
@@ -73,6 +75,7 @@ func _ready() -> void:
 	title_screen = preload("res://title_screen.gd").new()
 	add_child(title_screen)
 	controls.hide()
+	hud.hide()
 	overlay.hide()
 	cinematic.opening(_show_title)
 
@@ -91,25 +94,15 @@ func _build_world() -> void:
 	sun.light_color = Color("b7cae4")
 	sun.light_energy = 0.55
 	add_child(sun)
-	_box(Vector3(24, 0.2, 30), Vector3(0, -0.1, 0), Color("303a43"))
-	_box(Vector3(7.5, 0.12, 30), Vector3(0, 0.02, 0), Color("19232d"))
-	# Abstract buildings leave the road and footpaths accessible.
-	for z in [-10.0, -4.0, 2.0, 8.0]:
-		_box(Vector3(5, 4.5, 4.8), Vector3(-8.5, 2.25, z), Color("28303b"))
-		_box(Vector3(5, 5.5, 4.8), Vector3(8.5, 2.75, z), Color("33333e"))
-		_box(Vector3(1.8, 0.12, 0.05), Vector3(-5.98, 3.5, z), PINK if z == 2.0 else Color("57727b"))
-		# Repeated bays and window recesses give the block a readable scale.
-		for offset in [-1.35, 0.0, 1.35]:
-			_box(Vector3(0.06, 1.1, 0.78), Vector3(-5.96, 2.2, z + offset), Color("62747a"))
-			_box(Vector3(0.06, 1.1, 0.78), Vector3(5.96, 2.8, z + offset), Color("475f69"))
-		_box(Vector3(0.14, 0.18, 4.7), Vector3(-5.95, 1.25, z), Color("6b716c"))
-		_box(Vector3(0.14, 0.18, 4.7), Vector3(5.95, 1.3, z), Color("6b716c"))
-	for z in [-11.0, -7.0, -3.0, 1.0, 5.0, 9.0]:
+	_box(Vector3(30, 0.2, 42), Vector3(0, -0.1, 3), Color("303a43"))
+	_box(Vector3(7.5, 0.12, 38), Vector3(0, 0.02, 3), Color("19232d"))
+	for z in [-11.0, -7.0, -3.0, 1.0, 5.0, 9.0, 13.0]:
 		_box(Vector3(0.10, 0.015, 1.25), Vector3(0, 0.095, z), Color("a99e87"))
-	_box(Vector3(0.16, 4.2, 0.16), Vector3(4.9, 2.1, -1.0), Color("3d4649"))
-	_box(Vector3(0.7, 0.08, 0.18), Vector3(4.6, 4.15, -1.0), Color("8d928b"))
 	_box(Vector3(3.0, 0.08, 0.4), Vector3(0, 0.12, -3), Color("c5b69b"))
-	player = _person(Color("90c4ca"), Vector3(0, 0, 7))
+	var district := preload("res://district.gd").new()
+	district.name = "CinderDistrict"
+	add_child(district)
+	player = _person(Color("90c4ca"), Vector3(0, 0, 18.0))
 	witness = _person(Color("e8a8bb"), Vector3(-3.8, 0, -7))
 	var witness_marker := Label3D.new()
 	witness_marker.name = "WitnessMarker"
@@ -166,8 +159,8 @@ func _person(color: Color, pos: Vector3) -> Node3D:
 	return person
 
 func _update_camera() -> void:
-	camera.position = player.position + Vector3(0, 7.0, 10.0)
-	camera.look_at(player.position + Vector3(0, 0.8, -1.2), Vector3.UP)
+	camera.position = player.position + Vector3(0, 3.3, 6.2)
+	camera.look_at(player.position + Vector3(0, 1.0, -1.0), Vector3.UP)
 
 func _build_ui() -> void:
 	var layer := CanvasLayer.new()
@@ -177,6 +170,7 @@ func _build_ui() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(root)
 	var top := VBoxContainer.new()
+	hud = top
 	top.position = Vector2(32, 24)
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(top)
@@ -294,6 +288,7 @@ func _close_dialog() -> void:
 	interaction_open = false
 	overlay.hide()
 	controls.show()
+	hud.show()
 	_update_hud()
 
 func _show_title() -> void:
@@ -311,11 +306,15 @@ func _new_game() -> void:
 	encounter_choice = ""
 	combat_active = false
 	encounter.set_progress(stage)
-	player.position = Vector3(0, 0, 7)
+	player.position = Vector3(0, 0, 18.0)
+	_update_camera()
 	game_started = true
 	overlay.hide()
 	controls.hide()
-	cinematic.prologue(_call_screen)
+	hud.hide()
+	call_sequence_id += 1
+	cinematic.show_captions = title_screen.subtitles_enabled
+	cinematic.prologue(_automatic_answer)
 
 func _continue_game() -> void:
 	cinematic.close_held_shot()
@@ -334,50 +333,41 @@ func _continue_game() -> void:
 	_update_camera()
 	_close_dialog()
 
-func _call_screen() -> void:
-	_dialog("INCOMING CALL  /  ELI", "The phone vibrates on the workbench. Eli is calling.")
-	_option("ANSWER", _answer_call)
-	_option("DECLINE", _decline_call)
-
-func _answer_call() -> void:
+func _automatic_answer() -> void:
+	# Story calls are answered by Marcus; they do not present a choice panel.
 	overlay.hide()
-	cinematic.answer_phone(_answer_dialogue)
+	controls.hide()
+	hud.hide()
+	cinematic.answer_phone(_play_automatic_call)
 
-func _answer_dialogue() -> void:
-	call_line_index = 0
-	_show_call_line()
-
-func _show_call_line() -> void:
-	_dialog("ELI  /  CALL", CALL_LINES[call_line_index])
-	if cinematic.hold_answer_shot and is_instance_valid(cinematic.shot):
-		var speaker := "marcus" if call_line_index in [1, 4] else ("eli" if call_line_index < 6 else "")
-		cinematic.shot.set_speaker(speaker)
-	if CALL_VOICES[call_line_index] != "":
-		audio_director.play_voice(CALL_VOICES[call_line_index])
-	else:
-		audio_director.stop_voice()
-		audio_director.play_music(audio_director.TENSION)
-		audio_director.play_effect("res://assets/audio/call_lost.wav")
-	if call_line_index == 3:
-		audio_director.play_effect("res://assets/audio/engine_cut.wav")
-	if call_line_index == CALL_LINES.size() - 1:
-		_option("CONTINUE", _finish_call)
-	else:
-		_option("NEXT  /  X", _next_call_line)
-
-func _next_call_line() -> void:
-	call_line_index += 1
-	if call_line_index < CALL_LINES.size():
-		_show_call_line()
-
-func _decline_call() -> void:
-	audio_director.stop_voice()
-	audio_director.play_music(audio_director.TENSION)
-	_dialog("MISSED CALL", "Eli's call goes unanswered. Tessa catches a second vibration on the workbench.\n\nTESSA: He sent the loading lane location. You should go check on him.")
-	audio_director.play_voice("res://assets/voice/tessa_missed.wav")
-	_option("CONTINUE", _finish_call)
+func _play_automatic_call() -> void:
+	call_sequence_id += 1
+	var sequence := call_sequence_id
+	for i in CALL_LINES.size():
+		if sequence != call_sequence_id:
+			return
+		call_line_index = i
+		var speaker := "marcus" if i in [1, 4] else ("eli" if i < 6 else "")
+		if cinematic.hold_answer_shot and is_instance_valid(cinematic.shot):
+			cinematic.shot.set_speaker(speaker)
+		cinematic.show_call_caption(CALL_LINES[i])
+		var duration := 1.3
+		if CALL_VOICES[i] != "":
+			audio_director.play_voice(CALL_VOICES[i])
+			duration = audio_director.voice.stream.get_length() + 0.3
+		else:
+			audio_director.stop_voice()
+			audio_director.play_music(audio_director.TENSION)
+			audio_director.play_effect("res://assets/audio/call_lost.wav")
+		if i == 3:
+			audio_director.play_effect("res://assets/audio/engine_cut.wav")
+		await get_tree().create_timer(duration).timeout
+	if sequence == call_sequence_id:
+		_finish_call()
 
 func _finish_call() -> void:
+	call_sequence_id += 1
+	cinematic.end_call_captions()
 	cinematic.close_held_shot()
 	audio_director.stop_voice()
 	audio_director.play_music(audio_director.TENSION)
@@ -601,8 +591,8 @@ func _process(delta: float) -> void:
 	else:
 		if not combat_active or strike_cooldown <= 0.30:
 			player.play_motion("Idle")
-	player.position.x = clampf(player.position.x + direction.x * 2.0 * delta, -5.4, 5.4)
-	player.position.z = clampf(player.position.z + direction.y * 2.0 * delta, -12.0, 12.0)
+	player.position.x = clampf(player.position.x + direction.x * 2.0 * delta, -10.5, 10.5)
+	player.position.z = clampf(player.position.z + direction.y * 2.0 * delta, -12.0, 20.5)
 	_update_camera()
 	if Input.is_action_just_pressed("ui_accept") and not combat_active:
 		_interact()
@@ -654,6 +644,6 @@ func _read_save() -> Dictionary:
 		return {}
 	if not is_finite(float(data["x"])) or not is_finite(float(data["z"])):
 		return {}
-	data["x"] = clampf(float(data["x"]), -5.4, 5.4)
-	data["z"] = clampf(float(data["z"]), -12.0, 12.0)
+	data["x"] = clampf(float(data["x"]), -10.5, 10.5)
+	data["z"] = clampf(float(data["z"]), -12.0, 20.5)
 	return data

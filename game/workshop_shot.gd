@@ -69,14 +69,21 @@ func _ready() -> void:
 	fill.omni_range = 5.5
 	add_child(fill)
 	actor = preload("res://character.gd").new()
-	actor.position = Vector3(-0.45, 0, 0.05)
+	actor.position = Vector3(-0.35, 0, -0.10)
+	actor.coat_color = Color("56616a")
 	add_child(actor)
+	var actor_light := OmniLight3D.new()
+	actor_light.position = Vector3(-0.4, 2.1, 1.1)
+	actor_light.light_color = Color("ffe1ba")
+	actor_light.light_energy = 1.4
+	actor_light.omni_range = 4.0
+	add_child(actor_light)
 	actor.play_motion("Idle")
 	camera = Camera3D.new()
-	camera.position = Vector3(3.0, 1.8, 3.7)
-	camera.fov = 38
+	camera.position = Vector3(1.9, 1.5, 2.9)
+	camera.fov = 43
 	add_child(camera)
-	camera.look_at(global_position + Vector3(-0.2, 1.2, -1.0), Vector3.UP)
+	camera.look_at(actor.global_position + Vector3(0, 1.05, 0), Vector3.UP)
 	camera.make_current()
 	ambience = AudioStreamPlayer.new()
 	ambience.stream = _make_ambience()
@@ -87,8 +94,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	elapsed += delta
 	var travel := smoothstep(0.0, 12.0, elapsed)
-	camera.position = Vector3(lerpf(3.0, 2.45, travel), lerpf(1.8, 1.64, travel), lerpf(3.7, 3.0, travel))
-	camera.look_at(global_position + Vector3(-0.2, 1.16, -1.05), Vector3.UP)
+	camera.position = Vector3(lerpf(1.9, 1.55, travel), lerpf(1.5, 1.48, travel), lerpf(2.9, 2.35, travel))
+	camera.look_at(actor.global_position + Vector3(0, 1.07, 0), Vector3.UP)
 
 func _box(size: Vector3, pos: Vector3, color: String, unlit := false) -> MeshInstance3D:
 	var node := MeshInstance3D.new()
