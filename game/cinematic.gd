@@ -191,6 +191,9 @@ func end_call_captions() -> void:
 
 func close_held_shot() -> void:
 	if hold_answer_shot:
+		# Cancel any pending answer timer and its callback as well as the shot.
+		generation += 1
+		completion = Callable()
 		hold_answer_shot = false
 		_close_shot()
 

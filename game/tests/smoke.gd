@@ -123,6 +123,18 @@ func _run() -> void:
 	main._toggle_map()
 	check(not main.cinematic.hold_answer_shot and not is_instance_valid(main.cinematic.shot), "call completion releases performance and restores gameplay")
 	check(main.player.position.z > 15.0, "player begins at the warehouse checkpoint")
+	Engine.time_scale = 1.0
+	main.player.position = Vector3(3.0, 0.0, 18.0)
+	main.touch_stick.value = Vector2.RIGHT
+	await create_timer(0.8).timeout
+	main.touch_stick.reset()
+	check(main.player.position.x < 3.75, "player collision prevents crossing the warehouse wall")
+	main.camera_yaw = PI * 0.5
+	main._update_camera()
+	check(main.camera.global_position.x < 3.9, "camera ray keeps camera on the player side of the warehouse wall")
+	main.camera_yaw = 0.0
+	main._update_camera()
+	Engine.time_scale = 30.0
 	main.player.play_motion("Walk")
 	check(main.player.players.all(func(p): return p.current_animation == "Walk"), "body and clothing play same walk clip")
 	main.player.position = main.witness.position + Vector3(1, 0, 0)
@@ -139,7 +151,7 @@ func _run() -> void:
 	main._follow_lead()
 	var previous_x: float = main.player.position.x
 	main.touch_stick.value = Vector2.RIGHT
-	main._process(0.25)
+	main._physics_process(0.25)
 	main.touch_stick.reset()
 	check(main.stage == 2 and main.player.position.x > previous_x and main.encounter.van.visible, "witness lead unlocks the 3D van")
 	main.player.position = main.encounter.van.position + Vector3(0, 0, 2)
@@ -229,6 +241,18 @@ func _run() -> void:
 	check(automatic.cinematic.show_captions and automatic.cinematic.canvas.visible and not automatic.overlay.visible, "optional captions display without a choice page")
 	await create_timer(30.0).timeout
 	check(automatic.stage == 1 and not automatic.cinematic.hold_answer_shot, "voiced call naturally finishes at the checkpoint")
+	# Simulate a stalled call without waiting for the production watchdog.
+	automatic.stage = 0
+	automatic.interaction_open = true
+	automatic.call_watchdog_id += 1
+	var recovery_id: int = automatic.call_watchdog_id
+	automatic._call_timeout_recovery(recovery_id, 0.1)
+	await create_timer(0.3).timeout
+	check(automatic.stage == 1 and not automatic.interaction_open, "timed call recovery restores a playable checkpoint")
+	automatic.stage = 0
+	automatic._call_timeout_recovery(recovery_id, 0.1)
+	await create_timer(0.3).timeout
+	check(automatic.stage == 0, "stale call recovery cannot modify a later session")
 	automatic.queue_free()
 	await process_frame
 	Engine.time_scale = 1.0

@@ -1,4 +1,4 @@
-extends Node3D
+extends CharacterBody3D
 
 # Licensed interim human rig. This is not the final Marcus character design.
 var players: Array[AnimationPlayer] = []
@@ -11,6 +11,17 @@ var use_legacy_rig := false
 var model_path := "res://assets/characters/rocketbox/andre_casual.glb"
 
 func _ready() -> void:
+	# Invisible collision shell; visual characters remain the authored meshes.
+	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING
+	collision_layer = 2
+	collision_mask = 1
+	var collision := CollisionShape3D.new()
+	var shape := CapsuleShape3D.new()
+	shape.radius = 0.32
+	shape.height = 1.65
+	collision.shape = shape
+	collision.position.y = 0.85
+	add_child(collision)
 	if use_legacy_rig:
 		for path in ["res://assets/characters/body_m_animated.glb", "res://assets/characters/outfit_m_animated.glb"]:
 			var model := (load(path) as PackedScene).instantiate()

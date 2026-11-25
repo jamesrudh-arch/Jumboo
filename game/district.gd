@@ -21,6 +21,9 @@ func _ready() -> void:
 
 func _shop(side: int, z: float, name: String, wall: String, accent: String, style: int) -> void:
 	var x := float(side)
+	_collision_box(Vector3(0.18, 3.2, 5.2), Vector3(x * 10.0, 1.6, z))
+	for edge in [-2.6, 2.6]:
+		_collision_box(Vector3(4.0, 3.2, 0.18), Vector3(x * 8.0, 1.6, z + edge))
 	# Back wall and side returns deliberately leave the front open.
 	_box(Vector3(0.18, 3.2, 5.2), Vector3(x * 10.0, 1.6, z), wall)
 	for edge in [-2.6, 2.6]:
@@ -77,6 +80,7 @@ func _streetlight(x: float, z: float) -> void:
 func _hideout() -> void:
 	# An open-backed cutaway keeps the third-person camera from clipping a wall.
 	for side in [-1.0, 1.0]:
+		_collision_box(Vector3(0.20, 3.6, 6.4), Vector3(side * 4.0, 1.8, 18.0))
 		_box(Vector3(0.20, 3.6, 6.4), Vector3(side * 4.0, 1.8, 18.0), "485054")
 		for z in [15.0, 18.0, 21.0]:
 			_box(Vector3(0.26, 3.8, 0.26), Vector3(side * 3.8, 1.9, z), "72766e")
@@ -122,6 +126,18 @@ func _harbor() -> void:
 	for x in [-24.0, 17.0]:
 		_box(Vector3(0.25, 10, 0.25), Vector3(x, 5, -25), "586a6b")
 		_box(Vector3(7.0, 0.18, 0.18), Vector3(x + 3.0, 9.9, -25), "586a6b")
+
+func _collision_box(size: Vector3, pos: Vector3) -> void:
+	var wall := StaticBody3D.new()
+	wall.collision_layer = 1
+	wall.collision_mask = 0
+	wall.position = pos
+	var collider := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	collider.shape = box
+	wall.add_child(collider)
+	add_child(wall)
 
 func _prop(asset: String, pos: Vector3, factor: float) -> void:
 	var node := (load("res://assets/props/" + asset + ".glb") as PackedScene).instantiate() as Node3D

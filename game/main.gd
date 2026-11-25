@@ -45,6 +45,7 @@ var button_box: VBoxContainer
 var controls: Control
 var hud: Control
 var call_sequence_id := 0
+var call_watchdog_id := 0
 var call_line_index := 0
 const CALL_LINES := [
 	"ELI: You still owe me for the window.",
@@ -172,9 +173,14 @@ func _person(color: Color, pos: Vector3, model_path := "res://assets/characters/
 
 func _update_camera() -> void:
 	var offset := Vector3(0, 3.3, 6.2).rotated(Vector3.UP, camera_yaw)
-	camera.position = player.position + offset
+	var focus := player.global_position + Vector3(0, 1.2, 0)
+	var desired := player.global_position + offset
+	var query := PhysicsRayQueryParameters3D.create(focus, desired, 1)
+	query.exclude = [(player as CharacterBody3D).get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	camera.global_position = desired if hit.is_empty() else hit.position + hit.normal * 0.20
 	var look_offset := Vector3(0, 1.0, -1.0).rotated(Vector3.UP, camera_yaw)
-	camera.look_at(player.position + look_offset, Vector3.UP)
+	camera.look_at(player.global_position + look_offset, Vector3.UP)
 
 func _build_ui() -> void:
 	var layer := CanvasLayer.new()
@@ -318,6 +324,9 @@ func _close_dialog() -> void:
 		focused.release_focus()
 
 func _show_title() -> void:
+	call_watchdog_id += 1
+	call_sequence_id += 1
+	game_started = false
 	audio_director.stop_voice()
 	audio_director.play_music(audio_director.PROLOGUE)
 	interaction_open = true
@@ -326,6 +335,7 @@ func _show_title() -> void:
 	title_screen.show_menu(_new_game, _continue_game, not _read_save().is_empty())
 
 func _new_game() -> void:
+	call_watchdog_id += 1
 	audio_director.play_music(audio_director.PROLOGUE)
 	stage = 0
 	witness_choice = ""
@@ -344,6 +354,8 @@ func _new_game() -> void:
 	cinematic.prologue(_automatic_answer)
 
 func _continue_game() -> void:
+	call_watchdog_id += 1
+	call_sequence_id += 1
 	cinematic.close_held_shot()
 	var saved := _read_save()
 	if saved.is_empty():
@@ -365,7 +377,18 @@ func _automatic_answer() -> void:
 	overlay.hide()
 	controls.hide()
 	hud.hide()
+	call_watchdog_id += 1
+	_call_timeout_recovery(call_watchdog_id, 135.0)
 	cinematic.answer_phone(_play_automatic_call)
+
+func _call_timeout_recovery(id: int, seconds: float) -> void:
+	# Bounded recovery only works if the scene tree is still ticking; it cannot
+	# recover a hard freeze or guarantee an interrupted conversation was heard.
+	await get_tree().create_timer(seconds).timeout
+	if id == call_watchdog_id and game_started and stage == 0:
+		push_warning("Call timed out; recovering to the first checkpoint")
+		_finish_call()
+		message.text = "Call interrupted. The first checkpoint has been restored."
 
 func _play_automatic_call() -> void:
 	call_sequence_id += 1
@@ -395,6 +418,7 @@ func _play_automatic_call() -> void:
 		_finish_call()
 
 func _finish_call() -> void:
+	call_watchdog_id += 1
 	call_sequence_id += 1
 	cinematic.end_call_captions()
 	cinematic.close_held_shot()
@@ -624,7 +648,7 @@ func _update_hud() -> void:
 		hint.text = ""
 		message.text = ""
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if not game_started or interaction_open or stage == 0:
 		return
 	if combat_active:
@@ -644,8 +668,11 @@ func _process(delta: float) -> void:
 	else:
 		if not combat_active or strike_cooldown <= 0.30:
 			player.play_motion("Idle")
-	player.position.x = clampf(player.position.x + world_direction.x * 2.0 * delta, -10.5, 10.5)
-	player.position.z = clampf(player.position.z + world_direction.z * 2.0 * delta, -12.0, 20.5)
+	var body := player as CharacterBody3D
+	body.velocity = world_direction * 2.0
+	body.move_and_slide()
+	body.position.x = clampf(body.position.x, -10.5, 10.5)
+	body.position.z = clampf(body.position.z, -12.0, 20.5)
 	_update_camera()
 	_update_navigation()
 
