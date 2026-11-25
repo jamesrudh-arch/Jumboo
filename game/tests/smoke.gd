@@ -55,6 +55,14 @@ func _run() -> void:
 	await create_timer(14.0).timeout
 	check(is_instance_valid(main.cinematic.shot) and main.cinematic.shot.has_method("_box") and "phone_light" in main.cinematic.shot, "3D phone shot follows workshop")
 	check(main.cinematic.shot.phone.has_node("Phone_ELI"), "3D phone displays Eli's name")
+	var wood: StandardMaterial3D = preload("res://surface_materials.gd").get_wood()
+	check(wood.albedo_texture != null and wood.normal_enabled and wood.normal_texture != null and wood.roughness_texture != null, "2K wood color, normal and roughness maps load")
+	var concrete: StandardMaterial3D = preload("res://surface_materials.gd").get_concrete(true)
+	check(concrete.albedo_texture != null and concrete.normal_texture != null and concrete.roughness < 0.5, "wet road material loads mapped surface")
+	preload("res://haptics.gd").enabled = false
+	preload("res://haptics.gd").pulse(100)
+	check(not preload("res://haptics.gd").enabled, "haptics can be disabled")
+	preload("res://haptics.gd").enabled = true
 	check(not main.hud.visible and main.cinematic.subtitle.text == "", "HUD and subtitles stay hidden during cinematic by default")
 	main.cinematic._skip()
 	main.cinematic._skip()

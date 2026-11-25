@@ -54,7 +54,16 @@ func _ready() -> void:
 	captions.button_pressed = subtitles_enabled
 	captions.toggled.connect(func(enabled: bool): subtitles_enabled = enabled)
 	canvas.add_child(captions)
-	_label("STORY / M01     •     WORK IN PROGRESS", Vector2(691, 667), Vector2(400, 28), 14, Color("a1b1b4"))
+	var haptics := CheckButton.new()
+	haptics.text = "VIBRATION"
+	haptics.position = Vector2(691, 630)
+	haptics.custom_minimum_size = Vector2(300, 44)
+	haptics.add_theme_font_override("font", font)
+	haptics.add_theme_font_size_override("font_size", 19)
+	haptics.button_pressed = preload("res://haptics.gd").enabled
+	haptics.toggled.connect(func(enabled: bool): preload("res://haptics.gd").enabled = enabled)
+	canvas.add_child(haptics)
+	_label("STORY / M01     •     WORK IN PROGRESS", Vector2(691, 682), Vector2(400, 28), 14, Color("a1b1b4"))
 	canvas.hide()
 
 func _label(text: String, pos: Vector2, size: Vector2, points: int, color: Color) -> Label:

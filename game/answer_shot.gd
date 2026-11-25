@@ -39,7 +39,8 @@ func _ready() -> void:
 	light.omni_range = 6
 	add_child(light)
 	# Keep the performance in a workshop context rather than an empty void.
-	_box(self, Vector3(6, 0.1, 5), Vector3(0, -0.05, 0), Color("303538"))
+	var floor := _box(self, Vector3(6, 0.1, 5), Vector3(0, -0.05, 0), Color("303538"))
+	floor.material_override = preload("res://surface_materials.gd").get_concrete()
 	_box(self, Vector3(6, 3.5, 0.12), Vector3(0, 1.75, -1.9), Color("263238"))
 	_box(self, Vector3(1.4, 1.2, 0.04), Vector3(-1.65, 2.0, -1.82), Color("526c78"))
 	_box(self, Vector3(1.4, 0.06, 0.07), Vector3(-1.65, 2.0, -1.78), Color("1b252b"))
@@ -58,7 +59,8 @@ func _ready() -> void:
 	# screen position. Both body and clothing use the same source skeleton.
 	_pose_animations(GRAB_TIME)
 	var hand := _hand_position()
-	_box(self, Vector3(1.8, 0.08, 0.85), Vector3(hand.x, hand.y - 0.05, hand.z), Color("514940"))
+	var tabletop := _box(self, Vector3(1.8, 0.08, 0.85), Vector3(hand.x, hand.y - 0.05, hand.z), Color("514940"))
+	tabletop.material_override = preload("res://surface_materials.gd").get_wood()
 	_box(self, Vector3(1.8, 0.8, 0.06), Vector3(hand.x, hand.y + 0.35, hand.z - 0.45), Color("293138"))
 	# Steel workbench supports and small dressing make the pickup surface part
 	# of the room rather than a floating slab. Placement is still provisional.

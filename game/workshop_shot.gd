@@ -11,7 +11,8 @@ var ambience: AudioStreamPlayer
 func _ready() -> void:
 	# Room shell, counter and framing. The rear windows reveal a compressed
 	# skyline, keeping the focus on Marcus and his workbench.
-	_box(Vector3(9, 0.12, 7), Vector3(0, -0.06, 0), "303538")
+	var floor := _box(Vector3(9, 0.12, 7), Vector3(0, -0.06, 0), "303538")
+	floor.material_override = preload("res://surface_materials.gd").get_concrete()
 	_box(Vector3(9, 3.8, 0.15), Vector3(0, 1.9, -3.1), "263238")
 	_box(Vector3(0.15, 3.8, 7), Vector3(-4.4, 1.9, 0), "252f32")
 	_box(Vector3(9, 0.16, 7), Vector3(0, 3.8, 0), "232a2d")
@@ -27,7 +28,8 @@ func _ready() -> void:
 	for x in [-2.6, 0.0, 2.6]:
 		_box(Vector3(0.12, 0.14, 6.2), Vector3(x, 3.63, 0), "151f24")
 	# Back workbench with drawer seams, steel legs, lamp and practical objects.
-	_box(Vector3(3.15, 0.12, 0.9), Vector3(0, 0.89, -1.20), "695c4c")
+	var tabletop := _box(Vector3(3.15, 0.12, 0.9), Vector3(0, 0.89, -1.20), "695c4c")
+	tabletop.material_override = preload("res://surface_materials.gd").get_wood()
 	_box(Vector3(3.10, 0.18, 0.88), Vector3(0, 0.77, -1.20), "373c3b")
 	for x in [-1.40, 1.40]:
 		for z in [-1.53, -0.87]:
