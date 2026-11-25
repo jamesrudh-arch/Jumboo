@@ -107,8 +107,8 @@ func prologue(done: Callable) -> void:
 	await get_tree().create_timer(6.0).timeout
 	if current != generation:
 		return
-	# Replace the flat phone panel with a real 3D close-up. This is an
-	# isolated technical shot, not the missing character pickup performance.
+	# Preserve the original ringing close-up. The answer path has a separate
+	# experimental pickup performance after the player chooses to answer.
 	previous_camera = get_viewport().get_camera_3d()
 	shot = preload("res://phone_shot.gd").new()
 	# Keep this shot separate from the gameplay street geometry.
@@ -131,6 +131,25 @@ func prologue(done: Callable) -> void:
 	headline.text = "LAST CALL"
 	subtitle.text = "Some debts follow you home."
 	await get_tree().create_timer(5.0).timeout
+	if current == generation:
+		_finish()
+
+func answer_phone(done: Callable) -> void:
+	generation += 1
+	var current := generation
+	completion = done
+	skip_armed = false
+	skip_button.text = "SKIP PERFORMANCE"
+	canvas.show()
+	backdrop.hide()
+	shade.color = Color(0, 0, 0, 0)
+	headline.text = ""
+	subtitle.text = ""
+	previous_camera = get_viewport().get_camera_3d()
+	shot = preload("res://answer_shot.gd").new()
+	shot.position = Vector3(300, 0, 300)
+	get_parent().add_child(shot)
+	await get_tree().create_timer(4.0).timeout
 	if current == generation:
 		_finish()
 
