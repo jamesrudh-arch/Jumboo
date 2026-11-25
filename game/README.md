@@ -43,3 +43,5 @@ The title menu has an optional vibration toggle. Phone buzzes and combat impacts
 The opening phone now sits on a real-scale textured table model; a textured modular factory facade and 2K asphalt are part of the 3D district. These are early steps toward the grounded reference image, not a completed realistic city or character. Asset provenance is in `assets/realistic/README.md` and `assets/materials/README.md`. Import may take longer because the original 2K assets are included.
 
 This build requests the iOS Playback audio category (so it may play when the silent switch is on) and offers a Sound toggle on the title screen. Xogot embedded playback and the reported missing voices still need a real-device test. Textured Rocketbox-derived character models and a detailed passenger van are interim assets; see their asset folders and AUDIT.md for licenses and remaining limitations.
+
+Movement now uses character physics against selected warehouse/shop walls and the van, and the camera checks those obstacles. Collision is still incomplete throughout the district; see `AUDIT.md`.

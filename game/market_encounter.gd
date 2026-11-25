@@ -5,6 +5,7 @@ extends Node3D
 var van: Node3D
 var collector: Node3D
 var collector_label: Label3D
+var van_body: StaticBody3D
 
 func _ready() -> void:
 	van = Node3D.new()
@@ -16,6 +17,14 @@ func _ready() -> void:
 	model.name = "PassengerVanModel"
 	model.rotation.y = PI * 0.5
 	van.add_child(model)
+	van_body = StaticBody3D.new()
+	van_body.position.y = 0.95
+	var van_shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(2.4, 1.9, 5.0)
+	van_shape.shape = box
+	van_body.add_child(van_shape)
+	van.add_child(van_body)
 	var clue := Label3D.new()
 	clue.name = "VanMarker"
 	clue.text = "DAMAGED VAN"
@@ -40,6 +49,7 @@ func _ready() -> void:
 
 func set_progress(stage: int) -> void:
 	van.visible = stage >= 2
+	van_body.collision_layer = 1 if stage >= 2 else 0
 	collector.visible = stage == 3
 
 func _box(parent: Node3D, size: Vector3, pos: Vector3, hex: String, unlit := false) -> MeshInstance3D:
