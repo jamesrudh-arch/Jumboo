@@ -103,7 +103,7 @@ func _build_world() -> void:
 	ground_mat.uv1_scale = Vector3(10, 14, 1)
 	ground.material_override = ground_mat
 	var road := _box(Vector3(7.5, 0.12, 38), Vector3(0, 0.02, 3), Color("19232d"))
-	var road_mat := preload("res://surface_materials.gd").get_concrete(true).duplicate() as StandardMaterial3D
+	var road_mat := preload("res://surface_materials.gd").get_asphalt().duplicate() as StandardMaterial3D
 	road_mat.uv1_scale = Vector3(3, 12, 1)
 	road_mat.albedo_color = Color("9ea8aa")
 	road.material_override = road_mat

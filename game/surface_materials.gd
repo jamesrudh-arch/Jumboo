@@ -5,6 +5,7 @@ extends RefCounted
 static var wood: StandardMaterial3D
 static var concrete: StandardMaterial3D
 static var wet_concrete: StandardMaterial3D
+static var asphalt: StandardMaterial3D
 
 static func get_wood() -> StandardMaterial3D:
 	if wood == null:
@@ -19,6 +20,11 @@ static func get_concrete(wet := false) -> StandardMaterial3D:
 	if concrete == null:
 		concrete = _make("concrete", 0.9)
 	return concrete
+
+static func get_asphalt() -> StandardMaterial3D:
+	if asphalt == null:
+		asphalt = _make("asphalt", 0.48)
+	return asphalt
 
 static func _make(name: String, roughness: float) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()

@@ -59,15 +59,12 @@ func _ready() -> void:
 	# screen position. Both body and clothing use the same source skeleton.
 	_pose_animations(GRAB_TIME)
 	var hand := _hand_position()
-	var tabletop := _box(self, Vector3(1.8, 0.08, 0.85), Vector3(hand.x, hand.y - 0.05, hand.z), Color("514940"))
-	tabletop.material_override = preload("res://surface_materials.gd").get_wood()
+	var tabletop := (load("res://assets/realistic/wooden_table_02/wooden_table_02_2k.gltf") as PackedScene).instantiate() as Node3D
+	tabletop.name = "TexturedWoodTable"
+	tabletop.scale = Vector3(1.5, 1.0, 1.2)
+	tabletop.position = Vector3(hand.x, hand.y - 0.7994, hand.z)
+	add_child(tabletop)
 	_box(self, Vector3(1.8, 0.8, 0.06), Vector3(hand.x, hand.y + 0.35, hand.z - 0.45), Color("293138"))
-	# Steel workbench supports and small dressing make the pickup surface part
-	# of the room rather than a floating slab. Placement is still provisional.
-	for x in [-0.78, 0.78]:
-		for z in [-0.32, 0.32]:
-			_box(self, Vector3(0.06, maxf(hand.y - 0.1, 0.2), 0.06), Vector3(hand.x + x, (hand.y - 0.1) * 0.5, hand.z + z), Color("252c2f"))
-	_box(self, Vector3(1.7, 0.035, 0.035), Vector3(hand.x, hand.y - 0.15, hand.z + 0.39), Color("76817e"))
 	_add_prop("wooden_crate", Vector3(-2.0, 0, -1.1), 0.55)
 	_add_prop("generator", Vector3(2.0, 0, -1.25), 0.55)
 	phone = Node3D.new()
