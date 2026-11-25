@@ -51,7 +51,17 @@ func _run() -> void:
 	check(main.stage == 1 and main.controls.visible, "call completes and movement starts")
 	main.player.play_motion("Walk")
 	check(main.player.players.all(func(p): return p.current_animation == "Walk"), "body and clothing play same walk clip")
-	main.player.play_motion("Idle")
+	main.player.position = main.witness.position + Vector3(1, 0, 0)
+	check(main.witness.has_node("WitnessMarker"), "witness has a visible name marker")
+	main._interact()
+	check(main.interaction_open and main.player.players.all(func(p): return p.current_animation == "Idle"), "dialogue stops the walk animation")
+	main._choose_witness("reassure")
+	main._finish_slice()
+	var previous_x: float = main.player.position.x
+	main.touch_directions["right"] = true
+	main._process(0.25)
+	main.touch_directions["right"] = false
+	check(main.stage == 2 and main.player.position.x > previous_x, "movement continues after finishing the slice")
 	# Let timers from the skipped opening/prologue resume and release their coroutines.
 	await create_timer(9.0).timeout
 	Engine.time_scale = 1.0

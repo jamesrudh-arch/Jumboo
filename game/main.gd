@@ -64,6 +64,14 @@ func _build_world() -> void:
 	_box(Vector3(3.0, 0.08, 0.4), Vector3(0, 0.12, -3), Color("c5b69b"))
 	player = _person(Color("90c4ca"), Vector3(0, 0, 7))
 	witness = _person(Color("e8a8bb"), Vector3(-3.8, 0, -7))
+	var witness_marker := Label3D.new()
+	witness_marker.name = "WitnessMarker"
+	witness_marker.text = "SADE"
+	witness_marker.position.y = 2.35
+	witness_marker.modulate = Color("ffd0df")
+	witness_marker.outline_size = 8
+	witness_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	witness.add_child(witness_marker)
 	_box(Vector3(2.0, 1.0, 1.1), Vector3(-5.0, 0.5, -7), Color("65584f"))
 	_prop("wooden_crate", Vector3(-4.65, 0, -8.2), 0.8)
 	_prop("wooden_crate", Vector3(-4.6, 0, -9.3), 0.6)
@@ -196,6 +204,8 @@ func _clear_buttons() -> void:
 func _dialog(title: String, text: String) -> void:
 	interaction_open = true
 	touch_directions = {"up": false, "down": false, "left": false, "right": false}
+	if is_instance_valid(player):
+		player.play_motion("Idle")
 	controls.hide()
 	overlay.show()
 	dialog_title.text = title
@@ -284,7 +294,7 @@ func _finish_slice() -> void:
 func _update_hud() -> void:
 	if stage == 1:
 		objective.text = "OBJECTIVE  /  Find the witness at the market stall"
-		hint.text = "Move with touch arrows or WASD. Approach the pink marker and interact."
+		hint.text = "Move with touch arrows or WASD. Approach Sade and interact."
 	elif stage == 2:
 		objective.text = "LEAD RECORDED  /  Dented van, blue tarp"
 		hint.text = "Story blockout complete. Your choice: " + witness_choice.to_upper()
@@ -294,7 +304,7 @@ func _update_hud() -> void:
 	message.text = "EARLY BLOCKOUT • No combat, driving, final art or device tuning yet"
 
 func _process(delta: float) -> void:
-	if not game_started or interaction_open or stage != 1:
+	if not game_started or interaction_open or stage == 0:
 		return
 	var x := float(Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT) or touch_directions["right"]) - float(Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT) or touch_directions["left"])
 	var z := float(Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN) or touch_directions["down"]) - float(Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP) or touch_directions["up"])
