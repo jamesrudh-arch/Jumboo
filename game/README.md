@@ -8,7 +8,7 @@ Open this folder as a Godot 4.7 project, or import the folder into Xogot on iPho
 
 ## What is included
 
-- A timed D’YOUNGS GAMES presentation, title and skippable story prologue using a generated city still and a simulated glowing phone screen. This is temporary presentation artwork, not a rendered in-engine cinematic.
+- A timed D’YOUNGS GAMES presentation, title and skippable story prologue. The city setup uses a generated still; the phone close-up is a separate 3D technical shot with a vibrating handset, white screen light and synthesized vibration audio. Skip requires confirmation. This is not a finished cinematic.
 - A simple third-person camera and temporary street/character geometry.
 - A written incoming call with answer and decline paths.
 - Touch-direction buttons and an interact button; desktop keyboard movement uses WASD or arrow keys, with Enter/Space to interact.
@@ -16,7 +16,7 @@ Open this folder as a Godot 4.7 project, or import the folder into Xogot on iPho
 
 ## Important limitations
 
-- The timed prologue uses a static AI-generated image and UI effects: it does not yet show Marcus, a workbench, a phone being picked up, a phone-to-ear animation, in-world light or real vibration/audio. It is not a final cinematic.
+- The new phone shot uses simple authored geometry and a synthesized vibration sound; it is not final workshop art. It does not show Marcus picking up the phone or bringing it to his ear, and the rest of the prologue still uses a static AI-generated image. There is no physical-device haptic vibration. No quality or runtime acceptance has been established.
 - No voice, combat, driving, crowds, phone history UI, full mission or later consequences yet.
 - Touch layout is a fixed 1280 × 720 blockout and is **not yet safe-area, screen-size or accessibility validated**. It uses directional buttons rather than the specified virtual joystick and camera drag. These are temporary test controls, not an approved final layout.
 - Save data has basic format checking only. It overwrites its file directly and does **not** yet have atomic writes, backups, recovery, migration or interruption-safety; do not rely on it for valuable progress.
