@@ -1,25 +1,31 @@
-# LEVERAGE: CINDER CITY — M01 blockout
+# LEVERAGE: CINDER CITY — M01 work in progress
 
-This is an **early, temporary vertical-slice blockout**, not final art or a complete game. It uses simple generated shapes so the first story interaction can be evaluated before a licensed character/animation pipeline is ready. It does not satisfy the final-quality vertical-slice acceptance gate.
+This is a **partial, experimental build**, not the finished game, cinematic, or final-quality vertical slice. The owner has not accepted its art direction or quality. The character and prop assets are CC0 stock assets used temporarily; they are not the original Marcus, final clothing, or the finished city.
 
-## Open
+## Open on iPhone
 
-Open this folder as a Godot 4.7 project, or import the folder into Xogot on iPhone. The exact installed Xogot/Godot version, renderer support and iPhone import workflow have not been verified for this project. The main scene is `main.tscn`.
+Unzip the project into a fresh folder and import the folder containing `project.godot` into Xogot. Wait for assets to import. Opening an older project copy will not update it. The main scene is `main.tscn`. This project was tested with Godot 4.7.2 headless on Linux; the installed Xogot version, import, rendering, and operation on iPhone are **not verified**.
 
-## What is included
+## Current contents
 
-- A timed D’YOUNGS GAMES presentation, title and skippable story prologue. The city setup uses a generated still; the phone close-up is a separate 3D technical shot with a vibrating handset, white screen light and synthesized vibration audio. Skip requires confirmation. This is not a finished cinematic.
-- A simple third-person camera and temporary street/character geometry.
-- A written incoming call with answer and decline paths.
-- Touch-direction buttons and an interact button; desktop keyboard movement uses WASD or arrow keys, with Enter/Space to interact.
-- Two Sade dialogue choices, a lead and a small local JSON save that remembers the choice. New game and continue are available from the title screen.
+- Opening card now includes an original geometric D’YOUNGS mark and Oswald type; a redesigned title menu uses the generated city background. The city image is a still, not a 3D cinematic.
+- New game starts the story setup and a short 3D phone shot, with synthesized vibration sound and screen light. Skip requires confirmation; X also invokes the skip confirmation. No physical-device haptic is implemented.
+- The player and witness now use an interim rigged stock human body and clothing instead of capsules, with idle/walk animation on the player. The exact look, proportions, animation and mobile performance still require visual review. See `assets/characters/README.md` for provenance.
+- Temporary CC0 props dress the street; see `assets/props/README.md`. The buildings, camera, controls and much of the world remain blockout quality.
+- Written incoming call with answer/decline paths, touch arrows and interaction, a witness choice and basic JSON save. Desktop movement uses WASD or arrow keys, with Enter/Space to interact.
 
-## Important limitations
+## Limitations
 
-- The new phone shot uses simple authored geometry and a synthesized vibration sound; it is not final workshop art. It does not show Marcus picking up the phone or bringing it to his ear, and the rest of the prologue still uses a static AI-generated image. There is no physical-device haptic vibration. No quality or runtime acceptance has been established.
-- No voice, combat, driving, crowds, phone history UI, full mission or later consequences yet.
-- Touch layout is a fixed 1280 × 720 blockout and is **not yet safe-area, screen-size or accessibility validated**. It uses directional buttons rather than the specified virtual joystick and camera drag. These are temporary test controls, not an approved final layout.
-- Save data has basic format checking only. It overwrites its file directly and does **not** yet have atomic writes, backups, recovery, migration or interruption-safety; do not rely on it for valuable progress.
-- The street has simple movement boundaries, not proper world collisions or navigation.
-- This project has not yet been run in the Godot editor or on an iPhone, and no performance claims are made. The GDScript was parsed using gdtoolkit; that does not substitute for engine validation.
-- Full pre-production deliverables, asset licensing and the complete vertical-slice quality gate remain outstanding.
+- **The requested authored Marcus performance does not exist yet:** no phone pickup, hand contact, phone-to-ear, facial acting, voice acting or complete workshop scene. The incoming call is still a text dialog.
+- The street is not a polished city, and the stock fantasy clothing is only recolored, not final contemporary costume art. There is no combat, driving, crowd simulation or finished campaign.
+- Touch layout is fixed at 1280 × 720 and is not safe-area, screen-size or accessibility validated. It uses arrows rather than the intended virtual joystick and camera drag.
+- Save data is a basic direct JSON overwrite without atomic writes, backup or recovery. Do not rely on it for valuable progress.
+- An automated **headless** smoke test passed in Godot 4.7.2 on Linux, including title/skip/call transitions and animation playback. Headless testing does not verify actual appearance, audio quality, touch usability, frame rate, Xogot compatibility or physical-device behaviour. No screenshot is claimed.
+
+## Test on a desktop with Godot 4.7.2
+
+Import the project in the Godot editor once, then run `godot --headless --path game --script res://tests/smoke.gd` from the repository root. Tests cover a narrow set of transitions, not acceptance of the full game.
+
+## Other licensing
+
+Oswald font is distributed under the SIL Open Font License; `assets/fonts/OFL.txt` contains the license. `assets/opening_city.png` is AI-generated temporary presentation art. The phone vibration is a procedurally synthesized test sound created for this project.
