@@ -46,6 +46,14 @@ def call_lost(t, duration, rng):
         sound += disconnect(t - 0.60, 0.45, rng)
     return sound
 
+def strike(t, duration, rng):
+    return (rng.random()*2-1) * 0.17 * math.sin(math.pi*t/duration)**2
+
+def impact(t, duration, rng):
+    return (0.25*math.sin(2*math.pi*105*t) + 0.16*(rng.random()*2-1)) * math.exp(-t*15)
+
 write('engine_cut.wav', 1.4, engine)
 write('call_lost.wav', 1.05, call_lost)
 write('phone_pickup.wav', 0.24, pickup)
+write('strike.wav', 0.22, strike)
+write('impact.wav', 0.32, impact)

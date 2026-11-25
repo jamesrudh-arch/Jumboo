@@ -3,6 +3,8 @@ extends Node3D
 # Licensed interim human rig. This is not the final Marcus character design.
 var players: Array[AnimationPlayer] = []
 var current_clip := ""
+# Provisional palette, set before the rig enters the tree.
+var coat_color := Color("333e46")
 
 func _ready() -> void:
 	for path in ["res://assets/characters/body_m_animated.glb", "res://assets/characters/outfit_m_animated.glb"]:
@@ -18,7 +20,7 @@ func _color_mesh(mesh: MeshInstance3D, clothed: bool) -> void:
 	var mat := StandardMaterial3D.new()
 	var n := String(mesh.name).to_lower()
 	if clothed:
-		mat.albedo_color = Color("333e46") if n.contains("body") or n.contains("arms") else Color("1d2932")
+		mat.albedo_color = coat_color if n.contains("body") or n.contains("arms") else coat_color.darkened(0.32)
 	elif n.contains("eyes"):
 		mat.albedo_color = Color("c5b7aa")
 	elif n.contains("brow"):
