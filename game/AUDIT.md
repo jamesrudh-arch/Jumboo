@@ -5,7 +5,7 @@
 ## Comparison with the brief
 
 - Opening: extruded 3D studio and title text and a timed prologue exist. Their visual quality and cinematic impact have not been assessed in a rendered run. This is not a finished CAD-quality logo or a finished story cinematic.
-- Phone: an animated 3D phone shot exists. Marcus does not pick it up or raise it to his ear.
+- Phone: an animated 3D phone shot exists. The answer path now has an experimental stock-rig pickup and procedural reach toward the ear. It is not an authored, visually verified performance; hand contact, framing and believability are unverified.
 - Character and city: temporary stock rigged character, imported props and simple blockout buildings. They are not final character or world art.
 - Play: one short witness interaction with two recorded choices and a save. Later consequences, combat, driving and a 60-minute campaign are not implemented. The named dialogue and characters are proposed, not established canon.
 - Mobile: touch controls are preliminary, not validated for safe areas or accessibility. Xogot, iPhone 16 and iPhone 13 mini operation, performance and compatibility have not been tested.

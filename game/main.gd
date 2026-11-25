@@ -256,6 +256,10 @@ func _call_screen() -> void:
 	_option("DECLINE", _decline_call)
 
 func _answer_call() -> void:
+	overlay.hide()
+	cinematic.answer_phone(_answer_dialogue)
+
+func _answer_dialogue() -> void:
 	_dialog("ELI  /  CALL", "ELI: You still owe me for the window.\nMARCUS: Ten years and you're still keeping accounts?\nELI: Somebody in this family has to.\n\nAn engine cuts out on Eli's end.\nELI: If anybody asks about me tonight, you haven't seen me.\nMARCUS: Eli—\n\n[Metal scrape. Call disconnects.]")
 	_option("CONTINUE", _finish_call)
 
