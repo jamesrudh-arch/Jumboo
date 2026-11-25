@@ -25,6 +25,14 @@ var dialog_title: Label
 var dialog_text: Label
 var button_box: VBoxContainer
 var controls: Control
+var call_line_index := 0
+const CALL_LINES := [
+	"ELI: You still owe me for the window.",
+	"MARCUS: Ten years and you're still keeping accounts?\n\nELI: Somebody in this family has to.",
+	"An engine cuts out on Eli's end.\n\nELI: If anybody asks about me tonight, you haven't seen me.",
+	"MARCUS: Eli, what happened?\n\nELI: Just promise me—",
+	"Metal scrapes. The call disconnects."
+]
 var cinematic: CanvasLayer
 var title_screen: CanvasLayer
 
@@ -251,7 +259,7 @@ func _continue_game() -> void:
 	_close_dialog()
 
 func _call_screen() -> void:
-	_dialog("INCOMING CALL  /  ELI", "The phone vibrates on the workbench. Eli is calling.\n\nThis blockout uses written dialogue; no voice or cinematic assets are included.")
+	_dialog("INCOMING CALL  /  ELI", "The phone vibrates on the workbench. Eli is calling.")
 	_option("ANSWER", _answer_call)
 	_option("DECLINE", _decline_call)
 
@@ -260,8 +268,20 @@ func _answer_call() -> void:
 	cinematic.answer_phone(_answer_dialogue)
 
 func _answer_dialogue() -> void:
-	_dialog("ELI  /  CALL", "ELI: You still owe me for the window.\nMARCUS: Ten years and you're still keeping accounts?\nELI: Somebody in this family has to.\n\nAn engine cuts out on Eli's end.\nELI: If anybody asks about me tonight, you haven't seen me.\nMARCUS: Eli—\n\n[Metal scrape. Call disconnects.]")
-	_option("CONTINUE", _finish_call)
+	call_line_index = 0
+	_show_call_line()
+
+func _show_call_line() -> void:
+	_dialog("ELI  /  CALL", CALL_LINES[call_line_index])
+	if call_line_index == CALL_LINES.size() - 1:
+		_option("CONTINUE", _finish_call)
+	else:
+		_option("NEXT  /  X", _next_call_line)
+
+func _next_call_line() -> void:
+	call_line_index += 1
+	if call_line_index < CALL_LINES.size():
+		_show_call_line()
 
 func _decline_call() -> void:
 	_dialog("MISSED CALL", "Eli's call goes unanswered. Tessa catches a second vibration on the workbench.\n\nTESSA: He sent the loading lane location. You should go check on him.")
@@ -323,6 +343,17 @@ func _process(delta: float) -> void:
 	_update_camera()
 	if Input.is_action_just_pressed("ui_accept"):
 		_interact()
+
+func _unhandled_input(event: InputEvent) -> void:
+	# X advances a single dialogue beat, never silently chooses between options.
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_X and interaction_open and overlay.visible:
+		var available: Array[Button] = []
+		for child in button_box.get_children():
+			if child is Button and not child.is_queued_for_deletion():
+				available.append(child)
+		if available.size() == 1:
+			available[0].pressed.emit()
+			get_viewport().set_input_as_handled()
 
 func _save_game() -> void:
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)

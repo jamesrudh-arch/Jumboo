@@ -1,7 +1,7 @@
 extends CanvasLayer
 
-# Studio/title use a 3D shot; the subsequent story setup still uses temporary
-# still artwork and does not yet contain the requested character performance.
+# The studio, workshop and phone are isolated 3D shots. The current story
+# performance and art remain provisional, not final cinematic assets.
 var canvas: Control
 var backdrop: TextureRect
 var shade: ColorRect
@@ -96,41 +96,32 @@ func prologue(done: Callable) -> void:
 	skip_armed = false
 	skip_button.text = "SKIP CINEMATIC"
 	canvas.show()
-	shade.color = Color(0.02, 0.03, 0.05, 0.5)
-	headline.text = "CINDER CITY"
-	subtitle.text = "A city that never forgets what it is owed."
-	await get_tree().create_timer(6.0).timeout
-	if current != generation:
-		return
-	headline.text = "HEARTHLINE  /  LATE NIGHT"
-	subtitle.text = "Marcus is finishing a late shift at the shop."
-	await get_tree().create_timer(6.0).timeout
-	if current != generation:
-		return
-	# Preserve the original ringing close-up. The answer path has a separate
-	# experimental pickup performance after the player chooses to answer.
-	previous_camera = get_viewport().get_camera_3d()
-	shot = preload("res://phone_shot.gd").new()
-	# Keep this shot separate from the gameplay street geometry.
-	shot.position = Vector3(200, 0, 200)
-	get_parent().add_child(shot)
 	backdrop.hide()
-	shade.color = Color(0.02, 0.03, 0.05, 0.08)
+	shade.color = Color(0, 0, 0, 0)
 	headline.text = ""
-	subtitle.text = "[Phone vibrating]"
 	subtitle.offset_top = 220
 	subtitle.offset_bottom = 290
-	await get_tree().create_timer(6.0).timeout
+	subtitle.text = "HEARTHLINE  /  LATE NIGHT"
+	previous_camera = get_viewport().get_camera_3d()
+	shot = preload("res://workshop_shot.gd").new()
+	shot.position = Vector3(250, 0, 250)
+	get_parent().add_child(shot)
+	await get_tree().create_timer(4.0).timeout
 	if current != generation:
 		return
+	subtitle.text = ""
+	await get_tree().create_timer(8.0).timeout
+	if current != generation:
+		return
+	# Keep the familiar ringing close-up; answering triggers the separate
+	# pickup performance. Declining must not show an answered call.
 	_close_shot()
-	backdrop.show()
-	shade.color = Color(0.02, 0.03, 0.05, 0.5)
-	subtitle.offset_top = 0
-	subtitle.offset_bottom = 115
-	headline.text = "LAST CALL"
-	subtitle.text = "Some debts follow you home."
-	await get_tree().create_timer(5.0).timeout
+	previous_camera = get_viewport().get_camera_3d()
+	shot = preload("res://phone_shot.gd").new()
+	shot.position = Vector3(200, 0, 200)
+	get_parent().add_child(shot)
+	subtitle.text = "[Phone vibrating]"
+	await get_tree().create_timer(6.0).timeout
 	if current == generation:
 		_finish()
 

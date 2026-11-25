@@ -8,8 +8,8 @@ Unzip the project into a fresh folder and import the folder containing `project.
 
 ## Current contents
 
-- The opening presentation now uses actual extruded 3D text and geometry for a D’YOUNGS GAMES studio mark, LEVERAGE title and CINDER CITY reveal, with moving lighting, camera-relative motion and a synthesized ident sound. The later title menu still uses a generated city image, not a 3D city cinematic. The 3D presentation has not yet been visually reviewed or tested on iPhone.
-- New game starts the story setup and a short 3D phone shot, with synthesized vibration sound and screen light. Answering now starts an experimental rigged pickup and procedural arm reach before the written call. Skip requires confirmation; X also invokes the skip confirmation. No physical-device haptic is implemented.
+- The opening uses extruded 3D text and a concentric-ring emblem for the D’YOUNGS GAMES studio mark, followed by LEVERAGE and CINDER CITY reveals, with moving lighting and a synthesized ident sound. The later menu still uses a generated city image.
+- New game now opens on a 3D workshop with an interim Marcus rig, moving camera, practical lighting and synthesized room hum, before the existing 3D ringing phone shot. Answering starts an experimental rigged pickup and procedural arm reach, then a paced written call. Skip requires confirmation; X advances single dialogue beats without choosing an option. No physical-device haptic is implemented. Appearance, audio and iPhone performance are unverified.
 - The player and witness now use an interim rigged stock human body and clothing instead of capsules, with idle/walk animation on the player. The exact look, proportions, animation and mobile performance still require visual review. See `assets/characters/README.md` for provenance.
 - Temporary CC0 props dress the street; see `assets/props/README.md`. The buildings, camera, controls and much of the world remain blockout quality.
 - Written incoming call with answer/decline paths, touch arrows and interaction, a witness choice and basic JSON save. Desktop movement uses WASD or arrow keys, with Enter/Space to interact.
