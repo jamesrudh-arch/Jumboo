@@ -49,6 +49,7 @@ func _ready() -> void:
 	for i in 4:
 		_box(self, Vector3(0.12, 0.22, 0.12), Vector3(1.3 + i * 0.23, 1.84, -1.68), Color("84725d"))
 	actor = preload("res://character.gd").new()
+	actor.use_legacy_rig = true
 	add_child(actor)
 	for node in actor.find_children("*", "Skeleton3D", true, false):
 		skeletons.append(node as Skeleton3D)
