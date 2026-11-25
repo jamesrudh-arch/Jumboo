@@ -11,6 +11,9 @@ var phone: PanelContainer
 var skip_button: Button
 var generation := 0
 var completion: Callable
+var shot: Node3D
+var previous_camera: Camera3D
+var skip_armed := false
 
 func _ready() -> void:
 	layer = 10
@@ -87,6 +90,8 @@ func opening(done: Callable) -> void:
 	generation += 1
 	var current := generation
 	completion = done
+	skip_armed = false
+	skip_button.text = "SKIP INTRO"
 	canvas.show()
 	phone.hide()
 	shade.color = Color(0.01, 0.01, 0.02, 0.94)
@@ -106,6 +111,8 @@ func prologue(done: Callable) -> void:
 	generation += 1
 	var current := generation
 	completion = done
+	skip_armed = false
+	skip_button.text = "SKIP CINEMATIC"
 	canvas.show()
 	phone.hide()
 	shade.color = Color(0.02, 0.03, 0.05, 0.5)
@@ -119,16 +126,27 @@ func prologue(done: Callable) -> void:
 	await get_tree().create_timer(6.0).timeout
 	if current != generation:
 		return
-	headline.text = "A CALL FROM ELI"
-	subtitle.text = "[Phone vibrates]"
-	phone.show()
-	var tween := create_tween().set_loops(5)
-	tween.tween_property(phone, "modulate", Color(1, 1, 1, 0.55), 0.6)
-	tween.tween_property(phone, "modulate", Color.WHITE, 0.6)
+	# Replace the flat phone panel with a real 3D close-up. This is an
+	# isolated technical shot, not the missing character pickup performance.
+	previous_camera = get_viewport().get_camera_3d()
+	shot = preload("res://phone_shot.gd").new()
+	# Keep this shot separate from the gameplay street geometry.
+	shot.position = Vector3(200, 0, 200)
+	get_parent().add_child(shot)
+	backdrop.hide()
+	shade.color = Color(0.02, 0.03, 0.05, 0.08)
+	headline.text = ""
+	subtitle.text = "[Phone vibrating]"
+	subtitle.offset_top = 220
+	subtitle.offset_bottom = 290
 	await get_tree().create_timer(6.0).timeout
 	if current != generation:
 		return
-	phone.hide()
+	_close_shot()
+	backdrop.show()
+	shade.color = Color(0.02, 0.03, 0.05, 0.5)
+	subtitle.offset_top = 0
+	subtitle.offset_bottom = 115
 	headline.text = "LAST CALL"
 	subtitle.text = "Some debts follow you home."
 	await get_tree().create_timer(5.0).timeout
@@ -136,10 +154,26 @@ func prologue(done: Callable) -> void:
 		_finish()
 
 func _skip() -> void:
+	if not skip_armed:
+		skip_armed = true
+		skip_button.text = "CONFIRM SKIP"
+		return
 	_finish()
+
+func _close_shot() -> void:
+	if is_instance_valid(shot):
+		shot.queue_free()
+		shot = null
+	if is_instance_valid(previous_camera):
+		previous_camera.make_current()
+	previous_camera = null
 
 func _finish() -> void:
 	generation += 1
+	_close_shot()
+	backdrop.show()
+	subtitle.offset_top = 0
+	subtitle.offset_bottom = 115
 	canvas.hide()
 	phone.hide()
 	var done := completion
