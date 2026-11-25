@@ -28,17 +28,31 @@ var controls: Control
 var call_line_index := 0
 const CALL_LINES := [
 	"ELI: You still owe me for the window.",
-	"MARCUS: Ten years and you're still keeping accounts?\n\nELI: Somebody in this family has to.",
-	"An engine cuts out on Eli's end.\n\nELI: If anybody asks about me tonight, you haven't seen me.",
-	"MARCUS: Eli, what happened?\n\nELI: Just promise me—",
-	"Metal scrapes. The call disconnects."
+	"MARCUS: Ten years and you're still keeping accounts?",
+	"ELI: Somebody in this family has to.",
+	"[An engine cuts out.]\n\nELI: If anybody asks about me tonight, you haven't seen me.",
+	"MARCUS: Eli, what happened?",
+	"ELI: Just promise me.",
+	"[Metal scrapes. The call disconnects.]"
 ]
+const CALL_VOICES := [
+	"res://assets/voice/eli_window.wav",
+	"res://assets/voice/marcus_accounts.wav",
+	"res://assets/voice/eli_family.wav",
+	"res://assets/voice/eli_seen.wav",
+	"res://assets/voice/marcus_happened.wav",
+	"res://assets/voice/eli_promise.wav",
+	""
+]
+var audio_director: Node
 var cinematic: CanvasLayer
 var title_screen: CanvasLayer
 
 func _ready() -> void:
 	_build_world()
 	_build_ui()
+	audio_director = preload("res://audio_director.gd").new()
+	add_child(audio_director)
 	cinematic = preload("res://cinematic.gd").new()
 	add_child(cinematic)
 	title_screen = preload("res://title_screen.gd").new()
@@ -210,6 +224,8 @@ func _clear_buttons() -> void:
 		child.queue_free()
 
 func _dialog(title: String, text: String) -> void:
+	if is_instance_valid(audio_director):
+		audio_director.stop_voice()
 	interaction_open = true
 	touch_directions = {"up": false, "down": false, "left": false, "right": false}
 	if is_instance_valid(player):
@@ -226,18 +242,22 @@ func _option(text: String, action: Callable) -> void:
 	button_box.add_child(button)
 
 func _close_dialog() -> void:
+	audio_director.stop_voice()
 	interaction_open = false
 	overlay.hide()
 	controls.show()
 	_update_hud()
 
 func _show_title() -> void:
+	audio_director.stop_voice()
+	audio_director.play_music(audio_director.PROLOGUE)
 	interaction_open = true
 	overlay.hide()
 	controls.hide()
 	title_screen.show_menu(_new_game, _continue_game, not _read_save().is_empty())
 
 func _new_game() -> void:
+	audio_director.play_music(audio_director.PROLOGUE)
 	stage = 0
 	witness_choice = ""
 	player.position = Vector3(0, 0, 7)
@@ -251,6 +271,7 @@ func _continue_game() -> void:
 	if saved.is_empty():
 		_show_title()
 		return
+	audio_director.play_music(audio_director.TENSION)
 	stage = int(saved.get("stage", 0))
 	witness_choice = str(saved.get("witness_choice", ""))
 	player.position = Vector3(float(saved.get("x", 0.0)), 0, float(saved.get("z", 7.0)))
@@ -273,6 +294,14 @@ func _answer_dialogue() -> void:
 
 func _show_call_line() -> void:
 	_dialog("ELI  /  CALL", CALL_LINES[call_line_index])
+	if CALL_VOICES[call_line_index] != "":
+		audio_director.play_voice(CALL_VOICES[call_line_index])
+	else:
+		audio_director.stop_voice()
+		audio_director.play_music(audio_director.TENSION)
+		audio_director.play_effect("res://assets/audio/call_lost.wav")
+	if call_line_index == 3:
+		audio_director.play_effect("res://assets/audio/engine_cut.wav")
 	if call_line_index == CALL_LINES.size() - 1:
 		_option("CONTINUE", _finish_call)
 	else:
@@ -284,10 +313,15 @@ func _next_call_line() -> void:
 		_show_call_line()
 
 func _decline_call() -> void:
+	audio_director.stop_voice()
+	audio_director.play_music(audio_director.TENSION)
 	_dialog("MISSED CALL", "Eli's call goes unanswered. Tessa catches a second vibration on the workbench.\n\nTESSA: He sent the loading lane location. You should go check on him.")
+	audio_director.play_voice("res://assets/voice/tessa_missed.wav")
 	_option("CONTINUE", _finish_call)
 
 func _finish_call() -> void:
+	audio_director.stop_voice()
+	audio_director.play_music(audio_director.TENSION)
 	stage = 1
 	_close_dialog()
 	_save_game()
@@ -296,11 +330,17 @@ func _interact() -> void:
 	if not game_started or interaction_open:
 		return
 	if stage == 1 and player.position.distance_to(witness.position) < 2.8:
-		_dialog("SADE  /  MARKET STALL", "MARCUS: I'm looking for my brother. Did you see a man here?\n\nSADE: I saw a van. I didn't see who was inside.")
-		_option("REASSURE  /  Don't reveal her name", func(): _choose_witness("reassure"))
-		_option("PRESSURE  /  Demand what she knows", func(): _choose_witness("pressure"))
+		_dialog("SADE  /  MARKET STALL", "MARCUS: I'm looking for my brother. Did you see a man here?")
+		audio_director.play_voice("res://assets/voice/marcus_witness.wav")
+		_option("NEXT  /  X", _witness_reply)
 	else:
 		message.text = "Move closer to Sade's stall to interact."
+
+func _witness_reply() -> void:
+	_dialog("SADE  /  MARKET STALL", "SADE: I saw a van. I didn't see who was inside.")
+	audio_director.play_voice("res://assets/voice/sade_intro.wav")
+	_option("REASSURE  /  Don't reveal her name", func(): _choose_witness("reassure"))
+	_option("PRESSURE  /  Demand what she knows", func(): _choose_witness("pressure"))
 
 func _choose_witness(choice: String) -> void:
 	witness_choice = choice
@@ -309,6 +349,8 @@ func _choose_witness(choice: String) -> void:
 	if choice == "pressure":
 		line = "SADE: I gave you what I saw. Don't bring this to my stall. The van had a dented back corner and a blue tarp."
 	_dialog("LEAD FOUND", line + "\n\nYour choice and the lead are recorded in the blockout save. Further consequences are not yet implemented.")
+	var voice_path := "res://assets/voice/sade_pressure.wav" if choice == "pressure" else "res://assets/voice/sade_reassure.wav"
+	audio_director.play_voice(voice_path)
 	_option("FINISH SLICE", _finish_slice)
 
 func _finish_slice() -> void:

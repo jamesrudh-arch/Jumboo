@@ -36,6 +36,7 @@ func _run() -> void:
 	check(main.cinematic.canvas.visible, "skip requires confirmation")
 	main.cinematic._skip()
 	check(main.title_screen.canvas.visible, "title menu appears after confirmed skip")
+	check(main.audio_director.current_track == main.audio_director.PROLOGUE and main.audio_director.music.stream != null, "licensed prologue score loads in menu")
 	main.title_screen._new_game()
 	check(main.cinematic.canvas.visible, "new game starts prologue")
 	check(is_instance_valid(main.cinematic.shot) and main.cinematic.shot.has_method("_make_ambience"), "prologue starts in the 3D workshop")
@@ -58,6 +59,7 @@ func _run() -> void:
 	var pickup = main.cinematic.shot
 	pickup._process(0.6)
 	check(pickup.attached and pickup.phone.position.distance_to(pickup._hand_position()) < 0.001, "phone follows the hand after pickup")
+	check(pickup.pickup_sound.stream != null, "pickup effect is loaded")
 	var skel: Skeleton3D = pickup.skeletons[0]
 	var hand_bone: int = skel.find_bone("hand_r")
 	var neck_bone: int = skel.find_bone("neck_01")
@@ -72,11 +74,18 @@ func _run() -> void:
 	main.cinematic._skip()
 	check(main.dialog_title.text.contains("ELI"), "answer performance leads to dialogue")
 	check(main.dialog_text.text.contains("window"), "call begins with first dialogue beat")
+	check(main.audio_director.voice.stream.resource_path.ends_with("eli_window.wav"), "Eli's first voiced line loads")
 	main._unhandled_input(x_key)
 	check(main.call_line_index == 1, "X advances an unambiguous dialogue beat")
+	check(main.audio_director.voice.stream.resource_path.ends_with("marcus_accounts.wav"), "advancing replaces the voice with Marcus's line")
+	main._next_call_line()
+	main._next_call_line()
+	check(main.audio_director.effects.stream.resource_path.ends_with("engine_cut.wav"), "engine cutoff effect accompanies Eli's warning")
 	for i in 3:
 		main._next_call_line()
 	check(main.dialog_text.text.contains("disconnects"), "call dialogue advances to disconnect")
+	check(main.audio_director.current_track == main.audio_director.TENSION, "disconnect changes the music cue")
+	check(main.audio_director.effects.stream.resource_path.ends_with("call_lost.wav"), "disconnect plays the story effect")
 	main._finish_call()
 	check(main.stage == 1 and main.controls.visible, "call completes and movement starts")
 	main.player.play_motion("Walk")
@@ -85,7 +94,13 @@ func _run() -> void:
 	check(main.witness.has_node("WitnessMarker"), "witness has a visible name marker")
 	main._interact()
 	check(main.interaction_open and main.player.players.all(func(p): return p.current_animation == "Idle"), "dialogue stops the walk animation")
+	check(main.audio_director.voice.stream.resource_path.ends_with("marcus_witness.wav"), "Marcus speaks to the witness")
+	main._witness_reply()
+	check(main.audio_director.voice.stream.resource_path.ends_with("sade_intro.wav"), "Sade's response is voiced")
+	main._choose_witness("pressure")
+	check(main.audio_director.voice.stream.resource_path.ends_with("sade_pressure.wav"), "pressure plays its corresponding Sade line")
 	main._choose_witness("reassure")
+	check(main.audio_director.voice.stream.resource_path.ends_with("sade_reassure.wav"), "reassurance plays the corresponding Sade line")
 	main._finish_slice()
 	var previous_x: float = main.player.position.x
 	main.touch_directions["right"] = true
@@ -110,8 +125,11 @@ func _run() -> void:
 	check(automatic.overlay.visible and automatic.dialog_title.text.contains("INCOMING CALL"), "workshop and phone naturally reach call choice")
 	automatic._decline_call()
 	check(automatic.dialog_title.text == "MISSED CALL", "decline path remains available")
+	check(automatic.audio_director.voice.stream.resource_path.ends_with("tessa_missed.wav"), "Tessa's missed-call line is voiced")
 	automatic.queue_free()
 	await process_frame
 	Engine.time_scale = 1.0
+	# Let the audio mixer retire stopped Ogg playback before engine shutdown.
+	await create_timer(0.5).timeout
 	print("RESULT: ", failures, " failure(s)")
 	quit(1 if failures else 0)
