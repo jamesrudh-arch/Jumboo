@@ -8,7 +8,7 @@ Unzip the project into a fresh folder and import the folder containing `project.
 
 ## Current contents
 
-- Opening card now includes an original geometric D’YOUNGS mark and Oswald type; a redesigned title menu uses the generated city background. The city image is a still, not a 3D cinematic.
+- The opening presentation now uses actual extruded 3D text and geometry for a D’YOUNGS GAMES studio mark, LEVERAGE title and CINDER CITY reveal, with moving lighting, camera-relative motion and a synthesized ident sound. The later title menu still uses a generated city image, not a 3D city cinematic. The 3D presentation has not yet been visually reviewed or tested on iPhone.
 - New game starts the story setup and a short 3D phone shot, with synthesized vibration sound and screen light. Skip requires confirmation; X also invokes the skip confirmation. No physical-device haptic is implemented.
 - The player and witness now use an interim rigged stock human body and clothing instead of capsules, with idle/walk animation on the player. The exact look, proportions, animation and mobile performance still require visual review. See `assets/characters/README.md` for provenance.
 - Temporary CC0 props dress the street; see `assets/props/README.md`. The buildings, camera, controls and much of the world remain blockout quality.
