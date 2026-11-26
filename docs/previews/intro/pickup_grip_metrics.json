@@ -1,0 +1,59 @@
+{
+  "method": "weighted vertex-to-phone bounding box; snapshots only, not triangle collision or continuous contact proof",
+  "frames": {
+    "22": {
+      "RightHandThumb": {
+        "sampled_vertices": 449,
+        "minimum_distance_to_box_m": 0.0,
+        "vertices_inside_box": 135
+      },
+      "RightHandIndex": {
+        "sampled_vertices": 730,
+        "minimum_distance_to_box_m": 0.0,
+        "vertices_inside_box": 40
+      },
+      "RightHandMiddle": {
+        "sampled_vertices": 698,
+        "minimum_distance_to_box_m": 0.014997,
+        "vertices_inside_box": 0
+      },
+      "RightHandRing": {
+        "sampled_vertices": 717,
+        "minimum_distance_to_box_m": 0.039592,
+        "vertices_inside_box": 0
+      },
+      "RightHandPinky": {
+        "sampled_vertices": 526,
+        "minimum_distance_to_box_m": 0.061429,
+        "vertices_inside_box": 0
+      }
+    },
+    "40": {
+      "RightHandThumb": {
+        "sampled_vertices": 449,
+        "minimum_distance_to_box_m": 0.0,
+        "vertices_inside_box": 135
+      },
+      "RightHandIndex": {
+        "sampled_vertices": 730,
+        "minimum_distance_to_box_m": 0.0,
+        "vertices_inside_box": 40
+      },
+      "RightHandMiddle": {
+        "sampled_vertices": 698,
+        "minimum_distance_to_box_m": 0.014998,
+        "vertices_inside_box": 0
+      },
+      "RightHandRing": {
+        "sampled_vertices": 717,
+        "minimum_distance_to_box_m": 0.039592,
+        "vertices_inside_box": 0
+      },
+      "RightHandPinky": {
+        "sampled_vertices": 526,
+        "minimum_distance_to_box_m": 0.061429,
+        "vertices_inside_box": 0
+      }
+    }
+  }
+}
