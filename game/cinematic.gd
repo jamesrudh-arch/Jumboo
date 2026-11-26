@@ -84,14 +84,13 @@ func opening(done: Callable) -> void:
 	shot = preload("res://studio_intro_3d.gd").new()
 	shot.position = Vector3(400, 0, 400)
 	get_parent().add_child(shot)
-	await get_tree().create_timer(3.5, false).timeout
+	await get_tree().create_timer(3.7, false).timeout
 	if current != generation:
 		return
 	shot.reveal_title()
-	# Carry the score from the title reveal into the menu and opening.
-	get_parent().audio_director.play_music(get_parent().audio_director.PROLOGUE)
 	await get_tree().create_timer(4.5, false).timeout
 	if current == generation:
+		get_parent().audio_director.play_music(get_parent().audio_director.PROLOGUE)
 		_finish()
 
 func prologue(done: Callable) -> void:

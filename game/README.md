@@ -47,3 +47,7 @@ This build requests the iOS Playback audio category (so it may play when the sil
 Movement now uses character physics against selected warehouse/shop walls and the van, and the camera checks those obstacles. Collision is still incomplete throughout the district; see `AUDIT.md`.
 
 The smoke suite uses `user://leverage_smoke_test/` rather than the player's save slots; files with the test slot names in that dedicated directory are cleared when the suite starts. Lifecycle pause behavior has only been simulated in headless Godot, not verified in Xogot on iPhone.
+
+## Approved identity in the prototype opening
+
+The opening instantiates the approved studio mark, LEVERAGE wordmark and separate fulcrum icon as 3D GLBs, with their original synthesized stings. The menu uses selected approved palette tokens. Runtime lighting and motion are an initial interpretation; verify framing, timing, audio and performance visually and audibly in Xogot on the target phones. This does not imply the rest of the prototype or game is final. Sources and approvals: `../brand/leverage/README.md` and `../brand/studio/README.md`.
