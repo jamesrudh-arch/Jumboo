@@ -1,0 +1,27 @@
+{
+  "validator": "gltf-validator 2.0.0-dev.3.10",
+  "scope": "Validator only, not rendering, animation QA or device compatibility",
+  "files": {
+    "marcus_approved_source.glb": {
+      "errors": 4152,
+      "warnings": 2,
+      "infos": 0,
+      "hints": 0,
+      "issue_codes": {
+        "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+        "NODE_SKINNED_MESH_NON_ROOT": 1,
+        "ACCESSOR_WEIGHTS_NON_NORMALIZED": 4152
+      }
+    },
+    "marcus_normalized_test.glb": {
+      "errors": 0,
+      "warnings": 2,
+      "infos": 0,
+      "hints": 0,
+      "issue_codes": {
+        "MESH_PRIMITIVE_GENERATED_TANGENT_SPACE": 1,
+        "NODE_SKINNED_MESH_NON_ROOT": 1
+      }
+    }
+  }
+}

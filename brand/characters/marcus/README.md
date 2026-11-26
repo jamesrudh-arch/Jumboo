@@ -1,6 +1,16 @@
-# Marcus — revised 3D appearance study
+# Marcus — approved source and prior appearance studies
 
-**Appearance direction approved by the owner; rig and animation are not approved or finished.** This is a static Blender appearance study for Marcus, exploring a more detailed face and hair, muted work jacket, shirt, jeans and boots. Appearance, clothing and the previously proposed surname are creative proposals, not established canon. The prior generic face study was superseded after the owner asked us to continue; it remains in Git history.
+**Current approved appearance:** the owner chose the complete Grab3D Casual Man rigged character as Marcus, explicitly accepting his different face and clothing. The approved source is `marcus_approved_source.glb`; provenance, source rights and inspection results are in `../research/casual_man/README.md`. This model is not yet integrated into the game or intro, and source animation, deformation, Xogot import and device performance are not yet approved or verified.
+
+## Source and normalization test
+
+`marcus_approved_source.glb` is the unchanged, approved appearance source. The separate `marcus_normalized_test.glb` modifies only skin weights: `tools/normalize_marcus_weights.py` normalizes each four-weight tuple, and `tools/test_marcus_normalized.py` verifies that every other byte remains unchanged. The source hash remains `c41f2bfc62b03a8dd8fbae37d201d4c73bba3806678984c6895f59a7cbf22c4f`; the test copy is `6a8078dcde0e7cef15bac18786a5b525eacfc2d948a8d3cd4a6d2a83a6fb6fda`.
+
+Khronos glTF Validator `2.0.0-dev.3.10` reported **4,152 non-normalized weight errors and 2 warnings** in the original, and **0 errors and 2 warnings** in the normalized test copy. The remaining warnings concern missing tangent space and a non-root skinned mesh. See `docs/previews/character_research/marcus_gltf_validation.json`. Reproduce with `npm install --prefix /tmp/marcus-validate gltf-validator@2.0.0-dev.3.10` and `NODE_PATH=/tmp/marcus-validate/node_modules node tools/validate_marcus_gltf.cjs`. This checks format only: Blender/Godot visual equivalence, tangent behavior, motion, retargeting and iPhone performance are **not** confirmed. Neither GLB is integrated into the game.
+
+## Superseded graft study (historical record)
+
+**Superseded by the owner’s approval of the intact character above.** This is a static Blender appearance study for Marcus, exploring a more detailed face and hair, muted work jacket, shirt, jeans and boots. Appearance, clothing and the previously proposed surname are creative proposals, not established canon. The prior generic face study was superseded after the owner asked us to continue; it remains in Git history.
 
 `marcus_character_study.blend` is an editable Blender 4.2 scene; textures are packed. Actual Cycles renders are `docs/previews/marcus/front.png`, `three_quarter.png`, `side.png`, `rear.png` and `face_closeup.png`. The visible neckline seam, generic clothing and overall fidelity need further refinement before production. The A-pose is a static review pose, not an animation.
 
@@ -31,7 +41,7 @@ After appearance approval, `marcus_motion_test.blend` and `docs/previews/marcus/
 
 `marcus_unified_rig_test.blend` is a separate experimental Blender scene made from the approved appearance study. Its one skeleton drives the body, the cut head graft, and all four garments. Clothing rigs were consolidated only after checking their rest bone matrices; `tools/test_marcus_unified_rig.py` also confirmed the four garments' evaluated rest vertices stayed unchanged (maximum difference 0.0 in this test), that six meshes reference one armature, and that animation keys exist. It is not an export or gameplay validation.
 
-`docs/previews/marcus/unified_rig_test.gif` is a short head-turn deformation experiment, not a walk or performance. `unified_neck_front.png` and `unified_neck_rear.png` show close views during the test; the **rear neck is visibly open and jagged**, and the head/body surfaces are not welded. Head weights are only an approximation; pose, shoulders, garment deformation, expressions, grounded walk and skinning require further work. Do not use this as a finished production rig. The original approved appearance scene is unchanged.
+`docs/previews/marcus/unified_rig_test.gif` is a short head-turn deformation experiment, not a walk or performance. `unified_neck_front.png` and `unified_neck_rear.png` show close views during the test; the **rear neck is visibly open and jagged**, and the head/body surfaces are not welded. Head weights are only an approximation; pose, shoulders, garment deformation, expressions, grounded walk and skinning require further work. Do not use this as a finished production rig. The historical graft study is unchanged.
 
 The render was produced by bpy 4.2 CPU Cycles in a headless environment using temporary no-op stubs for unavailable display/OpenGL libraries; this did not test GUI or GPU rendering. No runtime, Xogot, animation export or device test was performed. The Blender file and generated renders are review artifacts, not integrated into the game. `tools/build_marcus_unified_rig_test.py` rebuilds the scene and GIF with normal bpy 4.2 and Pillow installations.
 
