@@ -1,0 +1,7 @@
+# Incoming call — 3D prop and shot study
+
+`incoming_call_study.blend` is an editable Blender 4.2 scene built by `tools/build_phone_call_study.py`. `docs/previews/intro/incoming_call_study.png` is the actual Cycles render. The phone body, screen, buttons, text and workbench are 3D geometry with procedural materials; the screen words are editable Blender text, not generated image lettering. The label **BROTHER** is a relationship label, not an invented name. This is a proposed design pending owner review, not an integrated game asset or a representation of a completed intro.
+
+The red/green circles are visual details of the phone prop only: **the required opening call will start and be answered automatically, without a mandatory tap**. This still does not show pickup or motion and contains no ringing, vibration, voiced dialogue or playback. It does not prove a working call, legibility on an iPhone, Godot/Xogot import, or performance. The separately approved audio preview remains in `../call_audio/`; it is not embedded in this image or scene.
+
+Rebuild using bpy 4.2 and run `python tools/build_phone_call_study.py` from a suitable Blender Python environment. Rendered in headless CPU Cycles with temporary display-library stubs; not tested in a Blender GUI or GPU renderer. No external model or texture inputs are required.
