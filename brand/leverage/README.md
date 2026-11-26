@@ -19,3 +19,20 @@ A separate Godot 4.7.2 headless import found 32 mesh instances and approximately
 ## Repository hygiene and remaining work
 
 After owner approval of the custom direction, the earlier unapproved stock-font 3D wordmark study and its separate preview files were removed from the current tree to avoid duplicates; they remain recoverable in Git history. The earlier selected generated concept remains at `docs/previews/leverage_identity_concept.png` for reference and is not a 3D model. No approved asset was replaced. Final motion/audio mix, app-icon sizing and packaging, complete stage-2 colour/identity system, real-time implementation and device verification remain unfinished. Explicit owner approval is required before beginning the next production stage.
+
+## Title-reveal direction approved; colour study awaiting review
+
+The owner approved the four-second title-reveal direction. Preserve the approved geometry and cinematic direction; this approval does not change the preview's 8 fps/low-sample status into a final mix, real-time sequence or device test.
+
+`leverage_palette_3d.blend` and `docs/previews/leverage_palette_3d.png` present proposed brand colours as actual 3D swatches and extruded labels. `tools/build_leverage_palette_3d.py` reconstructs the Blender scene. These are design tokens, not a mandate to tint every environment; the renderer's lighting and tone mapping change the apparent pixels, so the image is not a color-calibrated proof.
+
+| Token | Hex (sRGB) | RGB | Role |
+|---|---|---|---|
+| Ink | #10171D | 16, 23, 29 | dark neutral / background |
+| Paper | #F0EDE5 | 240, 237, 229 | primary type |
+| Steel | #8B9B9B | 139, 155, 155 | structural / metallic neutral |
+| Tidal | #8EBAB6 | 142, 186, 182 | information accent |
+| Amber | #E0B77E | 224, 183, 126 | objective / warm accent |
+| Signal | #E88771 | 232, 135, 113 | warning, with symbol and text |
+
+On an opaque Ink background, calculated sRGB contrast for Paper/Steel/Tidal/Amber/Signal is approximately 15.44/6.25/8.47/9.67/7.00:1 respectively (rounded); these are token comparisons, not evidence of in-game contrast on changing imagery or high-contrast compliance. Reference: https://learn.microsoft.com/en-us/xbox/accessibility/xbox-accessibility-guidelines/102. User review of this proposed palette remains open; faction/district colours, actual game UI application, lighting, accessibility and device verification are not complete.
