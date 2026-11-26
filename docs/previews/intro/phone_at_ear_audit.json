@@ -1,0 +1,1846 @@
+{
+  "method": "Weighted vertices versus approximate phone bounding box at 61 half-frame samples; not continuous or triangle collision QA. Ear target is an approximate head-local landmark, not a measured skin surface.",
+  "whole_frame_landmark_error_mm": {
+    "23": 5.0,
+    "24": 5.24,
+    "25": 5.2,
+    "26": 5.03,
+    "27": 5.25,
+    "28": 5.75,
+    "29": 5.5,
+    "30": 5.53,
+    "31": 5.54
+  },
+  "frames": {
+    "1.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 653.59
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.19
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "1.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 654.02
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.17
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "2.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 654.3
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.16
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "2.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 652.84
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.18
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "3.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 650.96
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.22
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "3.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 651.0
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.22
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "4.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 652.54
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.22
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "4.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 654.6
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.19
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "5.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 655.6
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.17
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "5.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 655.49
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.17
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "6.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 654.96
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.18
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "6.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 655.07
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.19
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "7.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 656.23
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.2
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "7.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 657.85
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.21
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "8.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 660.09
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.21
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "8.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 662.38
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.18
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "9.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 663.52
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.15
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "9.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 663.42
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.11
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "10.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 662.95
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.06
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "10.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 662.48
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.07
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "11.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 661.35
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.16
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "11.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 658.86
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.17
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "12.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 653.0
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.32
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "12.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 625.38
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.56
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "13.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 535.84
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.69
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "13.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 379.53
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.51
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "14.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 274.09
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.37
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "14.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 229.73
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.39
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "15.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 221.79
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.43
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "15.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 284.23
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.45
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "16.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 391.32
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.44
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "16.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 469.25
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 2,
+        "min_distance_mm": 0.0
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "17.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 480.48
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 3,
+        "min_distance_mm": 0.0
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "17.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 483.43
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 1.17
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "18.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 492.45
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.22
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "18.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 483.41
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 6,
+        "min_distance_mm": 0.0
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "19.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 461.61
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 1.53
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "19.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 433.2
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.36
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "20.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 403.93
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.64
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "20.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 361.83
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.58
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "21.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 304.53
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.35
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "21.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 231.82
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.24
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "22.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 149.41
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.24
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "22.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 63.28
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.32
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "23.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 11.51
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.41
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "23.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 13.86
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.25
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "24.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 11.76
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.9
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "24.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 10.53
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.74
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "25.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 12.13
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.63
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "25.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 11.85
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.42
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "26.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 12.26
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.24
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "26.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 12.88
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.19
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "27.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 12.49
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.18
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "27.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 12.08
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.15
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "28.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 12.27
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.12
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "28.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 12.36
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.11
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "29.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 12.19
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.1
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "29.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 12.24
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.1
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "30.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 12.17
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.1
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "30.5": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 12.37
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.11
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    },
+    "31.0": {
+      "Head": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 12.26
+      },
+      "LeftHand": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 2.12
+      },
+      "LeftHandThumb": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.24
+      },
+      "LeftHandIndex": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.76
+      },
+      "LeftHandMiddle": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 3.39
+      },
+      "LeftHandRing": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 0.01
+      },
+      "LeftHandPinky": {
+        "vertices_inside_phone_box": 0,
+        "min_distance_mm": 16.85
+      }
+    }
+  }
+}
