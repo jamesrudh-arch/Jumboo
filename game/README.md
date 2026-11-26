@@ -17,3 +17,8 @@ After importing in Godot 4.7.2, run `godot --headless --path game --script res:/
 ## Reported grey screen
 
 An owner screenshot shows a grey running view instead of the identity. The cause is not established; Godot 4.7.2 headless tests do not verify compatibility with Xogot or its 4.4-based engine. Capture the Xogot version and the first error from Xogot output/debugger or the floating toolbar console if available. The [Xogot FAQ](https://docs.xogot.com/documentation/xogot/faq/) notes imports can take time without a visible progress indicator; its compressed texture import settings apply to the specific texture errors listed there, not automatically to every grey screen.
+
+
+## Startup resilience
+
+A pristine copy without an editor import cache reproduced a preload compilation failure in desktop Godot 4.7.2. The opening now loads the imported resources if available or parses the original GLB/WAV files at runtime if they are not yet imported. A missing 3D asset produces an on-screen diagnostic rather than silently continuing. This fixes the reproduced missing-import case in desktop headless tests, but the iPhone grey screen may have a different cause; the updated project still needs Xogot/device testing. The fallback needs the source GLB/WAV files accessible at runtime; if producing an exported package later, include them explicitly or verify the imported-resource path works. Runtime GLB loading can add startup work. The approved designs have not been replaced.
