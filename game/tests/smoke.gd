@@ -13,10 +13,42 @@ func check(condition: bool, message: String) -> void:
 		failures += 1
 
 func _run() -> void:
+	# Never write to the player's save slots. This suite is intentionally destructive
+	# only within this dedicated test directory.
+	var saves = load("res://save_store.gd")
+	saves.base_dir = "user://leverage_smoke_test"
+	DirAccess.make_dir_recursive_absolute(saves.base_dir)
+	for name in ["leverage_save_a.json", "leverage_save_b.json", "leverage_blockout.json"]:
+		DirAccess.remove_absolute(saves.base_dir.path_join(name))
 	var main = load("res://main.tscn").instantiate()
 	root.add_child(main)
 	await process_frame
 	check(main.cinematic.canvas.visible, "opening starts")
+	check(saves.path_for(saves.SLOT_A) != saves.SLOT_A and saves.path_for(saves.LEGACY) != saves.LEGACY, "smoke saves use isolated paths")
+	main.touch_stick.finger = 8
+	main.touch_stick.value = Vector2.RIGHT
+	main.camera_touch_id = 9
+	var fired := [false]
+	create_timer(0.1, false).timeout.connect(func(): fired[0] = true)
+	main.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
+	main.notification(Node.NOTIFICATION_APPLICATION_PAUSED)
+	check(paused and main.touch_stick.finger == -1 and main.camera_touch_id == -1, "focus loss pauses and clears touch ownership")
+	var ident_during_pause: AudioStreamPlayer = main.cinematic.shot.find_children("*", "AudioStreamPlayer", true, false)[0]
+	check(ident_during_pause.stream_paused, "opening audio stream pauses with the scene tree")
+	await create_timer(0.2, true).timeout
+	check(not fired[0], "pausable scene timer remains stopped during interruption")
+	main.notification(Node.NOTIFICATION_APPLICATION_FOCUS_IN)
+	check(paused, "focus return alone does not resume a suspended app")
+	main.notification(Node.NOTIFICATION_APPLICATION_RESUMED)
+	check(not paused, "lifecycle-owned pause resumes after focus and suspension clear")
+	check(not ident_during_pause.stream_paused, "opening audio stream resumes with the scene tree")
+	await create_timer(0.2).timeout
+	check(fired[0], "scene timer resumes after interruption")
+	paused = true
+	main.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
+	main.notification(Node.NOTIFICATION_APPLICATION_FOCUS_IN)
+	check(paused, "lifecycle does not release a pre-existing pause")
+	paused = false
 	check(int(ProjectSettings.get_setting("audio/general/ios/session_category")) == 3 and ProjectSettings.get_setting("audio/general/ios/mix_with_others") == true, "iOS playback audio category and mixing are configured")
 	check(is_instance_valid(main.cinematic.shot), "3D studio shot starts")
 	check(main.cinematic.shot.phase == "studio", "3D studio mark displayed during opening")
@@ -167,14 +199,14 @@ func _run() -> void:
 	main._bargain()
 	main._bargain_agreement()
 	check(main.stage == 3 and main.encounter_choice == "", "bargain is not committed before confirmation")
-	for slot in ["user://leverage_save_a.json", "user://leverage_save_b.json"]:
+	for slot in [saves.path_for(saves.SLOT_A), saves.path_for(saves.SLOT_B)]:
 		DirAccess.remove_absolute(slot)
 	main._complete_encounter("bargain")
 	main._update_navigation()
 	check(main.stage == 4 and main._read_save().get("encounter_choice") == "bargain", "confirmed obligation survives save")
 	check(not main.navigation.has_target, "map removes marker when the playable lead ends")
 	main._save_game()
-	var slot_b := FileAccess.open("user://leverage_save_b.json", FileAccess.WRITE)
+	var slot_b := FileAccess.open(saves.path_for(saves.SLOT_B), FileAccess.WRITE)
 	slot_b.store_string("corrupt")
 	slot_b.close()
 	check(main._read_save().get("encounter_choice") == "bargain", "damaged latest snapshot falls back to previous checkpoint")
@@ -225,15 +257,15 @@ func _run() -> void:
 	check(main.stage == 4 and main.encounter_choice == "fight" and main._read_save().get("encounter_choice") == "fight", "kick resolves and saves the fight")
 	main._complete_encounter("withdraw")
 	check(main._read_save().get("encounter_choice") == "withdraw" and main.audio_director.voice.stream.resource_path.ends_with("tessa_escape.wav"), "withdrawal records no bargain and plays its response")
-	for slot in ["user://leverage_save_a.json", "user://leverage_save_b.json"]:
+	for slot in [saves.path_for(saves.SLOT_A), saves.path_for(saves.SLOT_B)]:
 		DirAccess.remove_absolute(slot)
-	var save_file := FileAccess.open(main.SAVE_PATH, FileAccess.WRITE)
+	var save_file := FileAccess.open(saves.path_for(saves.LEGACY), FileAccess.WRITE)
 	save_file.store_string(JSON.stringify({"version": 1, "stage": 2, "witness_choice": "pressure", "x": 0.0, "z": -7.0}))
 	save_file.close()
 	check(main._read_save().get("stage") == 2, "version one witness checkpoint remains readable")
 	main._continue_game()
 	check(main.stage == 2 and main.witness_choice == "pressure" and main.encounter.van.visible, "legacy checkpoint continues to the van")
-	save_file = FileAccess.open(main.SAVE_PATH, FileAccess.WRITE)
+	save_file = FileAccess.open(saves.path_for(saves.LEGACY), FileAccess.WRITE)
 	save_file.store_string(JSON.stringify({"version": 2, "stage": 4, "witness_choice": "pressure", "encounter_choice": "unknown", "x": 0.0, "z": 0.0}))
 	save_file.close()
 	check(main._read_save().is_empty(), "invalid encounter outcomes are rejected")

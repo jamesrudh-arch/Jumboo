@@ -84,13 +84,13 @@ func opening(done: Callable) -> void:
 	shot = preload("res://studio_intro_3d.gd").new()
 	shot.position = Vector3(400, 0, 400)
 	get_parent().add_child(shot)
-	await get_tree().create_timer(3.5).timeout
+	await get_tree().create_timer(3.5, false).timeout
 	if current != generation:
 		return
 	shot.reveal_title()
 	# Carry the score from the title reveal into the menu and opening.
 	get_parent().audio_director.play_music(get_parent().audio_director.PROLOGUE)
-	await get_tree().create_timer(4.5).timeout
+	await get_tree().create_timer(4.5, false).timeout
 	if current == generation:
 		_finish()
 
@@ -112,11 +112,11 @@ func prologue(done: Callable) -> void:
 	shot = preload("res://workshop_shot.gd").new()
 	shot.position = Vector3(250, 0, 250)
 	get_parent().add_child(shot)
-	await get_tree().create_timer(4.0).timeout
+	await get_tree().create_timer(4.0, false).timeout
 	if current != generation:
 		return
 	subtitle.text = ""
-	await get_tree().create_timer(8.0).timeout
+	await get_tree().create_timer(8.0, false).timeout
 	if current != generation:
 		return
 	# Keep the familiar ringing close-up; answering triggers the separate
@@ -127,7 +127,7 @@ func prologue(done: Callable) -> void:
 	shot.position = Vector3(200, 0, 200)
 	get_parent().add_child(shot)
 	subtitle.text = "[Phone vibrating]" if show_captions else ""
-	await get_tree().create_timer(6.0).timeout
+	await get_tree().create_timer(6.0, false).timeout
 	if current == generation:
 		_finish()
 
@@ -147,7 +147,7 @@ func answer_phone(done: Callable) -> void:
 	shot = preload("res://answer_shot.gd").new()
 	shot.position = Vector3(300, 0, 300)
 	get_parent().add_child(shot)
-	await get_tree().create_timer(4.0).timeout
+	await get_tree().create_timer(4.0, false).timeout
 	if current == generation:
 		_finish()
 

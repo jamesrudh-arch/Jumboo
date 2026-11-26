@@ -35,6 +35,9 @@ var navigation: Control
 var map_button: Button
 var camera_yaw := 0.0
 var camera_touch_id := -1
+var app_unfocused := false
+var app_suspended := false
+var lifecycle_owns_pause := false
 var game_started := false
 var interaction_open := false
 var player: Node3D
@@ -73,6 +76,45 @@ const CALL_VOICES := [
 var audio_director: Node
 var cinematic: CanvasLayer
 var title_screen: CanvasLayer
+
+func _notification(what: int) -> void:
+	if not is_inside_tree():
+		return
+	match what:
+		NOTIFICATION_APPLICATION_FOCUS_OUT:
+			app_unfocused = true
+			_suspend_for_lifecycle()
+		NOTIFICATION_APPLICATION_PAUSED:
+			app_suspended = true
+			_suspend_for_lifecycle()
+		NOTIFICATION_APPLICATION_FOCUS_IN:
+			app_unfocused = false
+			_resume_from_lifecycle()
+		NOTIFICATION_APPLICATION_RESUMED:
+			app_suspended = false
+			_resume_from_lifecycle()
+
+func _suspend_for_lifecycle() -> void:
+	if is_instance_valid(touch_stick):
+		touch_stick.reset()
+	camera_touch_id = -1
+	pending_attack = ""
+	dodge_timer = 0.0
+	if is_instance_valid(player) and player is CharacterBody3D:
+		(player as CharacterBody3D).velocity = Vector3.ZERO
+	if not get_tree().paused:
+		lifecycle_owns_pause = true
+		get_tree().paused = true
+
+func _resume_from_lifecycle() -> void:
+	if not app_unfocused and not app_suspended and lifecycle_owns_pause:
+		lifecycle_owns_pause = false
+		get_tree().paused = false
+
+func _exit_tree() -> void:
+	if lifecycle_owns_pause:
+		lifecycle_owns_pause = false
+		get_tree().paused = false
 
 func _ready() -> void:
 	preload("res://input_setup.gd").configure()
@@ -408,7 +450,7 @@ func _automatic_answer() -> void:
 func _call_timeout_recovery(id: int, seconds: float) -> void:
 	# Bounded recovery only works if the scene tree is still ticking; it cannot
 	# recover a hard freeze or guarantee an interrupted conversation was heard.
-	await get_tree().create_timer(seconds).timeout
+	await get_tree().create_timer(seconds, false).timeout
 	if id == call_watchdog_id and game_started and stage == 0:
 		push_warning("Call timed out; recovering to the first checkpoint")
 		_finish_call()
@@ -437,7 +479,7 @@ func _play_automatic_call() -> void:
 			audio_director.play_effect("res://assets/audio/call_lost.wav")
 		if i == 3:
 			audio_director.play_effect("res://assets/audio/engine_cut.wav")
-		await get_tree().create_timer(duration).timeout
+		await get_tree().create_timer(duration, false).timeout
 	if sequence == call_sequence_id:
 		_finish_call()
 
@@ -766,9 +808,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		_interact()
 		get_viewport().set_input_as_handled()
 	elif event is InputEventScreenTouch:
-		if event.pressed and camera_touch_id == -1 and event.position.x > 500 and not navigation.get_global_rect().has_point(event.position):
+		if event.pressed and not event.is_canceled() and camera_touch_id == -1 and event.position.x > 500 and not navigation.get_global_rect().has_point(event.position):
 			camera_touch_id = event.index
-		elif not event.pressed and event.index == camera_touch_id:
+		elif (not event.pressed or event.is_canceled()) and event.index == camera_touch_id:
 			camera_touch_id = -1
 	elif event is InputEventScreenDrag and event.index == camera_touch_id:
 		camera_yaw -= event.relative.x * 0.006
