@@ -1,6 +1,6 @@
 # Marcus — revised 3D appearance study
 
-**Awaiting owner review, not a finished or approved character.** This is a static Blender appearance study for Marcus, exploring a more detailed face and hair, muted work jacket, shirt, jeans and boots. Appearance, clothing and the previously proposed surname are creative proposals, not established canon. The prior generic face study was superseded after the owner asked us to continue; it remains in Git history.
+**Appearance direction approved by the owner; rig and animation are not approved or finished.** This is a static Blender appearance study for Marcus, exploring a more detailed face and hair, muted work jacket, shirt, jeans and boots. Appearance, clothing and the previously proposed surname are creative proposals, not established canon. The prior generic face study was superseded after the owner asked us to continue; it remains in Git history.
 
 `marcus_character_study.blend` is an editable Blender 4.2 scene; textures are packed. Actual Cycles renders are `docs/previews/marcus/front.png`, `three_quarter.png`, `side.png`, `rear.png` and `face_closeup.png`. The visible neckline seam, generic clothing and overall fidelity need further refinement before production. The A-pose is a static review pose, not an animation.
 
@@ -22,3 +22,7 @@ clothing_shirt.glb            c3467876f712e63a901fa664b1d54eb0127c56d20888dbbb0a
 clothing_boots.glb            ca9bd57f279006c5114cc47fbbc8143d0e53ac5ddb9b40c78099a53a0c904895
 grab3d_man_base_rigged.glb    3038f56e1225d0ef9692189ed19ff688f1424e669281148a4cc6995fed568496
 ```
+
+## Exploratory motion test
+
+After appearance approval, `marcus_motion_test.blend` and `docs/previews/marcus/deformation_test.gif` were created as a **Blender-only deformation experiment**, not a walk or performance preview. The formerly static body now uses its preserved 53 weight groups, and its armature and four clothing armatures receive matching simple keys. The head is fixed, the neck remains unjoined, the arms remain out, and the feet slide/float; the motion is deliberately diagnostic and not representative of a final walk. It is not a unified rig or a game asset. The experiment exposes the need to consolidate/rebind the rig, join and weight the neck, fit the clothing and create grounded animation before a meaningful animation review. `tools/build_marcus_motion_test.py` rebuilds it from the approved appearance scene.
