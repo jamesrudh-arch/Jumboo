@@ -16,3 +16,13 @@ A separate Godot 4.7.2 headless import recognized four mesh instances and approx
 `docs/previews/leverage_logo_3d_motion.gif` is a silent four-second camera/light study rendered as 32 frames from the actual Blender 3D scene. It is a low-sample review preview, not a final title reveal or an in-game recording; `tools/render_leverage_logo_3d_motion.py` reproduces it. The owner has not approved this game identity.
 
 A separate custom-lettering attempt was inspected and rejected internally because its R/A openings did not render correctly; its broken outputs were removed rather than presented as finished. The working licensed-base wordmark remains available, and bespoke lettering is still an open task. The owner asked to keep the repository clean: stale local WIP ZIP exports and generated import/texture duplicates were removed, with the most recently delivered WIP archive retained locally and ignored by Git. The original tracked GLBs contain their texture images; a fresh Godot 4.7.2 headless import of tracked game files completed without reported errors. This does not verify device rendering.
+
+## Custom-lettering study 02
+
+A second 3D design constructs the eight title letters from hand-authored geometric, beveled metal components rather than a font. The open counters of R and A are built as real space between solids, and a copper pivot sits below V. Components intentionally remain separate and their seams are visible; this is an exploratory machined construction, not a final approved identity. Subtitle and tagline still use the existing licensed Bebas Neue font, with its OFL license in `game/assets/fonts/`.
+
+- `leverage_custom_3d.blend` and `leverage_custom_3d.glb`: editable Blender scene and separate model.
+- `docs/previews/leverage_custom_front.png`, `leverage_custom_three_quarter.png`, `leverage_custom_side.png`, `leverage_custom_rear.png`: four actual Blender Cycles views.
+- `tools/build_leverage_custom_3d.py`: reproducible mesh, lighting and camera creation; needs Blender bpy 4.2 and compatible system libraries.
+
+A separate Godot 4.7.2 headless import recognized 32 mesh instances and approximately 40,672 triangles. This is structural validation, not runtime rendering, visual approval or iPhone profiling. Multiple separate meshes may be expensive on mobile; batching and geometry require actual profiling before integration. The exporter logged missing optional Draco; the uncompressed GLB imported. The older licensed-base study is retained for comparison until the owner chooses a direction, rather than replacing a previously presented design without feedback. Final icon, colour system, audio and motion for this custom version remain open; nothing is integrated in the game.
