@@ -1,6 +1,6 @@
 # LEVERAGE game identity — production register
 
-The owner approved the **custom 3D wordmark**, **3D V/fulcrum icon**, title-reveal direction and presented colour palette. Preserve these directions. No design has been integrated into the game.
+The owner approved the **custom 3D wordmark**, **3D V/fulcrum icon**, title-reveal direction and presented colour palette. Preserve these directions. The approved models and stings are now used by the prototype opening; runtime appearance and audio on iPhone remain unverified.
 
 ## Approved custom 3D wordmark
 
@@ -18,7 +18,7 @@ A separate Godot 4.7.2 headless import found 32 mesh instances and approximately
 
 ## Repository hygiene and remaining work
 
-After owner approval of the custom direction, the earlier unapproved stock-font 3D wordmark study and its separate preview files were removed from the current tree to avoid duplicates; they remain recoverable in Git history. The earlier selected generated concept remains at `docs/previews/leverage_identity_concept.png` for reference and is not a 3D model. No approved asset was replaced. Final motion/audio mix, app-icon sizing and packaging, complete stage-2 colour/identity system, real-time implementation and device verification remain unfinished. Explicit owner approval is required before beginning the next production stage.
+After owner approval of the custom direction, the earlier unapproved stock-font 3D wordmark study and its separate preview files were removed from the current tree to avoid duplicates; they remain recoverable in Git history. The earlier selected generated concept remains at `docs/previews/leverage_identity_concept.png` for reference and is not a 3D model. No approved asset was replaced. Final motion/audio mix, app-icon sizing and packaging, broader palette application and device verification remain unfinished. The prototype opening now instantiates the approved studio, title and icon GLBs and plays their stings; its real-time lighting and animation are an interpretation of the review renders, not a proven visual match. Explicit owner approval is required before beginning the next production stage.
 
 ## Approved colour palette
 
@@ -36,3 +36,7 @@ The owner approved the four-second title-reveal direction. Preserve the approved
 | Signal | #E88771 | 232, 135, 113 | warning, with symbol and text |
 
 On an opaque Ink background, calculated sRGB contrast for Paper/Steel/Tidal/Amber/Signal is approximately 15.44/6.25/8.47/9.67/7.00:1 respectively (rounded); these are token comparisons, not evidence of in-game contrast on changing imagery or high-contrast compliance. Reference: https://learn.microsoft.com/en-us/xbox/accessibility/xbox-accessibility-guidelines/102. The owner approved the presented palette; faction/district colours, actual game UI application, lighting, accessibility and device verification are not complete.
+
+## Prototype integration
+
+`game/studio_intro_3d.gd` instantiates the approved studio mark, wordmark and icon and plays the original studio and title stings. It reveals Cinder City and the tagline in sequence; the icon appears as a separate 3D object. The opening background uses Ink and a warm light uses Amber; the existing menu uses selected palette tokens. This is an initial application, not a complete UI recolouring or an app-store icon. Headless Godot smoke tests validate structure and transitions, not rendering, sound, performance or iPhone/Xogot behaviour.
