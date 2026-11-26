@@ -26,3 +26,15 @@ A second 3D design constructs the eight title letters from hand-authored geometr
 - `tools/build_leverage_custom_3d.py`: reproducible mesh, lighting and camera creation; needs Blender bpy 4.2 and compatible system libraries.
 
 A separate Godot 4.7.2 headless import recognized 32 mesh instances and approximately 40,672 triangles. This is structural validation, not runtime rendering, visual approval or iPhone profiling. Multiple separate meshes may be expensive on mobile; batching and geometry require actual profiling before integration. The exporter logged missing optional Draco; the uncompressed GLB imported. The older licensed-base study is retained for comparison until the owner chooses a direction, rather than replacing a previously presented design without feedback. Final icon, colour system, audio and motion for this custom version remain open; nothing is integrated in the game.
+
+## Approval and 3D icon study
+
+The owner explicitly approved the custom 3D wordmark study 02. Preserve the approved wordmark geometry; this approval does not automatically approve the separate app-icon study or the remaining game-identity components.
+
+A new compact icon study uses the approved V and copper fulcrum geometry mounted on a dimensional beveled housing. It is an actual Blender 3D scene, not an app-ready final icon or an in-game asset:
+
+- `leverage_icon_3d.blend` and `leverage_icon_3d.glb`: editable scene and separate 3D export.
+- `docs/previews/leverage_icon_3d_front.png`, `leverage_icon_3d_three_quarter.png`, `leverage_icon_3d_side.png`, `leverage_icon_3d_rear.png`: Blender Cycles views. The rear is the plain back of the physical housing.
+- `tools/build_leverage_icon_3d.py`, `tools/render_leverage_icon_views.py`: scene and inspection-view sources (bpy 4.2).
+
+A separate Godot 4.7.2 headless test imported the icon GLB and found four meshes and approximately 1,632 triangles. This is not an iOS app-icon packaging, small-size readability, rendered-device or performance test. The exporter warned that optional Draco was unavailable; the uncompressed file imported. The icon is **awaiting owner review**, and full game identity, icon-size assessment, final 3D title motion, audio and game integration remain unfinished.

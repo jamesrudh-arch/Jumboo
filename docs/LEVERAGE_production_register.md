@@ -5,7 +5,7 @@ Owner direction: create, present, review, refine and obtain **explicit approval*
 | Stage | Status | Review / scope |
 |---|---|---|
 | 1. D’YOUNGS GAMES studio identity | **Direction accepted to proceed; production remains open** | Owner asked for additional polish, commit/push, then next stage. Actual 3D model, multi-angle renders, motion preview and newly synthesized standalone sting exist. Final sound synchronization and real-time intro remain unfinished; do not silently replace the direction. |
-| 2. LEVERAGE game identity | **In progress — 3D wordmark study presented for review** | Two Blender 3D wordmark studies with models and rendered views: an earlier licensed-base design with silent motion, and a newer custom geometric letter construction. Both await owner feedback. App icon, full identity, final motion and sound remain unfinished. No stage approval or game integration. |
+| 2. LEVERAGE game identity | **In progress — 3D wordmark study presented for review** | The owner explicitly approved the custom geometric 3D wordmark. A separate 3D V/fulcrum app-icon study has been presented and awaits review. Full stage approval, final title motion, audio, icon-size verification and game integration remain outstanding. |
 | 3. Typography | Pending | Previous specimens are exploratory, not approved. |
 | 4. Visual art direction | Pending | Earlier concepts are not approved production assets. |
 | 5. Marcus | Pending | Existing model is interim, not approved. |
