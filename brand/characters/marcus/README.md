@@ -48,3 +48,7 @@ See `docs/LEVERAGE_marcus_character_technical_audit.md` for the source-backed pr
 ## Foot-contact and garment experiment
 
 `marcus_contact_study.blend` and `contact_study_side.gif` are a separate IK contact experiment with covered leg skin removed to address observed knee poke-through. This is not a finished walk or proof of collision-free clothing. See the follow-up in `docs/LEVERAGE_marcus_character_technical_audit.md` for measured stance drift, precise limitations, and the unsuccessful physical neck-bridge result. The approved appearance and prior unmasked model remain unchanged.
+
+## Outsole contact refinement
+
+`marcus_ground_contact.blend` is a separate diagnostic that refines sole weights and target height. Its sampled stance measurements are in `docs/previews/marcus/ground_contact_measurement.json`; they do not establish a finished walk, neck repair, complete clothing QA or game compatibility. See the ground-contact follow-up in the technical audit.
