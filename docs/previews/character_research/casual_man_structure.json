@@ -1,0 +1,14 @@
+{
+  "file": "brand/characters/research/casual_man/casual_man_source.glb",
+  "sha256": "c41f2bfc62b03a8dd8fbae37d201d4c73bba3806678984c6895f59a7cbf22c4f",
+  "bytes": 13051272,
+  "meshes": 1,
+  "skins": 1,
+  "joints": 54,
+  "triangles": 244257,
+  "animations": [
+    "walk",
+    "run"
+  ],
+  "notes": "Container structure only: not rig, visual quality, license, animation-foot-contact, engine or device validation."
+}
