@@ -1,8 +1,8 @@
-; LEVERAGE: Cinder City — clearly labelled vertical-slice blockout.
+; LEVERAGE: Cinder City — approved identity presentation.
 config_version=5
 
 [application]
-config/name="LEVERAGE: Cinder City — Blockout"
+config/name="LEVERAGE: Cinder City — Identity"
 run/main_scene="res://main.tscn"
 
 [display]
