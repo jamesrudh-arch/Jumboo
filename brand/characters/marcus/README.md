@@ -44,3 +44,7 @@ The render was produced by bpy 4.2 CPU Cycles in a headless environment using te
 ## Deformation research and audit
 
 See `docs/LEVERAGE_marcus_character_technical_audit.md` for the source-backed production assessment, measured structural baseline and visible limitations. `marcus_deformation_audit.blend` and the four `stress_*.png` renders are deliberately non-final stress poses, not natural animation.
+
+## Foot-contact and garment experiment
+
+`marcus_contact_study.blend` and `contact_study_side.gif` are a separate IK contact experiment with covered leg skin removed to address observed knee poke-through. This is not a finished walk or proof of collision-free clothing. See the follow-up in `docs/LEVERAGE_marcus_character_technical_audit.md` for measured stance drift, precise limitations, and the unsuccessful physical neck-bridge result. The approved appearance and prior unmasked model remain unchanged.
