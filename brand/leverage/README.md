@@ -1,6 +1,6 @@
 # LEVERAGE game identity — production register
 
-The owner explicitly approved the **custom 3D wordmark** and subsequently approved the **3D V/fulcrum icon**. Preserve both designs; approval of the separate title-reveal preview below has not yet been given. No design has been integrated into the game.
+The owner approved the **custom 3D wordmark**, **3D V/fulcrum icon**, title-reveal direction and presented colour palette. Preserve these directions. No design has been integrated into the game.
 
 ## Approved custom 3D wordmark
 
@@ -12,7 +12,7 @@ A separate Godot 4.7.2 headless import found 32 mesh instances and approximately
 
 `leverage_icon_3d.blend` and `leverage_icon_3d.glb` contain the approved V-and-fulcrum icon and its physical housing. Front, three-quarter, side and rear Cycles views are `docs/previews/leverage_icon_3d_*.png`. Source: `tools/build_leverage_icon_3d.py` and `tools/render_leverage_icon_views.py`. A separate headless Godot import found four meshes and approximately 1,632 triangles. This is not an app-store package, device rendering or small-icon legibility test.
 
-## Title reveal — awaiting review
+## Approved title-reveal direction
 
 `docs/previews/leverage_approved_title_reveal.mp4` is a four-second **3D-rendered** camera/light pass around the approved lettering with the original synthesized `leverage_title_sting.wav`. Source: `tools/render_approved_title_reveal.py` (bpy 4.2, Pillow/imageio-ffmpeg and system libraries) and `tools/create_leverage_title_sting.py` (Python standard library; no external samples). The review preview is 800×450, 8 rendered frames/second, and uses low-sample Cycles rendering; motion smoothness and mix are **not final**. It has video and audio streams, but has not been auditioned or evaluated in Xogot or on iPhone. This is not an in-game intro.
 
@@ -20,7 +20,7 @@ A separate Godot 4.7.2 headless import found 32 mesh instances and approximately
 
 After owner approval of the custom direction, the earlier unapproved stock-font 3D wordmark study and its separate preview files were removed from the current tree to avoid duplicates; they remain recoverable in Git history. The earlier selected generated concept remains at `docs/previews/leverage_identity_concept.png` for reference and is not a 3D model. No approved asset was replaced. Final motion/audio mix, app-icon sizing and packaging, complete stage-2 colour/identity system, real-time implementation and device verification remain unfinished. Explicit owner approval is required before beginning the next production stage.
 
-## Title-reveal direction approved; colour study awaiting review
+## Approved colour palette
 
 The owner approved the four-second title-reveal direction. Preserve the approved geometry and cinematic direction; this approval does not change the preview's 8 fps/low-sample status into a final mix, real-time sequence or device test.
 
@@ -35,4 +35,4 @@ The owner approved the four-second title-reveal direction. Preserve the approved
 | Amber | #E0B77E | 224, 183, 126 | objective / warm accent |
 | Signal | #E88771 | 232, 135, 113 | warning, with symbol and text |
 
-On an opaque Ink background, calculated sRGB contrast for Paper/Steel/Tidal/Amber/Signal is approximately 15.44/6.25/8.47/9.67/7.00:1 respectively (rounded); these are token comparisons, not evidence of in-game contrast on changing imagery or high-contrast compliance. Reference: https://learn.microsoft.com/en-us/xbox/accessibility/xbox-accessibility-guidelines/102. User review of this proposed palette remains open; faction/district colours, actual game UI application, lighting, accessibility and device verification are not complete.
+On an opaque Ink background, calculated sRGB contrast for Paper/Steel/Tidal/Amber/Signal is approximately 15.44/6.25/8.47/9.67/7.00:1 respectively (rounded); these are token comparisons, not evidence of in-game contrast on changing imagery or high-contrast compliance. Reference: https://learn.microsoft.com/en-us/xbox/accessibility/xbox-accessibility-guidelines/102. The owner approved the presented palette; faction/district colours, actual game UI application, lighting, accessibility and device verification are not complete.
