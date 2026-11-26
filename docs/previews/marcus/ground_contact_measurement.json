@@ -1,0 +1,30 @@
+{
+  "scope": "Selected rest-pose outsole vertices, two stance intervals only. No full foot collision, loop, garment, export, device or visual quality guarantee.",
+  "floor_z": -0.012868493795394897,
+  "stance": {
+    "r": {
+      "frames": [
+        1,
+        13
+      ],
+      "sampled_outsole_vertices": 355,
+      "max_sample_displacement_m": 1.5104482955249968e-05,
+      "minimum_sample_height_range_above_floor_m": [
+        -6.139278411865234e-06,
+        1.3738870620727539e-05
+      ]
+    },
+    "l": {
+      "frames": [
+        13,
+        25
+      ],
+      "sampled_outsole_vertices": 355,
+      "max_sample_displacement_m": 2.5196717987435447e-05,
+      "minimum_sample_height_range_above_floor_m": [
+        -1.0479241609573364e-05,
+        1.4521181583404541e-05
+      ]
+    }
+  }
+}
