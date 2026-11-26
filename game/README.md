@@ -22,3 +22,7 @@ An owner screenshot shows a grey running view instead of the identity. The cause
 ## Startup resilience
 
 A pristine copy without an editor import cache reproduced a preload compilation failure in desktop Godot 4.7.2. The opening now loads the imported resources if available or parses the original GLB/WAV files at runtime if they are not yet imported. A missing 3D asset produces an on-screen diagnostic rather than silently continuing. This fixes the reproduced missing-import case in desktop headless tests, but the iPhone grey screen may have a different cause; the updated project still needs Xogot/device testing. The fallback needs the source GLB/WAV files accessible at runtime; if producing an exported package later, include them explicitly or verify the imported-resource path works. Runtime GLB loading can add startup work. The approved designs have not been replaced.
+
+## Godot 4.4 compatibility check
+
+The revised identity ZIP was also checked with a locally compiled Godot 4.4.1 desktop headless build. Nine structural checks passed from a fresh unimported copy and after an editor import. This custom build has no rendering drivers or fontconfig and emitted renderer/fontconfig errors during import, so the checks are not visual/audio verification and do not prove Xogot compatibility or iPhone performance. The owner subsequently reported that the revised opening showed on the phone; audio, exact Xogot/Godot build and performance were not separately verified.
