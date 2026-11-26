@@ -4,7 +4,7 @@ Owner direction: create, present, review, refine and obtain **explicit approval*
 
 | Stage | Status | Review / scope |
 |---|---|---|
-| 1. D’YOUNGS GAMES studio identity | **Presented — awaiting feedback and explicit approval** | `brand/studio/README.md`: editable DY symbol, studio lockup, colour/mono variants, palette and silent animated concept. Actual 3D/engine intro and sound remain unfinished. Prior concept selection is not full-stage approval. |
+| 1. D’YOUNGS GAMES studio identity | **Presented — awaiting feedback and explicit approval** | `brand/studio/README.md`: actual 3D Blender model, renders from four views, a real rendered silent 3D motion preview, palette and variants. Owner requested 3D and rejected the previous faux-depth/2D presentation; 3D revision awaits feedback. Sound and real-time intro remain unfinished. |
 | 2. LEVERAGE game identity | Pending approval of stage 1 | Earlier concept exists; not an approved stage. |
 | 3. Typography | Pending | Previous specimens are exploratory, not approved. |
 | 4. Visual art direction | Pending | Earlier concepts are not approved production assets. |
@@ -13,4 +13,4 @@ Owner direction: create, present, review, refine and obtain **explicit approval*
 | 15. Assembly and integration | Pending approved assets | Existing prototype is not final assembly. |
 | 16. Gameplay and device testing | Pending | Existing headless checks do not constitute owner approval or iPhone verification. |
 
-Rejected: no newly rejected design has been specified in this review. Retain prior owner feedback about unacceptable blockout visuals and missing visible characters/audio; those defects remain open. Do not infer approval from silence.
+Rejected: the owner rejected the previous 2D/faux-depth presentation; retain it only as an archived exploration, not the approved studio intro. Retain prior owner feedback about unacceptable blockout visuals and missing visible characters/audio; those defects remain open. Do not infer approval from silence.
