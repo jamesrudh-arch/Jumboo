@@ -1,57 +1,15 @@
-# LEVERAGE: CINDER CITY — M01 work in progress
+# LEVERAGE: CINDER CITY — identity-only build
 
-This is a **partial, experimental build**, not the finished game, cinematic, or final-quality vertical slice. The owner has not accepted its art direction or quality. The character and prop assets are CC0 stock assets used temporarily; they are not the original Marcus, final clothing, or the finished city.
+The owner chose to remove the unapproved prototype. This project now contains only a minimal 3D opening using the approved studio mark, LEVERAGE wordmark, separate V/fulcrum icon, palette accents and their synthesized stings. There is **no gameplay, menu, story scene, character, city or save system** in this build. Those will be created through the agreed review and approval process. The studio, title and icon source scenes, multi-angle renders and credits are in `../brand/` and `../docs/previews/`.
 
-## Open on iPhone
+## Open in Xogot
 
-Unzip the project into a fresh folder and import the folder containing `project.godot` into Xogot. Wait for assets to import. Opening an older project copy will not update it. The main scene is `main.tscn`. This project was tested with Godot 4.7.2 headless on Linux; the installed Xogot version, import, rendering, and operation on iPhone are **not verified**.
+Copy this `game` folder, including `project.godot` and `assets`, to the device, open it as a project in Xogot, and allow imports to finish. The official [getting started guide](https://docs.xogot.com/documentation/xogot/getting-started/) describes unzipping and copying projects; [Differences from Godot](https://docs.xogot.com/documentation/xogot/differences/) states that iPhone/iPad logic and add-ons must use GDScript; this build uses GDScript with no compiled extension. The [asset guide](https://docs.xogot.com/documentation/xogot/importing-assets/) describes glTF and OBJ but does not explicitly confirm GLB support in the installed Xogot version. Desktop Godot imports the included binary GLBs; actual Xogot import and compatibility remain unverified.
 
-## Current contents
+The real-time lighting, framing and motion are an initial interpretation of the approved offline identity previews. They have not been visually or audibly verified in-engine or on iPhone, nor has device performance been measured. Test on the target devices and report the Xogot/Godot version and any error. This build does not claim to be the finished intro or game.
 
-- The opening uses the approved 3D D’YOUNGS GAMES mark, LEVERAGE wordmark and separate icon, with sequential reveals, moving lights and the two original synthesized stings. The later menu still uses a generated city image.
-- New game opens on a 3D workshop and ringing phone showing Eli's name. Marcus answers automatically; there is no call-choice page or tap-to-advance call dialogue. The pickup uses a stock clip, custom arm keys and a hand-relative phone attachment; the 3D shot continues during the voiced call. Cinematic subtitles are off by default, with an optional toggle on the title menu. Skip requires confirmation. Haptic requests are implemented but not verified on a physical device.
-- The menu and opening use licensed CC0 music, switching to a tension cue at the broken call; music is ducked during voiced lines. Pickup, engine cutoff and disconnect have synthetic effects. See `assets/audio/README.md` for music credits, sources and limitations. The tracks are licensed stock, not an original commissioned score; the voice performances are AI-generated.
-- The player and witness now use an interim rigged stock human body and clothing instead of capsules, with idle/walk animation on the player. The exact look, proportions, animation and mobile performance still require visual review. See `assets/characters/README.md` for provenance.
-- The prototype district now includes distinct open-front 3D storefronts, a warehouse checkpoint, streetlights and a distant harbor with a freighter, cranes and skyline. See `assets/props/README.md` for CC0 props. Interiors are open cutaways without collision; the harbor is a non-navigable backdrop. Art and performance are not final or visually verified.
-- After the call, gameplay starts inside a warehouse hideout. Speak to Sade, inspect a 3D damaged van and confront a collector. The collector can be bargained with, avoided, or fought; the selected outcome is saved and changes Tessa's voiced response. The bargain records a delivery obligation, but fulfilling it is not implemented. See the control mapping below.
-- Combat is an early one-opponent prototype: visible attack warning, movement, dodge, strikes, health and retry/withdraw on defeat. The van is an interim model and the street uses provisional geometry and materials; no polished or physically realistic fighting is claimed.
+Fonts used in generating the approved meshes are Bebas Neue and Inter, licensed under SIL OFL; their source and licences are retained in `assets/fonts/`. Brand models and stings originate in `../brand/`.
 
-## Limitations
+## Desktop structural test
 
-- The Marcus phone performance combines a stock pickup with custom pose keys, a rigid hand attachment and subtle head movement. It is not a final character performance: hand contact, phone-to-ear placement and believability are unverified, and there is no facial acting or lip sync. The workshop and Marcus model remain provisional. The call, Tessa's later lines, witness encounter and collector confrontation have AI-generated voices; descriptions and incidental text remain unvoiced. The revised mix and performances have not been reviewed in-engine or on a phone.
-- The street and van are not polished final art, and the stock fantasy clothing is only recolored, not final contemporary costume art. Combat is a basic prototype, and there is no driving, crowd simulation or finished campaign. The collector's delivery obligation and Sade's trust do not yet have later gameplay consequences.
-- Touch controls include a virtual joystick and camera drag; layout, safe area and accessibility are not validated on devices.
-- Save data uses checksummed alternating snapshots and recovery; it remains a prototype and has not been validated on iPhone.
-- An automated **headless** smoke test passed in Godot 4.7.2 on Linux, including title/skip/call transitions and animation playback. Headless testing does not verify actual appearance, audio quality, touch usability, frame rate, Xogot compatibility or physical-device behaviour. No screenshot is claimed.
-
-## Test on a desktop with Godot 4.7.2
-
-Import the project in the Godot editor once, then run `godot --headless --path game --script res://tests/smoke.gd` from the repository root. Tests cover a narrow set of transitions, not acceptance of the full game.
-
-## Other licensing
-
-Oswald and Bebas Neue fonts are distributed under the SIL Open Font License; see `assets/fonts/OFL.txt` and `assets/fonts/BebasNeue-OFL.txt`. `assets/opening_city.png` is AI-generated temporary presentation art. The phone vibration is a procedurally synthesized test sound created for this project.
-
-### Controls and district navigation (WIP)
-Left stick / WASD moves relative to the camera. Right stick / Q and E rotates it. X / J punches, Y / L heavy-strikes, A / I kicks, B / K dodges in combat; B / Enter interacts outside combat. X advances a single dialogue option; controller View / M toggles the district map. Touch: left analog stick, right-side drag to look, and action buttons. The map shows the current playable block and a straight-line bearing to the objective, not turn-by-turn routing. Real controller, multitouch and safe-area behaviour still require testing on your iPhone/Xogot; see AUDIT.md.
-
-### Opening troubleshooting
-If the call appears stuck or silent in Xogot, allow imports to complete, check device volume and the Xogot debugger, and record the Xogot/Godot version and exact error if available. Captions can be enabled in the title menu for diagnosis; the intended call still advances automatically. The current fallback prevents a missing voice file from stopping progression, but device playback and the reported hang have not been verified fixed. The title background is original AI-generated 2D key art, not footage of the game.
-
-The title menu has an optional vibration toggle. Phone buzzes and combat impacts request handheld vibration or controller rumble; actual behavior depends on hardware, iOS settings and Xogot and has not been device-tested. The new 2K wood and concrete material maps are credited in `assets/materials/README.md`; they are an early physical-material pass, not the finished realistic world.
-
-The opening phone now sits on a real-scale textured table model; a textured modular factory facade and 2K asphalt are part of the 3D district. These are early steps toward the grounded reference image, not a completed realistic city or character. Asset provenance is in `assets/realistic/README.md` and `assets/materials/README.md`. Import may take longer because the original 2K assets are included.
-
-This build requests the iOS Playback audio category (so it may play when the silent switch is on) and offers a Sound toggle on the title screen. Xogot embedded playback and the reported missing voices still need a real-device test. Textured Rocketbox-derived character models and a detailed passenger van are interim assets; see their asset folders and AUDIT.md for licenses and remaining limitations.
-
-Movement now uses character physics against selected warehouse/shop walls and the van, and the camera checks those obstacles. Collision is still incomplete throughout the district; see `AUDIT.md`.
-
-The smoke suite uses `user://leverage_smoke_test/` rather than the player's save slots; files with the test slot names in that dedicated directory are cleared when the suite starts. Lifecycle pause behavior has only been simulated in headless Godot, not verified in Xogot on iPhone.
-
-## Approved identity in the prototype opening
-
-The opening instantiates the approved studio mark, LEVERAGE wordmark and separate fulcrum icon as 3D GLBs, with their original synthesized stings. The menu uses selected approved palette tokens. Runtime lighting and motion are an initial interpretation; verify framing, timing, audio and performance visually and audibly in Xogot on the target phones. This does not imply the rest of the prototype or game is final. Sources and approvals: `../brand/leverage/README.md` and `../brand/studio/README.md`.
-
-## Xogot documentation check — identity integration
-
-The official [Differences from Godot](https://docs.xogot.com/documentation/xogot/differences/) says iPhone/iPad game logic and add-ons are GDScript-only; this integration uses GDScript and no compiled extension. The official [asset import guide](https://docs.xogot.com/documentation/xogot/importing-assets/) describes glTF and OBJ import, including dependency placement; our brand assets are binary GLB files, structurally imported in desktop Godot, but that page does not explicitly confirm GLB support in the user's installed Xogot version. The official [getting-started guide](https://docs.xogot.com/documentation/xogot/getting-started/) describes unzipping and copying a project into Xogot. This is a documentation review, not an execution of Xogot or proof of compatibility. Confirm the installed Xogot/Godot version and test imports, rendering, audio, touch and performance on the phone.
+After importing in Godot 4.7.2, run `godot --headless --path game --script res://tests/identity_smoke.gd`. The test checks the identity scene and sequencing only; it cannot establish visual, audible or device quality.

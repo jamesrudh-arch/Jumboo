@@ -1,6 +1,6 @@
 # LEVERAGE game identity — production register
 
-The owner approved the **custom 3D wordmark**, **3D V/fulcrum icon**, title-reveal direction and presented colour palette. Preserve these directions. The approved models and stings are now used by the prototype opening; runtime appearance and audio on iPhone remain unverified.
+The owner approved the **custom 3D wordmark**, **3D V/fulcrum icon**, title-reveal direction and presented colour palette. Preserve these directions. The approved models and stings are now used by the identity-only game opening; runtime appearance and audio on iPhone remain unverified.
 
 ## Approved custom 3D wordmark
 
@@ -18,7 +18,7 @@ A separate Godot 4.7.2 headless import found 32 mesh instances and approximately
 
 ## Repository hygiene and remaining work
 
-After owner approval of the custom direction, the earlier unapproved stock-font 3D wordmark study and its separate preview files were removed from the current tree to avoid duplicates; they remain recoverable in Git history. The earlier selected generated concept remains at `docs/previews/leverage_identity_concept.png` for reference and is not a 3D model. No approved asset was replaced. Final motion/audio mix, app-icon sizing and packaging, broader palette application and device verification remain unfinished. The prototype opening now instantiates the approved studio, title and icon GLBs and plays their stings; its real-time lighting and animation are an interpretation of the review renders, not a proven visual match. Explicit owner approval is required before beginning the next production stage.
+After owner approval of the custom direction, the earlier unapproved stock-font 3D wordmark study and its separate preview files were removed from the current tree to avoid duplicates; they remain recoverable in Git history. The earlier generated 2D concept was removed from the current tree and remains in Git history. No approved asset was replaced. Final motion/audio mix, app-icon sizing and packaging, broader palette application and device verification remain unfinished. The identity-only game opening now instantiates the approved studio, title and icon GLBs and plays their stings; its real-time lighting and animation are an interpretation of the review renders, not a proven visual match. Explicit owner approval is required before beginning the next production stage.
 
 ## Approved colour palette
 

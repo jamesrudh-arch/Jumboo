@@ -1,6 +1,6 @@
 # D’YOUNGS GAMES — studio identity
 
-The owner directed the 3D studio identity to be polished and carried forward to the title stage. The previously rejected 2D/faux-depth vector presentation and its generation scripts were removed from the current tree; they remain in Git history. The generated concept selected earlier remains as historical context, not a 3D asset.
+The owner directed the 3D studio identity to be polished and carried forward to the title stage. The previously rejected 2D/faux-depth vector presentation and its generation scripts were removed from the current tree; they remain in Git history. The earlier generated concept was removed from the current tree; it remains in Git history.
 
 - `dyoungs_studio_ident.blend`: editable Blender 4.2 scene with volumetric D/Y mark and Inter-based 3D lettering.
 - `dyoungs_studio_mark_3d.glb`: exported geometry and materials, also copied into the prototype opening.
