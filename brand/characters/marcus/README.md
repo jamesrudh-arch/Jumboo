@@ -40,3 +40,7 @@ The render was produced by bpy 4.2 CPU Cycles in a headless environment using te
 `marcus_neck_test.blend` is a separate experiment based on the unified rig, not a replacement for the approved appearance or a final model. Its rear graft edge was cut and extended downward into the jacket; the prior open black gap is less obvious in the rear test. See `docs/previews/marcus/neck_test_{front,rear,side}.png` and `neck_test_motion.gif` for actual Cycles renders. There is still a conspicuous horizontal tonal seam and an unnatural triangular neck silhouette in profile. The head and body are **not welded**; texture continuity, topology, neck weights and jacket deformation remain unfinished. The tiny head turn is not a walk.
 
 `tools/test_marcus_neck_test.py` checks one skeleton, binding and finite evaluated head coordinates at five key frames. It does not test surface continuity, clipping, natural movement or game export. The experiment was rendered with CPU Cycles in the same headless, temporary display-library stub setup noted above; it was not tested in Blender's GUI, Godot, Xogot or on a phone.
+
+## Deformation research and audit
+
+See `docs/LEVERAGE_marcus_character_technical_audit.md` for the source-backed production assessment, measured structural baseline and visible limitations. `marcus_deformation_audit.blend` and the four `stress_*.png` renders are deliberately non-final stress poses, not natural animation.

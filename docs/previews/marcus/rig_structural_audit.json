@@ -1,0 +1,81 @@
+{
+  "scope": "Structural baseline; no visual, clipping, runtime, export or device validation.",
+  "source": "brand/characters/marcus/marcus_neck_test.blend",
+  "armatures": 1,
+  "bones": 53,
+  "meshes": {
+    "Marcus body": {
+      "vertices": 9969,
+      "triangles": 17998,
+      "materials": 1,
+      "open_boundary_edges": 1930,
+      "nonmanifold_edges": 1930,
+      "unweighted_vertices": 0,
+      "vertices_over_4_influences": 0,
+      "non_normalized_vertices": 0,
+      "max_influences": 4,
+      "armature_bound": true
+    },
+    "Marcus head (graft)": {
+      "vertices": 20884,
+      "triangles": 38752,
+      "materials": 1,
+      "open_boundary_edges": 2940,
+      "nonmanifold_edges": 2944,
+      "unweighted_vertices": 0,
+      "vertices_over_4_influences": 0,
+      "non_normalized_vertices": 0,
+      "max_influences": 2,
+      "armature_bound": true
+    },
+    "Cloth_jacket": {
+      "vertices": 2153,
+      "triangles": 3668,
+      "materials": 1,
+      "open_boundary_edges": 616,
+      "nonmanifold_edges": 616,
+      "unweighted_vertices": 0,
+      "vertices_over_4_influences": 0,
+      "non_normalized_vertices": 0,
+      "max_influences": 4,
+      "armature_bound": true
+    },
+    "Cloth_shirt": {
+      "vertices": 1603,
+      "triangles": 2688,
+      "materials": 1,
+      "open_boundary_edges": 500,
+      "nonmanifold_edges": 500,
+      "unweighted_vertices": 0,
+      "vertices_over_4_influences": 0,
+      "non_normalized_vertices": 0,
+      "max_influences": 4,
+      "armature_bound": true
+    },
+    "Cloth_jeans": {
+      "vertices": 950,
+      "triangles": 1712,
+      "materials": 1,
+      "open_boundary_edges": 184,
+      "nonmanifold_edges": 184,
+      "unweighted_vertices": 0,
+      "vertices_over_4_influences": 0,
+      "non_normalized_vertices": 0,
+      "max_influences": 4,
+      "armature_bound": true
+    },
+    "Cloth_boots": {
+      "vertices": 1952,
+      "triangles": 3204,
+      "materials": 1,
+      "open_boundary_edges": 676,
+      "nonmanifold_edges": 676,
+      "unweighted_vertices": 0,
+      "vertices_over_4_influences": 0,
+      "non_normalized_vertices": 0,
+      "max_influences": 3,
+      "armature_bound": true
+    }
+  },
+  "total_triangles": 68022
+}
