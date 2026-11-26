@@ -10,10 +10,12 @@ static func configure() -> void:
 	_action("camera_left", [KEY_Q], JOY_AXIS_RIGHT_X, -1.0)
 	_action("camera_right", [KEY_E], JOY_AXIS_RIGHT_X, 1.0)
 	_button("game_interact", [KEY_ENTER, KEY_SPACE], JOY_BUTTON_B)
-	_button("game_strike", [KEY_J], JOY_BUTTON_A)
-	_button("game_guard", [KEY_K], JOY_BUTTON_B)
+	_button("game_punch", [KEY_J], JOY_BUTTON_X)
+	_button("game_heavy", [KEY_L], JOY_BUTTON_Y)
+	_button("game_kick", [KEY_I], JOY_BUTTON_A)
+	_button("game_dodge", [KEY_K], JOY_BUTTON_B)
 	_button("game_dialogue", [KEY_X], JOY_BUTTON_X)
-	_button("game_map", [KEY_M], JOY_BUTTON_Y)
+	_button("game_map", [KEY_M], JOY_BUTTON_BACK)
 
 static func _ensure(action: String) -> void:
 	if not InputMap.has_action(action):

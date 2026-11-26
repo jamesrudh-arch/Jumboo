@@ -104,6 +104,11 @@ func _run() -> void:
 	check(main.stage == 1 and main.controls.visible and main.hud.visible, "automatic call ends and starts gameplay")
 	check(main.navigation.has_target and main.navigation.target_name == "SADE" and main.navigation.target_position == main.witness.position, "map points to the active witness")
 	check(InputMap.has_action("move_left") and InputMap.has_action("game_interact") and InputMap.has_action("game_map"), "keyboard and gamepad semantic actions are configured")
+	for binding in [["game_punch", JOY_BUTTON_X], ["game_heavy", JOY_BUTTON_Y], ["game_kick", JOY_BUTTON_A], ["game_dodge", JOY_BUTTON_B], ["game_interact", JOY_BUTTON_B], ["game_map", JOY_BUTTON_BACK]]:
+		var event := InputEventJoypadButton.new()
+		event.button_index = binding[1]
+		event.pressed = true
+		check(event.is_action_pressed(binding[0]), "mapped controller action %s" % binding[0])
 	var touch := InputEventScreenTouch.new()
 	touch.index = 2
 	touch.pressed = true
@@ -180,19 +185,21 @@ func _run() -> void:
 	main.encounter_choice = ""
 	main.encounter.set_progress(3)
 	main._start_fight()
+	check(not main.strike_button.get_rect().intersects(main.heavy_button.get_rect()) and not main.kick_button.get_rect().intersects(main.dodge_button.get_rect()), "combat touch controls do not overlap in logical layout")
 	main.player.position = main.encounter.collector.position + Vector3(0, 0, 1)
 	main.enemy_timer = 0.0
 	main._process_fight(0.01)
 	check(main.telegraph, "enemy attack has an advance warning")
-	main._guard()
+	main._dodge()
+	check(main.dodge_timer > 0.0 and main.dodge_direction.length() > 0.9, "dodge establishes a movement direction and timed window")
 	main.enemy_timer = 0.0
 	main._process_fight(0.01)
-	check(main.player_health == 3, "timed guard prevents an in-range hit")
-	main.guard_timer = 0.0
+	check(main.player_health == 3, "timed dodge prevents an in-range hit")
+	main.dodge_timer = 0.0
 	main.telegraph = true
 	main.enemy_timer = 0.0
 	main._process_fight(0.01)
-	check(main.player_health == 2, "unguarded attack causes damage")
+	check(main.player_health == 2, "attack outside dodge window causes damage")
 	main.player.position = main.encounter.collector.position + Vector3(0, 0, 4)
 	main.telegraph = true
 	main.enemy_timer = 0.0
@@ -202,10 +209,20 @@ func _run() -> void:
 	check(not main.combat_active and main.encounter_choice == "", "defeat offers retry without committing a result")
 	main._start_fight()
 	main.player.position = main.encounter.collector.position + Vector3(0, 0, 1)
-	for i in 3:
-		main.strike_cooldown = 0.0
-		main._strike()
-	check(main.stage == 4 and main.encounter_choice == "fight" and main._read_save().get("encounter_choice") == "fight", "three in-range hits resolve and save the fight")
+	main.player.rotation.y = 0.0
+	main._strike("punch")
+	main._process_fight(0.2)
+	check(main.enemy_health == 3, "attack facing away does not hit")
+	main.player.rotation.y = PI
+	main.strike_cooldown = 0.0
+	main._strike("heavy")
+	check(main.enemy_health == 3, "heavy attack cannot hit before its windup")
+	main._process_fight(0.4)
+	check(main.enemy_health == 1, "heavy attack lands after windup in range and facing target")
+	main.strike_cooldown = 0.0
+	main._strike("kick")
+	main._process_fight(0.3)
+	check(main.stage == 4 and main.encounter_choice == "fight" and main._read_save().get("encounter_choice") == "fight", "kick resolves and saves the fight")
 	main._complete_encounter("withdraw")
 	check(main._read_save().get("encounter_choice") == "withdraw" and main.audio_director.voice.stream.resource_path.ends_with("tessa_escape.wav"), "withdrawal records no bargain and plays its response")
 	for slot in ["user://leverage_save_a.json", "user://leverage_save_b.json"]:
