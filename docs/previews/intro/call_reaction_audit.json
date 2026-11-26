@@ -1,0 +1,1175 @@
+{
+  "method": "Head weighted vertices against approximate phone box at 8 fps. Not continuous or triangle collision QA.",
+  "samples": [
+    {
+      "time": 0.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.49,
+      "concern_value": 0.0
+    },
+    {
+      "time": 0.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.82,
+      "concern_value": 0.0
+    },
+    {
+      "time": 0.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.71,
+      "concern_value": 0.0
+    },
+    {
+      "time": 0.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.19,
+      "concern_value": 0.0
+    },
+    {
+      "time": 0.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.62,
+      "concern_value": 0.0
+    },
+    {
+      "time": 0.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.11,
+      "concern_value": 0.0
+    },
+    {
+      "time": 0.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.11,
+      "concern_value": 0.0
+    },
+    {
+      "time": 0.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.99,
+      "concern_value": 0.0
+    },
+    {
+      "time": 1.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.1,
+      "concern_value": 0.0
+    },
+    {
+      "time": 1.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.98,
+      "concern_value": 0.0
+    },
+    {
+      "time": 1.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.51,
+      "concern_value": 0.0
+    },
+    {
+      "time": 1.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.26,
+      "concern_value": 0.0
+    },
+    {
+      "time": 1.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.14,
+      "concern_value": 0.0
+    },
+    {
+      "time": 1.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.71,
+      "concern_value": 0.0
+    },
+    {
+      "time": 1.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.04,
+      "concern_value": 0.0
+    },
+    {
+      "time": 1.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.17,
+      "concern_value": 0.052
+    },
+    {
+      "time": 2.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.24,
+      "concern_value": 0.138
+    },
+    {
+      "time": 2.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.24,
+      "concern_value": 0.223
+    },
+    {
+      "time": 2.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.78,
+      "concern_value": 0.309
+    },
+    {
+      "time": 2.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.22,
+      "concern_value": 0.395
+    },
+    {
+      "time": 2.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.89,
+      "concern_value": 0.481
+    },
+    {
+      "time": 2.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.72,
+      "concern_value": 0.557
+    },
+    {
+      "time": 2.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.88,
+      "concern_value": 0.592
+    },
+    {
+      "time": 2.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.9,
+      "concern_value": 0.626
+    },
+    {
+      "time": 3.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.83,
+      "concern_value": 0.661
+    },
+    {
+      "time": 3.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.99,
+      "concern_value": 0.696
+    },
+    {
+      "time": 3.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.22,
+      "concern_value": 0.731
+    },
+    {
+      "time": 3.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.13,
+      "concern_value": 0.765
+    },
+    {
+      "time": 3.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.93,
+      "concern_value": 0.8
+    },
+    {
+      "time": 3.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.83,
+      "concern_value": 0.78
+    },
+    {
+      "time": 3.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.06,
+      "concern_value": 0.76
+    },
+    {
+      "time": 3.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.19,
+      "concern_value": 0.74
+    },
+    {
+      "time": 4.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.07,
+      "concern_value": 0.72
+    },
+    {
+      "time": 4.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.15,
+      "concern_value": 0.701
+    },
+    {
+      "time": 4.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.18,
+      "concern_value": 0.681
+    },
+    {
+      "time": 4.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.23,
+      "concern_value": 0.661
+    },
+    {
+      "time": 4.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.23,
+      "concern_value": 0.641
+    },
+    {
+      "time": 4.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.09,
+      "concern_value": 0.621
+    },
+    {
+      "time": 4.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.27,
+      "concern_value": 0.601
+    },
+    {
+      "time": 4.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.2,
+      "concern_value": 0.581
+    },
+    {
+      "time": 5.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.28,
+      "concern_value": 0.561
+    },
+    {
+      "time": 5.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.44,
+      "concern_value": 0.541
+    },
+    {
+      "time": 5.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.42,
+      "concern_value": 0.522
+    },
+    {
+      "time": 5.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.96,
+      "concern_value": 0.502
+    },
+    {
+      "time": 5.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.5,
+      "concern_value": 0.482
+    },
+    {
+      "time": 5.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.56,
+      "concern_value": 0.462
+    },
+    {
+      "time": 5.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.17,
+      "concern_value": 0.454
+    },
+    {
+      "time": 5.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.34,
+      "concern_value": 0.463
+    },
+    {
+      "time": 6.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.56,
+      "concern_value": 0.471
+    },
+    {
+      "time": 6.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.01,
+      "concern_value": 0.48
+    },
+    {
+      "time": 6.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 9.76,
+      "concern_value": 0.489
+    },
+    {
+      "time": 6.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 9.22,
+      "concern_value": 0.498
+    },
+    {
+      "time": 6.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.81,
+      "concern_value": 0.505
+    },
+    {
+      "time": 6.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.84,
+      "concern_value": 0.511
+    },
+    {
+      "time": 6.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 9.28,
+      "concern_value": 0.517
+    },
+    {
+      "time": 6.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.26,
+      "concern_value": 0.524
+    },
+    {
+      "time": 7.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 7.83,
+      "concern_value": 0.53
+    },
+    {
+      "time": 7.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.1,
+      "concern_value": 0.536
+    },
+    {
+      "time": 7.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.41,
+      "concern_value": 0.543
+    },
+    {
+      "time": 7.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.25,
+      "concern_value": 0.549
+    },
+    {
+      "time": 7.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.35,
+      "concern_value": 0.569
+    },
+    {
+      "time": 7.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.75,
+      "concern_value": 0.592
+    },
+    {
+      "time": 7.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.82,
+      "concern_value": 0.616
+    },
+    {
+      "time": 7.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.35,
+      "concern_value": 0.639
+    },
+    {
+      "time": 8.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.35,
+      "concern_value": 0.663
+    },
+    {
+      "time": 8.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 9.17,
+      "concern_value": 0.686
+    },
+    {
+      "time": 8.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.28,
+      "concern_value": 0.709
+    },
+    {
+      "time": 8.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.31,
+      "concern_value": 0.733
+    },
+    {
+      "time": 8.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.99,
+      "concern_value": 0.756
+    },
+    {
+      "time": 8.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.25,
+      "concern_value": 0.78
+    },
+    {
+      "time": 8.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.03,
+      "concern_value": 0.803
+    },
+    {
+      "time": 8.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.59,
+      "concern_value": 0.827
+    },
+    {
+      "time": 9.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.84,
+      "concern_value": 0.85
+    },
+    {
+      "time": 9.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 14.56,
+      "concern_value": 0.844
+    },
+    {
+      "time": 9.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 15.0,
+      "concern_value": 0.837
+    },
+    {
+      "time": 9.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.39,
+      "concern_value": 0.831
+    },
+    {
+      "time": 9.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.97,
+      "concern_value": 0.825
+    },
+    {
+      "time": 9.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.99,
+      "concern_value": 0.819
+    },
+    {
+      "time": 9.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.9,
+      "concern_value": 0.812
+    },
+    {
+      "time": 9.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.67,
+      "concern_value": 0.806
+    },
+    {
+      "time": 10.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.49,
+      "concern_value": 0.8
+    },
+    {
+      "time": 10.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.84,
+      "concern_value": 0.794
+    },
+    {
+      "time": 10.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.76,
+      "concern_value": 0.788
+    },
+    {
+      "time": 10.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.18,
+      "concern_value": 0.781
+    },
+    {
+      "time": 10.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.12,
+      "concern_value": 0.775
+    },
+    {
+      "time": 10.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.48,
+      "concern_value": 0.769
+    },
+    {
+      "time": 10.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.8,
+      "concern_value": 0.762
+    },
+    {
+      "time": 10.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.89,
+      "concern_value": 0.756
+    },
+    {
+      "time": 11.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.96,
+      "concern_value": 0.75
+    },
+    {
+      "time": 11.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 14.1,
+      "concern_value": 0.757
+    },
+    {
+      "time": 11.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.56,
+      "concern_value": 0.765
+    },
+    {
+      "time": 11.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.91,
+      "concern_value": 0.772
+    },
+    {
+      "time": 11.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.46,
+      "concern_value": 0.78
+    },
+    {
+      "time": 11.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.24,
+      "concern_value": 0.788
+    },
+    {
+      "time": 11.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.77,
+      "concern_value": 0.795
+    },
+    {
+      "time": 11.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.29,
+      "concern_value": 0.803
+    },
+    {
+      "time": 12.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.22,
+      "concern_value": 0.81
+    },
+    {
+      "time": 12.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.86,
+      "concern_value": 0.817
+    },
+    {
+      "time": 12.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.72,
+      "concern_value": 0.825
+    },
+    {
+      "time": 12.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.45,
+      "concern_value": 0.832
+    },
+    {
+      "time": 12.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.91,
+      "concern_value": 0.84
+    },
+    {
+      "time": 12.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.97,
+      "concern_value": 0.848
+    },
+    {
+      "time": 12.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.91,
+      "concern_value": 0.855
+    },
+    {
+      "time": 12.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.59,
+      "concern_value": 0.863
+    },
+    {
+      "time": 13.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.54,
+      "concern_value": 0.87
+    },
+    {
+      "time": 13.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.62,
+      "concern_value": 0.877
+    },
+    {
+      "time": 13.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.81,
+      "concern_value": 0.885
+    },
+    {
+      "time": 13.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.9,
+      "concern_value": 0.892
+    },
+    {
+      "time": 13.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.97,
+      "concern_value": 0.9
+    },
+    {
+      "time": 13.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.13,
+      "concern_value": 0.894
+    },
+    {
+      "time": 13.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.27,
+      "concern_value": 0.887
+    },
+    {
+      "time": 13.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.64,
+      "concern_value": 0.881
+    },
+    {
+      "time": 14.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.22,
+      "concern_value": 0.875
+    },
+    {
+      "time": 14.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.05,
+      "concern_value": 0.869
+    },
+    {
+      "time": 14.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.89,
+      "concern_value": 0.863
+    },
+    {
+      "time": 14.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.73,
+      "concern_value": 0.856
+    },
+    {
+      "time": 14.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.8,
+      "concern_value": 0.85
+    },
+    {
+      "time": 14.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.66,
+      "concern_value": 0.844
+    },
+    {
+      "time": 14.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.77,
+      "concern_value": 0.839
+    },
+    {
+      "time": 14.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.49,
+      "concern_value": 0.833
+    },
+    {
+      "time": 15.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.36,
+      "concern_value": 0.827
+    },
+    {
+      "time": 15.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.06,
+      "concern_value": 0.822
+    },
+    {
+      "time": 15.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.06,
+      "concern_value": 0.816
+    },
+    {
+      "time": 15.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.14,
+      "concern_value": 0.81
+    },
+    {
+      "time": 15.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.02,
+      "concern_value": 0.805
+    },
+    {
+      "time": 15.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.11,
+      "concern_value": 0.799
+    },
+    {
+      "time": 15.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.49,
+      "concern_value": 0.793
+    },
+    {
+      "time": 15.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.37,
+      "concern_value": 0.788
+    },
+    {
+      "time": 16.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.91,
+      "concern_value": 0.782
+    },
+    {
+      "time": 16.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.91,
+      "concern_value": 0.776
+    },
+    {
+      "time": 16.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.1,
+      "concern_value": 0.77
+    },
+    {
+      "time": 16.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.82,
+      "concern_value": 0.765
+    },
+    {
+      "time": 16.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.56,
+      "concern_value": 0.759
+    },
+    {
+      "time": 16.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.03,
+      "concern_value": 0.753
+    },
+    {
+      "time": 16.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.7,
+      "concern_value": 0.748
+    },
+    {
+      "time": 16.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.85,
+      "concern_value": 0.742
+    },
+    {
+      "time": 17.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.92,
+      "concern_value": 0.736
+    },
+    {
+      "time": 17.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.28,
+      "concern_value": 0.731
+    },
+    {
+      "time": 17.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 9.46,
+      "concern_value": 0.725
+    },
+    {
+      "time": 17.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 6.24,
+      "concern_value": 0.719
+    },
+    {
+      "time": 17.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.04,
+      "concern_value": 0.714
+    },
+    {
+      "time": 17.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 21.01,
+      "concern_value": 0.708
+    },
+    {
+      "time": 17.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 15.79,
+      "concern_value": 0.702
+    },
+    {
+      "time": 17.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 7.83,
+      "concern_value": 0.728
+    },
+    {
+      "time": 18.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 6.94,
+      "concern_value": 0.775
+    },
+    {
+      "time": 18.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.25,
+      "concern_value": 0.822
+    },
+    {
+      "time": 18.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.0,
+      "concern_value": 0.869
+    },
+    {
+      "time": 18.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.33,
+      "concern_value": 0.916
+    },
+    {
+      "time": 18.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.85,
+      "concern_value": 0.962
+    },
+    {
+      "time": 18.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.71,
+      "concern_value": 1.0
+    },
+    {
+      "time": 18.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.71,
+      "concern_value": 1.0
+    },
+    {
+      "time": 18.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.31,
+      "concern_value": 1.0
+    },
+    {
+      "time": 19.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 9.63,
+      "concern_value": 1.0
+    },
+    {
+      "time": 19.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.97,
+      "concern_value": 1.0
+    },
+    {
+      "time": 19.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 14.13,
+      "concern_value": 1.0
+    },
+    {
+      "time": 19.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.04,
+      "concern_value": 1.0
+    },
+    {
+      "time": 19.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 7.75,
+      "concern_value": 1.0
+    },
+    {
+      "time": 19.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.68,
+      "concern_value": 1.0
+    },
+    {
+      "time": 19.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 16.66,
+      "concern_value": 0.996
+    },
+    {
+      "time": 19.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 17.26,
+      "concern_value": 0.987
+    },
+    {
+      "time": 20.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.62,
+      "concern_value": 0.977
+    },
+    {
+      "time": 20.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.18,
+      "concern_value": 0.967
+    },
+    {
+      "time": 20.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.52,
+      "concern_value": 0.958
+    },
+    {
+      "time": 20.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.87,
+      "concern_value": 0.948
+    },
+    {
+      "time": 20.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.9,
+      "concern_value": 0.938
+    },
+    {
+      "time": 20.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.83,
+      "concern_value": 0.929
+    },
+    {
+      "time": 20.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 17.38,
+      "concern_value": 0.919
+    },
+    {
+      "time": 20.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 14.29,
+      "concern_value": 0.91
+    },
+    {
+      "time": 21.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 9.58,
+      "concern_value": 0.9
+    },
+    {
+      "time": 21.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 3.37,
+      "concern_value": 0.9
+    },
+    {
+      "time": 21.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 3.19,
+      "concern_value": 0.9
+    },
+    {
+      "time": 21.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 7.51,
+      "concern_value": 0.9
+    },
+    {
+      "time": 21.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.67,
+      "concern_value": 0.9
+    },
+    {
+      "time": 21.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.65,
+      "concern_value": 0.9
+    },
+    {
+      "time": 21.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.44,
+      "concern_value": 0.9
+    },
+    {
+      "time": 21.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.23,
+      "concern_value": 0.9
+    },
+    {
+      "time": 22.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.46,
+      "concern_value": 0.9
+    },
+    {
+      "time": 22.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.28,
+      "concern_value": 0.9
+    },
+    {
+      "time": 22.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.21,
+      "concern_value": 0.9
+    },
+    {
+      "time": 22.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.29,
+      "concern_value": 0.9
+    },
+    {
+      "time": 22.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.07,
+      "concern_value": 0.892
+    },
+    {
+      "time": 22.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.85,
+      "concern_value": 0.883
+    },
+    {
+      "time": 22.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.37,
+      "concern_value": 0.873
+    },
+    {
+      "time": 22.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.85,
+      "concern_value": 0.864
+    },
+    {
+      "time": 23.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 13.22,
+      "concern_value": 0.854
+    },
+    {
+      "time": 23.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.34,
+      "concern_value": 0.845
+    },
+    {
+      "time": 23.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.91,
+      "concern_value": 0.835
+    },
+    {
+      "time": 23.375,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 12.47,
+      "concern_value": 0.825
+    },
+    {
+      "time": 23.5,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 16.22,
+      "concern_value": 0.816
+    },
+    {
+      "time": 23.625,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 16.28,
+      "concern_value": 0.806
+    },
+    {
+      "time": 23.75,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 11.96,
+      "concern_value": 0.797
+    },
+    {
+      "time": 23.875,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.25,
+      "concern_value": 0.787
+    },
+    {
+      "time": 24.0,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 8.71,
+      "concern_value": 0.778
+    },
+    {
+      "time": 24.125,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 10.22,
+      "concern_value": 0.768
+    },
+    {
+      "time": 24.25,
+      "head_vertices_inside_phone_box": 0,
+      "closest_head_vertex_to_box_mm": 9.65,
+      "concern_value": 0.758
+    }
+  ]
+}
