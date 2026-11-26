@@ -12,6 +12,8 @@ var key_light: OmniLight3D
 var ident: AudioStreamPlayer
 var timer := 0.0
 var phase := "studio"
+var load_error := ""
+var audio_path := ""
 
 func _ready() -> void:
 	var bg := MeshInstance3D.new()
@@ -24,15 +26,21 @@ func _ready() -> void:
 	material.albedo_color = Color("10171d") # Approved Ink token.
 	bg.material_override = material
 	add_child(bg)
-	studio_group = preload("res://assets/brand/dyoungs_studio_mark_3d.glb").instantiate()
+	studio_group = _load_model("res://assets/brand/dyoungs_studio_mark_3d.glb")
+	if not studio_group:
+		return
 	studio_group.name = "ApprovedStudioMark"
 	add_child(studio_group)
-	title_group = preload("res://assets/brand/leverage_custom_3d.glb").instantiate()
+	title_group = _load_model("res://assets/brand/leverage_custom_3d.glb")
+	if not title_group:
+		return
 	title_group.name = "ApprovedLeverageWordmark"
 	add_child(title_group)
 	city_text = title_group.get_node_or_null("Cinder City")
 	tagline = title_group.get_node_or_null("Tagline")
-	icon = preload("res://assets/brand/leverage_icon_3d.glb").instantiate()
+	icon = _load_model("res://assets/brand/leverage_icon_3d.glb")
+	if not icon:
+		return
 	icon.name = "ApprovedFulcrumIcon"
 	# The icon is separate from the wordmark and appears after the title.
 	icon.scale = Vector3.ONE * 0.34
@@ -58,10 +66,42 @@ func _ready() -> void:
 	_update_camera()
 	camera.make_current()
 	ident = AudioStreamPlayer.new()
-	ident.stream = preload("res://assets/brand/dyoungs_studio_sting.wav")
+	audio_path = "res://assets/brand/dyoungs_studio_sting.wav"
+	ident.stream = _load_audio(audio_path)
 	ident.volume_db = -4.0
 	add_child(ident)
 	ident.play()
+
+# Standard imported scenes are preferred. If the editor has not completed its
+# import, parse the original binary glTF instead of failing at script preload.
+func _load_model(path: String) -> Node3D:
+	if ResourceLoader.exists(path, "PackedScene"):
+		var scene := load(path) as PackedScene
+		if scene:
+			return scene.instantiate() as Node3D
+	if not FileAccess.file_exists(path):
+		load_error = "Missing 3D model: " + path
+		return null
+	var document := GLTFDocument.new()
+	var state := GLTFState.new()
+	var result := document.append_from_file(path, state)
+	if result != OK:
+		load_error = "Could not load 3D model: %s (error %d)" % [path, result]
+		return null
+	var model := document.generate_scene(state) as Node3D
+	if not model:
+		load_error = "Could not create 3D scene: " + path
+	return model
+
+func _load_audio(path: String) -> AudioStream:
+	if ResourceLoader.exists(path, "AudioStream"):
+		var imported := load(path) as AudioStream
+		if imported:
+			return imported
+	var audio := AudioStreamWAV.load_from_file(path)
+	if not audio:
+		push_warning("Could not load identity audio: " + path)
+	return audio
 
 func reveal_title() -> void:
 	phase = "title"
@@ -71,7 +111,8 @@ func reveal_title() -> void:
 	if city_text: city_text.hide()
 	if tagline: tagline.hide()
 	icon.hide()
-	ident.stream = preload("res://assets/brand/leverage_title_sting.wav")
+	audio_path = "res://assets/brand/leverage_title_sting.wav"
+	ident.stream = _load_audio(audio_path)
 	ident.play()
 	_update_camera()
 
@@ -83,6 +124,8 @@ func _update_camera() -> void:
 	camera.look_at(to_global(target), Vector3.UP)
 
 func _process(delta: float) -> void:
+	if load_error != "" or not camera:
+		return
 	timer += delta
 	_update_camera()
 	key_light.position.x = lerpf(5.0, -4.0, clampf(timer / 4.0, 0.0, 1.0))
