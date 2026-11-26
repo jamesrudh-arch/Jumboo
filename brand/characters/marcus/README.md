@@ -1,6 +1,6 @@
 # Marcus — approved source and prior appearance studies
 
-**Current approved appearance:** the owner chose the complete Grab3D Casual Man rigged character as Marcus, explicitly accepting his different face and clothing. The approved source is `marcus_approved_source.glb`; provenance, source rights and inspection results are in `../research/casual_man/README.md`. This model is not yet integrated into the game or intro, and source animation, deformation, Xogot import and device performance are not yet approved or verified.
+**Current approved appearance:** the owner chose the complete Grab3D Casual Man rigged character as Marcus, explicitly accepting his different face and clothing. The approved source is `marcus_approved_source.glb`; provenance, source rights and inspection results are in `../research/casual_man/README.md`. The owner subsequently approved the presented Blender source-walk preview (`docs/previews/character_research/casual_man_walk.gif`). That approval applies to the preview, not comprehensive motion or technical QA. This model is not yet integrated into the game or intro; full deformation, Xogot import and device performance remain unverified.
 
 ## Source and normalization test
 
