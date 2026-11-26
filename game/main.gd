@@ -17,14 +17,19 @@ var player_health := 3
 var enemy_health := 3
 var enemy_timer := 1.5
 var telegraph := false
-var guard_timer := 0.0
-var guard_cooldown := 0.0
+var dodge_timer := 0.0
+var dodge_direction := Vector3.ZERO
+var dodge_cooldown := 0.0
 var strike_cooldown := 0.0
+var attack_windup := 0.0
+var pending_attack := ""
 var enemy_stagger := 0.0
 var encounter: Node3D
 var interact_button: Button
 var strike_button: Button
-var guard_button: Button
+var heavy_button: Button
+var kick_button: Button
+var dodge_button: Button
 var touch_stick: Control
 var navigation: Control
 var map_button: Button
@@ -212,7 +217,7 @@ func _build_ui() -> void:
 	controls.add_child(touch_stick)
 	navigation = preload("res://navigation_map.gd").new()
 	controls.add_child(navigation)
-	map_button = _button("Y  MAP")
+	map_button = _button("MAP")
 	map_button.position = Vector2(1040, 125)
 	map_button.custom_minimum_size = Vector2(190, 48)
 	map_button.size = Vector2(190, 48)
@@ -223,18 +228,37 @@ func _build_ui() -> void:
 	interact_button.size = Vector2(200, 70)
 	interact_button.pressed.connect(_interact)
 	controls.add_child(interact_button)
-	strike_button = _button("A  STRIKE")
-	strike_button.position = Vector2(1020, 570)
-	strike_button.size = Vector2(200, 70)
-	strike_button.pressed.connect(_strike)
+	strike_button = _button("X  PUNCH")
+	strike_button.position = Vector2(1000, 475)
+	strike_button.custom_minimum_size = Vector2(105, 70)
+	strike_button.size = Vector2(105, 70)
+	strike_button.add_theme_font_size_override("font_size", 16)
+	strike_button.pressed.connect(func(): _strike("punch"))
 	controls.add_child(strike_button)
-	guard_button = _button("B  GUARD")
-	guard_button.position = Vector2(1020, 485)
-	guard_button.size = Vector2(200, 70)
-	guard_button.pressed.connect(_guard)
-	controls.add_child(guard_button)
-	strike_button.hide()
-	guard_button.hide()
+	heavy_button = _button("Y  HEAVY")
+	heavy_button.position = Vector2(1120, 475)
+	heavy_button.custom_minimum_size = Vector2(105, 70)
+	heavy_button.size = Vector2(105, 70)
+	heavy_button.add_theme_font_size_override("font_size", 16)
+	heavy_button.pressed.connect(func(): _strike("heavy"))
+	controls.add_child(heavy_button)
+	kick_button = _button("A  KICK")
+	kick_button.position = Vector2(1000, 560)
+	kick_button.custom_minimum_size = Vector2(105, 70)
+	kick_button.size = Vector2(105, 70)
+	kick_button.add_theme_font_size_override("font_size", 16)
+	kick_button.pressed.connect(func(): _strike("kick"))
+	controls.add_child(kick_button)
+	dodge_button = _button("B  DODGE")
+	dodge_button.position = Vector2(1120, 560)
+	dodge_button.custom_minimum_size = Vector2(105, 70)
+	dodge_button.size = Vector2(105, 70)
+	dodge_button.add_theme_font_size_override("font_size", 16)
+	dodge_button.pressed.connect(_dodge)
+	controls.add_child(dodge_button)
+	for button in [strike_button, heavy_button, kick_button, dodge_button]:
+		button.set_deferred("size", Vector2(105, 70))
+		button.hide()
 	overlay = PanelContainer.new()
 	overlay.position = Vector2(280, 115)
 	overlay.size = Vector2(720, 490)
@@ -495,7 +519,7 @@ func _bargain_agreement() -> void:
 	_option("BACK", _collector_warning)
 
 func _fight_warning() -> void:
-	_dialog("COLLECTOR  /  FIGHT", "COLLECTOR: Fine. You asked for this. Let's see how long you stay standing.\n\nMove to dodge. Strike in range with A; B guards briefly. A red warning appears before an attack.")
+	_dialog("COLLECTOR  /  FIGHT", "COLLECTOR: Fine. You asked for this. Let's see how long you stay standing.\n\nX punches, Y uses a slower heavy strike, A kicks and B dodges. A red warning appears before an attack.")
 	audio_director.play_voice("res://assets/voice/collector_threat.wav")
 	_option("FIGHT", _start_fight)
 	_option("BACK", _collector_warning)
@@ -505,23 +529,39 @@ func _start_fight() -> void:
 	enemy_health = 3
 	enemy_timer = 1.5
 	telegraph = false
-	guard_timer = 0.0
-	guard_cooldown = 0.0
+	dodge_timer = 0.0
+	dodge_cooldown = 0.0
 	strike_cooldown = 0.0
+	attack_windup = 0.0
+	pending_attack = ""
 	enemy_stagger = 0.0
 	encounter.collector.position = Vector3(1.0, 0, -7.4)
 	encounter.collector_label.text = "COLLECTOR"
 	combat_active = true
 	_close_dialog()
 
-func _strike() -> void:
+func _strike(kind: String = "punch") -> void:
 	if not combat_active or interaction_open or strike_cooldown > 0.0:
 		return
-	strike_cooldown = 0.65
+	strike_cooldown = 1.1 if kind == "heavy" else (0.8 if kind == "kick" else 0.65)
 	player.play_motion("Punch_Jab")
 	audio_director.play_effect("res://assets/audio/strike.wav")
-	if player.position.distance_to(encounter.collector.position) <= 2.3:
-		enemy_health -= 1
+	pending_attack = kind
+	attack_windup = 0.35 if kind == "heavy" else (0.22 if kind == "kick" else 0.16)
+	_update_hud()
+
+func _resolve_attack() -> void:
+	var kind := pending_attack
+	pending_attack = ""
+	if kind == "" or not combat_active:
+		return
+	var to_enemy: Vector3 = encounter.collector.position - player.position
+	to_enemy.y = 0.0
+	var forward := Vector3(0, 0, 1).rotated(Vector3.UP, player.rotation.y)
+	var in_range := to_enemy.length() <= (2.6 if kind == "kick" else 2.3)
+	var in_front := to_enemy.length_squared() > 0.0001 and forward.dot(to_enemy.normalized()) >= 0.35
+	if in_range and in_front:
+		enemy_health -= 2 if kind == "heavy" else 1
 		preload("res://haptics.gd").pulse(70, 0.25, 0.10)
 		enemy_stagger = 0.45
 		encounter.collector.play_motion("Hit_Chest")
@@ -533,16 +573,29 @@ func _strike() -> void:
 			_complete_encounter("fight")
 	_update_hud()
 
-func _guard() -> void:
-	if not combat_active or interaction_open or guard_cooldown > 0.0:
+func _dodge() -> void:
+	if not combat_active or interaction_open or dodge_cooldown > 0.0:
 		return
-	guard_timer = 1.0
-	guard_cooldown = 1.8
+	var direction := Input.get_vector("move_left", "move_right", "move_forward", "move_back", 0.18)
+	if touch_stick.value.length_squared() > direction.length_squared():
+		direction = touch_stick.value
+	dodge_direction = Vector3(direction.x, 0, direction.y).rotated(Vector3.UP, camera_yaw).normalized()
+	if dodge_direction.length_squared() < 0.01:
+		dodge_direction = Vector3(0, 0, -1).rotated(Vector3.UP, player.rotation.y)
+	pending_attack = ""
+	dodge_timer = 0.30
+	dodge_cooldown = 1.1
 	_update_hud()
 
 func _process_fight(delta: float) -> void:
-	guard_timer = maxf(0.0, guard_timer - delta)
-	guard_cooldown = maxf(0.0, guard_cooldown - delta)
+	if pending_attack != "":
+		attack_windup -= delta
+		if attack_windup <= 0.0:
+			_resolve_attack()
+			if not combat_active:
+				return
+	dodge_timer = maxf(0.0, dodge_timer - delta)
+	dodge_cooldown = maxf(0.0, dodge_cooldown - delta)
 	strike_cooldown = maxf(0.0, strike_cooldown - delta)
 	enemy_stagger = maxf(0.0, enemy_stagger - delta)
 	var opponent: Node3D = encounter.collector
@@ -567,7 +620,7 @@ func _process_fight(delta: float) -> void:
 			encounter.collector_label.text = "COLLECTOR"
 			encounter.collector_label.modulate = Color("efc3af")
 			opponent.play_motion("Punch_Jab")
-			if distance <= 2.3 and guard_timer <= 0.0:
+			if distance <= 2.3 and dodge_timer <= 0.0:
 				player_health -= 1
 				preload("res://haptics.gd").pulse(150, 0.4, 0.3)
 				audio_director.play_effect("res://assets/audio/impact.wav")
@@ -577,12 +630,14 @@ func _process_fight(delta: float) -> void:
 	_update_hud()
 
 func _fight_failed() -> void:
+	pending_attack = ""
 	combat_active = false
 	_dialog("KNOCKED DOWN", "Marcus loses the fight. Retry from this encounter, or withdraw with the route docket. No bargain has been recorded.")
 	_option("RETRY", _start_fight)
 	_option("WITHDRAW", func(): _complete_encounter("withdraw"))
 
 func _complete_encounter(choice: String) -> void:
+	pending_attack = ""
 	combat_active = false
 	encounter_choice = choice
 	stage = 4
@@ -622,11 +677,13 @@ func _update_hud() -> void:
 	_update_navigation()
 	interact_button.visible = not combat_active
 	strike_button.visible = combat_active
-	guard_button.visible = combat_active
+	heavy_button.visible = combat_active
+	kick_button.visible = combat_active
+	dodge_button.visible = combat_active
 	if combat_active:
 		objective.text = "STREET PRESSURE  /  Marcus %d   •   Collector %d" % [player_health, enemy_health]
-		hint.text = "INCOMING! Move away or guard." if telegraph else "A: strike nearby   •   B: guard briefly   •   Move to evade"
-		message.text = "GUARDING" if guard_timer > 0.0 else ("Guard recovering" if guard_cooldown > 0.0 else "Guard ready")
+		hint.text = "INCOMING! Move away or dodge." if telegraph else "X punch  •  Y heavy  •  A kick  •  B dodge"
+		message.text = "DODGING" if dodge_timer > 0.0 else ("Dodge recovering" if dodge_cooldown > 0.0 else "Dodge ready")
 	elif stage == 1:
 		objective.text = "OBJECTIVE  /  Find the witness at the market stall"
 		hint.text = "Follow the map to Sade. B: interact. Drag right side to look."
@@ -669,7 +726,7 @@ func _physics_process(delta: float) -> void:
 		if not combat_active or strike_cooldown <= 0.30:
 			player.play_motion("Idle")
 	var body := player as CharacterBody3D
-	body.velocity = world_direction * 2.0
+	body.velocity = dodge_direction * 5.0 if combat_active and dodge_timer > 0.0 else world_direction * 2.0
 	body.move_and_slide()
 	body.position.x = clampf(body.position.x, -10.5, 10.5)
 	body.position.z = clampf(body.position.z, -12.0, 20.5)
@@ -693,11 +750,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("game_map"):
 		_toggle_map()
 		get_viewport().set_input_as_handled()
-	elif combat_active and event.is_action_pressed("game_strike"):
-		_strike()
+	elif combat_active and event.is_action_pressed("game_punch"):
+		_strike("punch")
 		get_viewport().set_input_as_handled()
-	elif combat_active and event.is_action_pressed("game_guard"):
-		_guard()
+	elif combat_active and event.is_action_pressed("game_heavy"):
+		_strike("heavy")
+		get_viewport().set_input_as_handled()
+	elif combat_active and event.is_action_pressed("game_kick"):
+		_strike("kick")
+		get_viewport().set_input_as_handled()
+	elif combat_active and event.is_action_pressed("game_dodge"):
+		_dodge()
 		get_viewport().set_input_as_handled()
 	elif not combat_active and event.is_action_pressed("game_interact"):
 		_interact()
