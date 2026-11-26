@@ -4,7 +4,7 @@ Owner direction: create, present, review, refine and obtain **explicit approval*
 
 | Stage | Status | Review / scope |
 |---|---|---|
-| 1. D’YOUNGS GAMES studio identity | **Presented — awaiting feedback and explicit approval** | `brand/studio/README.md`: actual 3D Blender model, renders from four views, a real rendered silent 3D motion preview, palette and variants. Owner requested 3D and rejected the previous faux-depth/2D presentation; 3D revision awaits feedback. Sound and real-time intro remain unfinished. |
+| 1. D’YOUNGS GAMES studio identity | **Direction accepted to proceed; production remains open** | Owner asked for additional polish, commit/push, then next stage. Actual 3D model, multi-angle renders, motion preview and newly synthesized standalone sting exist. Final sound synchronization and real-time intro remain unfinished; do not silently replace the direction. |
 | 2. LEVERAGE game identity | Pending approval of stage 1 | Earlier concept exists; not an approved stage. |
 | 3. Typography | Pending | Previous specimens are exploratory, not approved. |
 | 4. Visual art direction | Pending | Earlier concepts are not approved production assets. |
