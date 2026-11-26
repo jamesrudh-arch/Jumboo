@@ -1,0 +1,44 @@
+{
+  "source_sha256": "e62606b8bf3435eea1aaf6b0aaaa46d7e8b81b63cf2567eb0612b9e461d37faa",
+  "frames_including_converted_reference_pose": 1108,
+  "bvh_frame_time_seconds": 0.0083333,
+  "cmu_catalog_fps": 60,
+  "timing_conflict": "BVH conversion declares ~120 fps but CMU catalog lists 60 fps for this trial; actual playback timing requires checking against CMU reference.",
+  "mocap_bone_count": 31,
+  "marcus_bone_count": 54,
+  "exact_name_overlap": [
+    "Head",
+    "Hips",
+    "LeftArm",
+    "LeftFoot",
+    "LeftForeArm",
+    "LeftHand",
+    "LeftHandIndex1",
+    "LeftLeg",
+    "LeftShoulder",
+    "LeftToeBase",
+    "LeftUpLeg",
+    "RightArm",
+    "RightFoot",
+    "RightForeArm",
+    "RightHand",
+    "RightHandIndex1",
+    "RightLeg",
+    "RightShoulder",
+    "RightToeBase",
+    "RightUpLeg",
+    "Spine"
+  ],
+  "selected_distance_ratios": {
+    "160": {
+      "left_hand_to_head_over_head_to_hips": 1.622
+    },
+    "240": {
+      "left_hand_to_head_over_head_to_hips": 1.0831
+    },
+    "320": {
+      "left_hand_to_head_over_head_to_hips": 0.7679
+    }
+  },
+  "scope": "Structural import and sampled relative head/hand distances only; not a retarget, visual motion, finger capture, prop contact, engine or device validation."
+}
