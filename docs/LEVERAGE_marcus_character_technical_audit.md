@@ -1,6 +1,6 @@
 # Marcus: character production research and audit
 
-Status: **work in progress**. Owner approved the appearance direction, not these deformation tests or a production-ready character. This audit examines the separate experimental `marcus_neck_test.blend`; it is not the game and is not a replacement for the approved appearance scene.
+Status: **historical graft audit**. The owner subsequently approved the intact Grab3D Casual Man as Marcus; the graft and its deformation tests are superseded. The new source is not yet validated as a production-ready character. This audit examines the separate experimental `marcus_neck_test.blend`; it is not the game and is not a replacement for the approved appearance scene.
 
 ## Verified baseline
 
@@ -42,4 +42,8 @@ This is a substantial improvement to the tested stance, not completion of a walk
 
 ## Re-evaluating the source choice
 
-Repeatedly attempting to weld the Grab3D base head to a different MakeHuman body was a poor initial production choice: the two independent meshes have mismatched neck boundaries, skin UVs, materials and skeleton/weights. Research identified an intact rigged and clothed [Grab3D Casual Man](https://grab3d.com/models/characters/man/) with built-in walk/run. A pinned GitHub mirror's claimed source and SHA-256 were checked, and the downloaded file was inspected and rendered in Blender; details and limitations are in `brand/characters/research/casual_man/README.md`. The GLB has a single mesh/skin and source animation data, avoiding this particular head-grafting problem as a candidate base. It is visibly stylized, has a different face and clothes from approved Marcus, and cannot silently replace him. It has 244,257 indexed triangles; there is no phone benchmark or verified Godot/Xogot import. A workable path must preserve the approved appearance or obtain an explicit creative decision on any replacement; further source and license verification, retargeting, optimization, animation QA and on-device testing are still necessary.
+Repeatedly attempting to weld the Grab3D base head to a different MakeHuman body was a poor initial production choice: the two independent meshes have mismatched neck boundaries, skin UVs, materials and skeleton/weights. Research identified an intact rigged and clothed [Grab3D Casual Man](https://grab3d.com/models/characters/man/) with built-in walk/run. A pinned GitHub mirror's claimed source and SHA-256 were checked, and the downloaded file was inspected and rendered in Blender; details and limitations are in `brand/characters/research/casual_man/README.md`. The GLB has a single mesh/skin and source animation data, avoiding this particular head-grafting problem as a candidate base. At that point it was visibly stylized and had a different face and clothes from the previously approved Marcus; the subsequent owner decision below explicitly approved the change. It has 244,257 indexed triangles; there is no phone benchmark or verified Godot/Xogot import. The owner has now explicitly accepted this change; source and license verification, animation QA, optimization and on-device testing are still necessary.
+
+## Owner decision
+
+The owner explicitly approved the intact Casual Man as Marcus and accepted the different appearance. This supersedes the old head/body graft, not the approved studio or title identities. Source animations and production readiness still require verification; the character has not been integrated into the opening.

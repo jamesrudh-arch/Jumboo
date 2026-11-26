@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Render an unapproved candidate in Blender 4.2; not a Marcus replacement."""
+"""Render the original source walk in Blender 4.2; not a gameplay or device test."""
 import bpy,os
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 from mathutils import Vector
 from PIL import Image
-bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False);bpy.ops.import_scene.gltf(filepath=str(ROOT/'brand/characters/research/casual_man/casual_man_source.glb'));s=bpy.context.scene;rig=next(o for o in s.objects if o.type=='ARMATURE');print('ACTIONS',[(a.name,tuple(a.frame_range)) for a in bpy.data.actions],flush=True)
+bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False);bpy.ops.import_scene.gltf(filepath=str(ROOT/'brand/characters/marcus/marcus_approved_source.glb'));s=bpy.context.scene;rig=next(o for o in s.objects if o.type=='ARMATURE');print('ACTIONS',[(a.name,tuple(a.frame_range)) for a in bpy.data.actions],flush=True)
 rig.animation_data_clear();rig.animation_data_create();rig.animation_data.action=bpy.data.actions['walk_Armature'];s.render.engine='CYCLES';s.cycles.samples=8;s.cycles.use_denoising=True;s.render.resolution_x=400;s.render.resolution_y=500;s.world.color=(.08,.08,.08)
 bpy.ops.mesh.primitive_plane_add(size=200,location=(0,0,-.002));mat=bpy.data.materials.new('floor');mat.diffuse_color=(.05,.06,.07,1);bpy.context.object.data.materials.append(mat)
 def light(loc,power,size):
