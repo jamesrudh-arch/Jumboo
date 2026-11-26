@@ -1,0 +1,30 @@
+{
+  "scope": "Vertices weighted >0.8 to ball bone, two specified stance intervals only; not full shoe, collision, animation or device QA.",
+  "floor_z": -0.012868493795394897,
+  "stance": {
+    "r": {
+      "frames": [
+        1,
+        13
+      ],
+      "sampled_vertices": 272,
+      "max_sample_displacement_m": 0.0035444132650279806,
+      "minimum_sample_height_range_above_floor_m": [
+        0.0031157173216342926,
+        0.0047353170812129974
+      ]
+    },
+    "l": {
+      "frames": [
+        13,
+        25
+      ],
+      "sampled_vertices": 272,
+      "max_sample_displacement_m": 0.005915423454484874,
+      "minimum_sample_height_range_above_floor_m": [
+        0.004532579332590103,
+        0.00688716396689415
+      ]
+    }
+  }
+}
