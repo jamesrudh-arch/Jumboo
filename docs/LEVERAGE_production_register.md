@@ -11,6 +11,6 @@ Owner workflow: create, present actual visuals, review, refine and obtain approv
 | 5. Marcus | Pending | Removed stock prototype was not an approved character. |
 | 6–14. Other characters, NPCs, vehicles, buildings, districts, props, narrative, animation/audio, interface | Pending | Create and review in the requested order. Story records remain; prior playable implementation was removed. |
 | 15. Assembly and integration | Pending approved assets | Only approved identity assets have been incorporated in the identity-only project. |
-| 16. Gameplay and device testing | Pending | Desktop headless checks cannot establish Xogot, rendering, audio or iPhone behavior. |
+| 16. Gameplay and device testing | Pending | The owner reported a grey running view on iPhone. Its cause and installed Xogot version are unknown. Desktop Godot 4.7.2 headless checks cannot establish Xogot 4.4-based compatibility, rendering, audio or iPhone behavior. |
 
 Rejected: the owner rejected the previous 2D/faux-depth studio presentation and the unapproved prototype. Removed from the current tree; tracked files remain in history. Prior reports of invisible characters, missing voices and hangs are not claimed resolved; the affected prototype has been removed. Do not infer approval from silence.
