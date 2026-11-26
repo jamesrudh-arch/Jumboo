@@ -1,6 +1,6 @@
-# Intro: 3D shot study — not approved
+# Intro: approved 3D shot study
 
-`cinematic_shot_study.blend` is a packed Blender 4.2 scene, and `docs/previews/intro/cinematic_shot_study.png` is its actual CPU Cycles render. This is a **single proposed framing and lighting study**, not the 30-second cinematic, an approved warehouse design, gameplay or a phone screenshot. Marcus is shown in a sampled frame of his source walk, not a new performance. The environment is visibly sparse and needs further detailing, dressing and cinematic direction; the pose and ground contact have not been motion-QA'd. There is no call, animation sequence, dialogue or sound in this still. The game remains unchanged.
+`cinematic_shot_study.blend` is a packed Blender 4.2 scene, and `docs/previews/intro/cinematic_shot_study.png` is its actual CPU Cycles render. The owner approved this **single framing and lighting study**. That approval does not extend to the full 30-second cinematic, a finished warehouse design, gameplay, or phone performance. It is not a phone screenshot. Marcus is shown in a sampled frame of his source walk, not a new performance. The environment is visibly sparse and needs further detailing, dressing and cinematic direction; the pose and ground contact have not been motion-QA'd. There is no call, animation sequence, dialogue or sound in this still. The game remains unchanged.
 
 The warehouse imagery is a possible later setting; it does **not** change the required order: studio identity, title/reveal, roughly 30-second cinematic, automatic voiced phone call with visible pickup, then warehouse and city. No new story facts are implied.
 
