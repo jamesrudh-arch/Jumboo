@@ -45,3 +45,5 @@ The opening phone now sits on a real-scale textured table model; a textured modu
 This build requests the iOS Playback audio category (so it may play when the silent switch is on) and offers a Sound toggle on the title screen. Xogot embedded playback and the reported missing voices still need a real-device test. Textured Rocketbox-derived character models and a detailed passenger van are interim assets; see their asset folders and AUDIT.md for licenses and remaining limitations.
 
 Movement now uses character physics against selected warehouse/shop walls and the van, and the camera checks those obstacles. Collision is still incomplete throughout the district; see `AUDIT.md`.
+
+The smoke suite uses `user://leverage_smoke_test/` rather than the player's save slots; files with the test slot names in that dedicated directory are cleared when the suite starts. Lifecycle pause behavior has only been simulated in headless Godot, not verified in Xogot on iPhone.

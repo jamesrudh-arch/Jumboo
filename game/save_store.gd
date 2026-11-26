@@ -5,13 +5,18 @@ extends RefCounted
 const SLOT_A := "user://leverage_save_a.json"
 const SLOT_B := "user://leverage_save_b.json"
 const LEGACY := "user://leverage_blockout.json"
+# Runtime defaults to the real profile; tests explicitly select an isolated dir.
+static var base_dir := "user://"
+
+static func path_for(path: String) -> String:
+	return base_dir.path_join(path.get_file())
 
 static func read(validator: Callable) -> Dictionary:
 	var best := _best_slot(validator)
 	if not best.is_empty():
 		return best.data
 	# Existing builds used an unwrapped versioned JSON file.
-	var old := _read_json(LEGACY)
+	var old := _read_json(path_for(LEGACY))
 	return validator.call(old) if not old.is_empty() else {}
 
 static func write(data: Dictionary, validator: Callable) -> bool:
@@ -19,7 +24,7 @@ static func write(data: Dictionary, validator: Callable) -> bool:
 		return false
 	var best := _best_slot(validator)
 	var sequence := int(best.get("sequence", 0)) + 1
-	var destination := SLOT_B if best.get("path", "") == SLOT_A else SLOT_A
+	var destination := path_for(SLOT_B) if best.get("path", "") == path_for(SLOT_A) else path_for(SLOT_A)
 	var payload := {"sequence": sequence, "data": data}
 	var encoded := JSON.stringify(payload)
 	var envelope := {"payload": encoded, "checksum": encoded.sha256_text()}
@@ -33,8 +38,8 @@ static func write(data: Dictionary, validator: Callable) -> bool:
 	return not verified.is_empty() and int(verified.sequence) == sequence
 
 static func _best_slot(validator: Callable) -> Dictionary:
-	var a := _load_slot(SLOT_A, validator)
-	var b := _load_slot(SLOT_B, validator)
+	var a := _load_slot(path_for(SLOT_A), validator)
+	var b := _load_slot(path_for(SLOT_B), validator)
 	if a.is_empty():
 		return b
 	if b.is_empty():

@@ -15,10 +15,10 @@ func _input(event: InputEvent) -> void:
 	if not is_visible_in_tree():
 		return
 	if event is InputEventScreenTouch:
-		if event.pressed and finger == -1 and get_global_rect().has_point(event.position):
+		if event.pressed and not event.is_canceled() and finger == -1 and get_global_rect().has_point(event.position):
 			finger = event.index
 			_set_from_position(event.position)
-		elif not event.pressed and event.index == finger:
+		elif (not event.pressed or event.is_canceled()) and event.index == finger:
 			reset()
 	elif event is InputEventScreenDrag and event.index == finger:
 		_set_from_position(event.position)
