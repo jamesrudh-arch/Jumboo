@@ -13,4 +13,4 @@ Owner direction: create, present, review, refine and obtain **explicit approval*
 | 15. Assembly and integration | Pending approved assets | Existing prototype is not final assembly. |
 | 16. Gameplay and device testing | Pending | Existing headless checks do not constitute owner approval or iPhone verification. |
 
-Rejected: the owner rejected the previous 2D/faux-depth presentation; retain it only as an archived exploration, not the approved studio intro. Retain prior owner feedback about unacceptable blockout visuals and missing visible characters/audio; those defects remain open. Do not infer approval from silence.
+Rejected: the owner rejected the previous 2D/faux-depth presentation; the rejected vector/faux-depth study was removed from the current tree and remains in Git history, not the approved studio intro. Retain prior owner feedback about unacceptable blockout visuals and missing visible characters/audio; those defects remain open. Do not infer approval from silence.
