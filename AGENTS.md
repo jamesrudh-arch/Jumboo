@@ -1,0 +1,9 @@
+# LEVERAGE production instructions
+
+These instructions apply throughout the repository, not only to the intro.
+
+- The owner requires rigorous, in-depth research and use of suitable assets, marketplaces and specialist tools where appropriate. Investigate real options and their licenses, costs, actual availability, compatibility and fitness before implementation; then apply the lessons to the rest of the project. Do not assume a listing, preview, license, technique or tool has been acquired or validated.
+- The owner's required bar is 10/10. Do not declare a result 10/10 or production-ready based on the developer's opinion, a numerical check or a low-fidelity preview. Run substantive technical and visual checks, review the result against the brief and the owner's prior feedback, iterate, and distinguish tests from finished work. Never treat a study as approved without the owner's actual approval.
+- The owner rejected the latest tabletop pickup as floppy, generic and AI-looking. Do not reuse or promote it as the finished performance. Research and evaluate real human performance and hand/object capture rather than iterating arbitrary keyframes as a substitute for believable acting. This rejection does not revoke the separately approved character, body-only retarget preview, ear-hold direction, call dialogue, storyboard, or environment framing.
+- Preserve the approved identity, Marcus, story order, dialogue and direction. Avoid inventing canon. Use properly licensed assets and do not bypass payment or account restrictions. Record source provenance and limitations. Keep large source packs external unless the repository already has a justified convention for them.
+- Merge completed, accurately labelled work to `jamesrudh-arch/Jumboo` main through the current Arena branch when requested. Do not label research or diagnostics as a completed cinematic. Respect the owner's preference to work without unnecessary commentary.
