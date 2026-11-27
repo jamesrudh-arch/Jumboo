@@ -56,3 +56,5 @@ The two body-only previews, `docs/previews/intro/cmu_80_26_body_candidate.gif` a
 ### Additional full-hand capture research
 
 [GRAB](https://github.com/otaheri/GRAB) describes full-body object manipulation with finger and object contact data, but its stated license is for non-commercial scientific research. [ARCTIC](https://github.com/zc-alexfan/arctic) similarly states its data and software are not available for commercial use. Neither was downloaded or adopted for this game. [Handhold](https://github.com/Ozbrett/handhold) is an MIT-licensed grip/arm posing tool that may be worth evaluating against Marcus and the phone; its suitability for this particular pickup and continuous contact has not been tested or established.
+
+[AutoGrip](https://github.com/Jetpack-Crow/AutoGrip) is another MIT-licensed Blender finger-constraint tool investigated for this problem. Its README lists MakeHuman Exchange, Rigify and Auto-Rig Pro as the supported rig types; the current Marcus rig is not on that list. It was not integrated or used to make the contact study, and it does not by itself provide a captured pickup performance.
