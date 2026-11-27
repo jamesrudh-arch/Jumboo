@@ -23,6 +23,9 @@ func run_test() -> void:
 		quit(1)
 		return
 	check(scene.pickup.visible and not scene.conversation.visible, "pickup visible and conversation hidden")
+	check(scene.stage_table != null and scene.stage_table.get_parent() == scene and scene.stage_floor != null and scene.stage_table_legs.size() == 4, "shared table and neutral supports are staged")
+	check(scene.get_node_or_null("ProvisionalFaceFill") is OmniLight3D, "provisional face fill is present")
+	var table_transform = scene.stage_table.global_transform
 	check(scene.ring_player.stream != null and scene.voice_player.stream != null, "ring and dialogue streams loaded")
 	check(scene.pickup_phone != null and scene.ringing_light != null, "phone vibration and light are attached")
 	check(scene.incoming_display_parts.size() == 7 and scene.connected_display_parts.size() == 4, "incoming and connected display meshes loaded")
@@ -49,6 +52,7 @@ func run_test() -> void:
 	await create_timer(2.0).timeout
 	check(scene.phase == "conversation" and not scene.pickup.visible and scene.conversation.visible, "pickup automatically cuts to conversation")
 	check(scene.voice_player.playing, "dialogue starts with conversation")
+	check(scene.stage_table.visible and scene.stage_table.global_transform.is_equal_approx(table_transform), "table stays in place across the cut")
 	check(_visible_count(scene.conversation_counter_parts) == 1 and scene.current_conversation_second >= 1, "conversation counter continues after pickup")
 	scene.conversation_animation.seek(10.0, true)
 	await process_frame
