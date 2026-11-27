@@ -1,7 +1,13 @@
 extends Node3D
 
-# Identity-only build: the previous unapproved gameplay prototype was removed.
+# The previous unapproved gameplay prototype was removed. The opening now
+# connects to a provisional call; its establishing shot is a placeholder.
 var shot: Node3D
+var call_scene: Node3D
+# Test overrides are set before this node enters the scene tree.
+var studio_duration := 3.7
+var title_duration := 4.0
+var establishing_duration := 30.0
 
 func _ready() -> void:
 	var world := WorldEnvironment.new()
@@ -18,9 +24,18 @@ func _ready() -> void:
 	if shot.load_error != "":
 		_show_load_error(shot.load_error)
 		return
-	await get_tree().create_timer(3.7, false).timeout
+	await get_tree().create_timer(studio_duration, false).timeout
 	if is_instance_valid(shot):
 		shot.reveal_title()
+	await get_tree().create_timer(title_duration, false).timeout
+	if is_instance_valid(shot):
+		remove_child(shot)
+		shot.queue_free()
+		remove_child(world)
+		world.queue_free()
+		call_scene = preload("res://provisional_call.tscn").instantiate()
+		call_scene.establishing_duration = establishing_duration
+		add_child(call_scene)
 
 # Error-only diagnostics, not a replacement for the approved 3D identity.
 func _show_load_error(message: String) -> void:

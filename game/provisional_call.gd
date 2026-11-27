@@ -1,6 +1,6 @@
 extends Node3D
-## Standalone provisional call test. Not yet wired into the opening: the
-## preceding cinematic is unfinished. The two animated models have a known cut.
+## Provisional call and placeholder establishing shot. The two animated
+## models have a known cut; the proper preceding story cinematic is unfinished.
 signal call_completed
 
 const PICKUP_PATH := "res://assets/intro/provisional_pickup.glb"
@@ -8,6 +8,12 @@ const TALK_PATH := "res://assets/intro/provisional_conversation.glb"
 const VOICE_PATH := "res://assets/intro/first_call_preview.wav"
 const RING_PATH := "res://assets/intro/incoming_ring.wav"
 const RING_SECONDS := 3.0
+
+# Set by the opening before this node enters the tree. The standalone test
+# uses zero; the default opening uses a temporary 30-second establishing shot.
+var establishing_duration := 0.0
+var establishing_elapsed := 0.0
+var camera: Camera3D
 
 var phase := "loading"
 var error_message := ""
@@ -51,6 +57,12 @@ func _ready() -> void:
 	pickup_animation.play(_animation_name(pickup_animation))
 	pickup_animation.seek(0.0, true)
 	pickup_animation.pause()
+	if establishing_duration > 0.0:
+		phase = "establishing"
+		await get_tree().create_timer(establishing_duration, false).timeout
+		if phase != "establishing":
+			return
+		_set_camera_progress(1.0)
 	phase = "ringing"
 	ring_player.play()
 	await get_tree().create_timer(RING_SECONDS, false).timeout
@@ -138,13 +150,22 @@ func _setup_stage() -> void:
 	light.rotation_degrees = Vector3(-35, -35, 0)
 	light.light_energy = 1.5
 	add_child(light)
-	var camera := Camera3D.new()
+	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	camera.size = 1.18
-	camera.position = Vector3(1.8, 1.8, 4.0)
 	add_child(camera)
-	camera.look_at(Vector3(.18, 1.30, .16), Vector3.UP)
+	_set_camera_progress(0.0 if establishing_duration > 0.0 else 1.0)
 	camera.make_current()
+
+func _process(delta: float) -> void:
+	if phase == "establishing" and establishing_duration > 0.0:
+		establishing_elapsed += delta
+		_set_camera_progress(clampf(establishing_elapsed / establishing_duration, 0.0, 1.0))
+
+func _set_camera_progress(progress: float) -> void:
+	var smooth := smoothstep(0.0, 1.0, progress)
+	camera.position = Vector3(2.3, 1.95, 4.5).lerp(Vector3(1.8, 1.8, 4.0), smooth)
+	camera.look_at(Vector3(.18, 1.30, .16), Vector3.UP)
 
 func _fail(message: String) -> void:
 	error_message = message
