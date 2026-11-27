@@ -39,6 +39,9 @@ def verify(source, exported, duration):
     assert len(armatures) == 1, f'{exported.name}: unexpected armature count'
     armature = armatures[0]
     phone = bpy.data.objects['phone grip control']
+    if exported.name == 'provisional_conversation.glb':
+        counters = {ob.name for ob in phone.children if ob.name.startswith('elapsed call ')}
+        assert counters == {f'elapsed call {i:02d}' for i in range(27)}, 'Counter meshes missing or duplicated'
     for ob in (armature, phone):
         assert ob.animation_data and ob.animation_data.action, f'{ob.name}: animation missing'
     for t, reference in zip((0., .5, 1.), expected):

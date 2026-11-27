@@ -8,6 +8,8 @@ const TALK_PATH := "res://assets/intro/provisional_conversation.glb"
 const VOICE_PATH := "res://assets/intro/first_call_preview.wav"
 const RING_PATH := "res://assets/intro/incoming_ring.wav"
 const RING_SECONDS := 3.0
+# The baked phone starts lifting shortly after 1.667 seconds.
+const CONNECT_AT_PICKUP_SECONDS := 1.7
 
 # Set by the opening before this node enters the tree. The standalone test
 # uses zero; the default opening uses a temporary 30-second establishing shot.
@@ -27,6 +29,13 @@ var pickup_phone: Node3D
 var phone_rest_transform: Transform3D
 var ringing_light: OmniLight3D
 var ringing_elapsed := 0.0
+var incoming_display_parts: Array[Node3D] = []
+var connected_display_parts: Array[Node3D] = []
+var pickup_connected := false
+var pickup_counter_parts: Array[Node3D] = []
+var conversation_counter_parts: Array[Node3D] = []
+var current_pickup_second := -1
+var current_conversation_second := -1
 
 func _ready() -> void:
 	_setup_stage()
@@ -73,6 +82,8 @@ func _ready() -> void:
 	ringing_light.light_energy = 0.0
 	ringing_light.omni_range = .32
 	pickup_phone.add_child(ringing_light)
+	if not _prepare_pickup_display():
+		return
 	if establishing_duration > 0.0:
 		phase = "establishing"
 		await get_tree().create_timer(establishing_duration, false).timeout
@@ -103,6 +114,7 @@ func _pickup_finished(_name: StringName) -> void:
 	pickup.hide()
 	conversation.show()
 	phase = "conversation"
+	_set_counter(pickup_animation.get_animation(_animation_name(pickup_animation)).length - CONNECT_AT_PICKUP_SECONDS, false)
 	conversation_animation.animation_finished.connect(_conversation_finished, CONNECT_ONE_SHOT)
 	conversation_animation.play(_animation_name(conversation_animation))
 	voice_player.play()
@@ -184,6 +196,81 @@ func _process(delta: float) -> void:
 	elif phase == "ringing":
 		ringing_elapsed += delta
 		_update_ringing_visuals(ringing_elapsed)
+	elif phase == "pickup":
+		var position := pickup_animation.current_animation_position
+		if not pickup_connected and position >= CONNECT_AT_PICKUP_SECONDS:
+			_set_pickup_connected()
+		if pickup_connected:
+			_set_counter(maxf(0.0, position - CONNECT_AT_PICKUP_SECONDS), true)
+	elif phase == "conversation":
+		var lead := pickup_animation.get_animation(_animation_name(pickup_animation)).length - CONNECT_AT_PICKUP_SECONDS
+		_set_counter(lead + conversation_animation.current_animation_position, false)
+
+# glTF cannot animate Blender visibility tracks. Reuse the already-exported
+# connected display meshes; they are visual only, not interactive buttons.
+func _prepare_pickup_display() -> bool:
+	var talk_phone := conversation.find_child("phone grip control", true, false) as Node3D
+	if not talk_phone:
+		_fail("Conversation phone control is missing")
+		return false
+	for name in ["answer button", "answer caption", "decline button", "decline caption", "caller detail", "call state", "lower note"]:
+		var incoming := pickup_phone.get_node_or_null(NodePath(name)) as Node3D
+		if not incoming:
+			_fail("Incoming phone display is missing: " + name)
+			return false
+		incoming_display_parts.append(incoming)
+	for name in ["decline button", "decline caption", "call state", "lower note"]:
+		var source := talk_phone.get_node_or_null(NodePath(name)) as Node3D
+		if not source:
+			_fail("Connected phone display is missing: " + name)
+			return false
+		var part := source.duplicate() as Node3D
+		part.name = "connected " + name
+		part.hide()
+		pickup_phone.add_child(part)
+		connected_display_parts.append(part)
+	# Both scenes use the same pre-authored counter meshes. Hide every label
+	# initially so only the selected second is ever visible on either phone.
+	for second in range(27):
+		var name := "elapsed call %02d" % second
+		var source := talk_phone.get_node_or_null(NodePath(name)) as Node3D
+		if not source:
+			_fail("Connected call counter is missing: " + name)
+			return false
+		source.hide()
+		conversation_counter_parts.append(source)
+		var copy := source.duplicate() as Node3D
+		copy.name = "connected " + name
+		copy.hide()
+		pickup_phone.add_child(copy)
+		pickup_counter_parts.append(copy)
+	return true
+
+func _set_pickup_connected() -> void:
+	if pickup_connected:
+		return
+	pickup_connected = true
+	for part in incoming_display_parts:
+		part.hide()
+	for part in connected_display_parts:
+		part.show()
+	_set_counter(0.0, true)
+
+# Elapsed time begins at the pickup's connection point, not at dialogue start.
+# The two exported phone poses remain discontinuous despite this UI continuity.
+func _set_counter(seconds: float, on_pickup: bool) -> void:
+	var second := clampi(int(floor(seconds)), 0, 26)
+	var parts := pickup_counter_parts if on_pickup else conversation_counter_parts
+	var previous := current_pickup_second if on_pickup else current_conversation_second
+	if second == previous or parts.size() != 27:
+		return
+	if previous >= 0:
+		parts[previous].hide()
+	parts[second].show()
+	if on_pickup:
+		current_pickup_second = second
+	else:
+		current_conversation_second = second
 
 # Timing matches the approved 3-second synthesized ringtone study. The light
 # and vibration are real-time approximations, not a measured phone simulation.
