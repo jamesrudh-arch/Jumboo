@@ -23,6 +23,10 @@ var pickup_animation: AnimationPlayer
 var conversation_animation: AnimationPlayer
 var ring_player: AudioStreamPlayer
 var voice_player: AudioStreamPlayer
+var pickup_phone: Node3D
+var phone_rest_transform: Transform3D
+var ringing_light: OmniLight3D
+var ringing_elapsed := 0.0
 
 func _ready() -> void:
 	_setup_stage()
@@ -57,6 +61,18 @@ func _ready() -> void:
 	pickup_animation.play(_animation_name(pickup_animation))
 	pickup_animation.seek(0.0, true)
 	pickup_animation.pause()
+	pickup_phone = pickup.find_child("phone grip control", true, false) as Node3D
+	if not pickup_phone:
+		_fail("Pickup phone control is missing")
+		return
+	phone_rest_transform = pickup_phone.transform
+	ringing_light = OmniLight3D.new()
+	ringing_light.name = "ProvisionalRingingLight"
+	ringing_light.position = Vector3(0, .025, 0)
+	ringing_light.light_color = Color.WHITE
+	ringing_light.light_energy = 0.0
+	ringing_light.omni_range = .32
+	pickup_phone.add_child(ringing_light)
 	if establishing_duration > 0.0:
 		phase = "establishing"
 		await get_tree().create_timer(establishing_duration, false).timeout
@@ -64,6 +80,8 @@ func _ready() -> void:
 			return
 		_set_camera_progress(1.0)
 	phase = "ringing"
+	ringing_elapsed = 0.0
+	_update_ringing_visuals(0.0)
 	ring_player.play()
 	await get_tree().create_timer(RING_SECONDS, false).timeout
 	if phase == "ringing":
@@ -74,6 +92,8 @@ func _begin_pickup() -> void:
 		return
 	phase = "pickup"
 	ring_player.stop()
+	pickup_phone.transform = phone_rest_transform
+	ringing_light.light_energy = 0.0
 	pickup_animation.animation_finished.connect(_pickup_finished, CONNECT_ONE_SHOT)
 	pickup_animation.play()
 
@@ -161,6 +181,25 @@ func _process(delta: float) -> void:
 	if phase == "establishing" and establishing_duration > 0.0:
 		establishing_elapsed += delta
 		_set_camera_progress(clampf(establishing_elapsed / establishing_duration, 0.0, 1.0))
+	elif phase == "ringing":
+		ringing_elapsed += delta
+		_update_ringing_visuals(ringing_elapsed)
+
+# Timing matches the approved 3-second synthesized ringtone study. The light
+# and vibration are real-time approximations, not a measured phone simulation.
+func _ring_pulse_at(t: float) -> bool:
+	return (t >= 0.0 and t < .75) or (t >= 1.55 and t < 2.3)
+
+func _update_ringing_visuals(t: float) -> void:
+	if not pickup_phone or not ringing_light:
+		return
+	if _ring_pulse_at(t):
+		var wave := sin(TAU * 21.0 * t)
+		pickup_phone.transform = Transform3D(phone_rest_transform.basis.rotated(Vector3.UP, .004 * wave), phone_rest_transform.origin + Vector3(.0007 * wave, 0, 0))
+		ringing_light.light_energy = .35
+	else:
+		pickup_phone.transform = phone_rest_transform
+		ringing_light.light_energy = 0.0
 
 func _set_camera_progress(progress: float) -> void:
 	var smooth := smoothstep(0.0, 1.0, progress)
