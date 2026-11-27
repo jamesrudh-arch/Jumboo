@@ -1,0 +1,20 @@
+{
+  "scene": "brand/intro/phone/experiments/table_pickup_contact_study.blend",
+  "fps": 6.0,
+  "subdivisions": 8,
+  "sample_count": 177,
+  "hand": "LeftHand",
+  "peak_wrist_speed_m_per_s": {
+    "frame": 6.875,
+    "value": 0.831
+  },
+  "peak_wrist_acceleration_m_per_s2": {
+    "frame": 7.125,
+    "value": 26.011
+  },
+  "peak_wrist_angular_speed_deg_per_s": {
+    "frame": 6.5,
+    "value": 376.595
+  },
+  "method": "world-space bone-head finite differences; no visual or physical quality verdict"
+}
