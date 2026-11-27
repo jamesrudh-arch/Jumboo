@@ -1,0 +1,36 @@
+{
+  "method": "One posed frame; vertices with >50% group weight against tabletop box, not continuous or triangle collision QA.",
+  "table_bounds_m": {
+    "x": [
+      0.12,
+      0.72
+    ],
+    "y": [
+      -0.675,
+      -0.225
+    ],
+    "z": [
+      0.905,
+      0.945
+    ]
+  },
+  "weighted_vertices_inside_table": {
+    "LeftHand": 1852,
+    "LeftHandThumb": 528,
+    "LeftHandIndex": 311,
+    "LeftHandMiddle": 352,
+    "LeftHandRing": 433,
+    "LeftHandPinky": 438
+  },
+  "phone_origin_m": [
+    0.32211169600486755,
+    -0.3711523413658142,
+    0.9458394050598145
+  ],
+  "phone_normal": [
+    0.0327884666621685,
+    -0.12294206023216248,
+    0.9918720722198486
+  ],
+  "optimization_cost": 0.9397752410366127
+}
