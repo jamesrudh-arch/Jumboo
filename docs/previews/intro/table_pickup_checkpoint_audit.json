@@ -1,0 +1,1450 @@
+{
+  "approximate_boxes_by_frame": {
+    "1.0": {
+      "LeftHand": [
+        0,
+        154.8,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        139.1,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        195.2,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        201.5,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        193.4,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        197.7,
+        0
+      ]
+    },
+    "1.5": {
+      "LeftHand": [
+        0,
+        151.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        132.0,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        186.5,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        192.7,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        185.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        189.9,
+        0
+      ]
+    },
+    "2.0": {
+      "LeftHand": [
+        0,
+        143.0,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        114.8,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        162.3,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        167.9,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        161.5,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        167.9,
+        0
+      ]
+    },
+    "2.5": {
+      "LeftHand": [
+        0,
+        131.5,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        98.3,
+        16
+      ],
+      "LeftHandIndex": [
+        0,
+        130.6,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        135.4,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        131.5,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        140.8,
+        0
+      ]
+    },
+    "3.0": {
+      "LeftHand": [
+        0,
+        130.2,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        94.8,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        102.1,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        105.5,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        106.6,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        120.0,
+        0
+      ]
+    },
+    "3.5": {
+      "LeftHand": [
+        0,
+        140.2,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        107.8,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        89.7,
+        96
+      ],
+      "LeftHandMiddle": [
+        0,
+        90.5,
+        125
+      ],
+      "LeftHandRing": [
+        0,
+        98.2,
+        30
+      ],
+      "LeftHandPinky": [
+        0,
+        114.8,
+        0
+      ]
+    },
+    "4.0": {
+      "LeftHand": [
+        0,
+        148.0,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        130.7,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        90.2,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        88.7,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        101.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        118.9,
+        0
+      ]
+    },
+    "4.5": {
+      "LeftHand": [
+        0,
+        154.6,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        153.1,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        97.4,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        93.3,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        108.4,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        127.0,
+        0
+      ]
+    },
+    "5.0": {
+      "LeftHand": [
+        0,
+        162.8,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        159.4,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        105.5,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        102.1,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        117.3,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        135.8,
+        0
+      ]
+    },
+    "5.5": {
+      "LeftHand": [
+        0,
+        163.9,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        149.8,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        105.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        101.3,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        114.5,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        131.7,
+        0
+      ]
+    },
+    "6.0": {
+      "LeftHand": [
+        0,
+        151.0,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        136.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        91.8,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        86.9,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        100.0,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        117.0,
+        0
+      ]
+    },
+    "6.5": {
+      "LeftHand": [
+        0,
+        139.8,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        118.8,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        80.7,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        77.5,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        90.8,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        108.8,
+        0
+      ]
+    },
+    "7.0": {
+      "LeftHand": [
+        0,
+        149.9,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        115.4,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        93.9,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        95.5,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        106.4,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        122.4,
+        0
+      ]
+    },
+    "7.5": {
+      "LeftHand": [
+        0,
+        158.8,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        124.5,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        118.2,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        116.8,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        123.4,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        135.6,
+        0
+      ]
+    },
+    "8.0": {
+      "LeftHand": [
+        0,
+        156.3,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        121.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        120.7,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        117.2,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        121.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        130.4,
+        0
+      ]
+    },
+    "8.5": {
+      "LeftHand": [
+        0,
+        141.7,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        106.6,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        107.2,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        103.3,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        106.6,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        115.3,
+        0
+      ]
+    },
+    "9.0": {
+      "LeftHand": [
+        0,
+        125.3,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        90.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        89.8,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        86.3,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        90.0,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        99.3,
+        0
+      ]
+    },
+    "9.5": {
+      "LeftHand": [
+        0,
+        105.8,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        70.7,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        69.6,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        66.4,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        70.3,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        79.9,
+        0
+      ]
+    },
+    "10.0": {
+      "LeftHand": [
+        0,
+        67.5,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        32.4,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        32.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        28.8,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        32.3,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        41.5,
+        0
+      ]
+    },
+    "10.5": {
+      "LeftHand": [
+        0,
+        36.7,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        2.0,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        3.7,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.5,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        4.4,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        13.9,
+        0
+      ]
+    },
+    "11.0": {
+      "LeftHand": [
+        0,
+        36.2,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "11.5": {
+      "LeftHand": [
+        0,
+        36.2,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "12.0": {
+      "LeftHand": [
+        0,
+        36.3,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "12.5": {
+      "LeftHand": [
+        0,
+        36.3,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "13.0": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "13.5": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "14.0": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "14.5": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "15.0": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "15.5": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "16.0": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "16.5": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "17.0": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "17.5": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "18.0": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "18.5": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "19.0": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "19.5": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "20.0": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "20.5": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "21.0": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "21.5": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "22.0": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "22.5": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    },
+    "23.0": {
+      "LeftHand": [
+        0,
+        36.4,
+        0
+      ],
+      "LeftHandThumb": [
+        0,
+        1.2,
+        0
+      ],
+      "LeftHandIndex": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandMiddle": [
+        0,
+        1.0,
+        0
+      ],
+      "LeftHandRing": [
+        0,
+        1.1,
+        0
+      ],
+      "LeftHandPinky": [
+        0,
+        10.4,
+        0
+      ]
+    }
+  },
+  "head_hand_triangle_overlaps": {
+    "18": 0,
+    "20": 225,
+    "22": 395,
+    "23": 521
+  }
+}
