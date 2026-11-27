@@ -7,6 +7,7 @@ const PICKUP_PATH := "res://assets/intro/provisional_pickup.glb"
 const TALK_PATH := "res://assets/intro/provisional_conversation.glb"
 const VOICE_PATH := "res://assets/intro/first_call_preview.wav"
 const RING_PATH := "res://assets/intro/incoming_ring.wav"
+const CAPTION_DATA := preload("res://call_caption_data.gd")
 const RING_SECONDS := 3.0
 # The baked phone starts lifting shortly after 1.667 seconds.
 const CONNECT_AT_PICKUP_SECONDS := 1.7
@@ -39,9 +40,14 @@ var pickup_counter_parts: Array[Node3D] = []
 var conversation_counter_parts: Array[Node3D] = []
 var current_pickup_second := -1
 var current_conversation_second := -1
+var captions_enabled := false
+var caption_toggle: Button
+var caption_panel: ColorRect
+var caption_label: Label
 
 func _ready() -> void:
 	_setup_stage()
+	_setup_caption_ui()
 	pickup = _load_model(PICKUP_PATH)
 	if not pickup:
 		return
@@ -251,6 +257,76 @@ func _process(delta: float) -> void:
 	elif phase == "conversation":
 		var lead := pickup_animation.get_animation(_animation_name(pickup_animation)).length - CONNECT_AT_PICKUP_SECONDS
 		_set_counter(lead + conversation_animation.current_animation_position, false)
+	_update_captions()
+
+# Optional whole-line captions are off by default. The CC control is available
+# during the pre-call shot, before dialogue starts, and requires no tap to play.
+func _setup_caption_ui() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "CallCaptions"
+	add_child(layer)
+	var root := Control.new()
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(root)
+	caption_toggle = Button.new()
+	caption_toggle.name = "CaptionToggle"
+	caption_toggle.toggle_mode = true
+	caption_toggle.text = "CC OFF"
+	caption_toggle.tooltip_text = "Toggle call captions"
+	caption_toggle.anchor_left = 1.0
+	caption_toggle.anchor_right = 1.0
+	caption_toggle.offset_left = -156.0
+	caption_toggle.offset_right = -36.0
+	caption_toggle.offset_top = 36.0
+	caption_toggle.offset_bottom = 96.0
+	caption_toggle.add_theme_font_size_override("font_size", 22)
+	root.add_child(caption_toggle)
+	caption_toggle.toggled.connect(_set_captions_enabled)
+	caption_panel = ColorRect.new()
+	caption_panel.name = "CaptionBackground"
+	caption_panel.color = Color(0.0, 0.0, 0.0, .82)
+	caption_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	caption_panel.anchor_left = .08
+	caption_panel.anchor_right = .92
+	caption_panel.anchor_top = 1.0
+	caption_panel.anchor_bottom = 1.0
+	caption_panel.offset_top = -162.0
+	caption_panel.offset_bottom = -36.0
+	root.add_child(caption_panel)
+	caption_panel.hide()
+	caption_label = Label.new()
+	caption_label.name = "CaptionText"
+	caption_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caption_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	caption_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	caption_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	caption_label.add_theme_font_size_override("font_size", 30)
+	caption_label.add_theme_color_override("font_color", Color.WHITE)
+	caption_panel.add_child(caption_label)
+	caption_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	caption_label.offset_left = 16.0
+	caption_label.offset_right = -16.0
+	caption_label.offset_top = 8.0
+	caption_label.offset_bottom = -8.0
+
+func _set_captions_enabled(enabled: bool) -> void:
+	captions_enabled = enabled
+	caption_toggle.text = "CC ON" if enabled else "CC OFF"
+	_update_captions()
+
+func _update_captions() -> void:
+	if not caption_panel:
+		return
+	var text := ""
+	if captions_enabled:
+		if phase == "ringing":
+			text = "[Phone ringing]"
+		elif phase == "conversation" and voice_player and voice_player.playing:
+			var sample := int(voice_player.get_playback_position() * CAPTION_DATA.SAMPLE_RATE)
+			text = CAPTION_DATA.text_at_sample(sample)
+	caption_label.text = text
+	caption_panel.visible = not text.is_empty()
 
 # glTF cannot animate Blender visibility tracks. Reuse the already-exported
 # connected display meshes; they are visual only, not interactive buttons.
