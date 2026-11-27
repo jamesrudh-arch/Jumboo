@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>LEVERAGE · Cinder City — loading lane study</title>
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+
+    <div id="title" class="screen">
+      <div class="card">
+        <p class="kicker">LEVERAGE · Cinder City</p>
+        <h1>Last Call</h1>
+        <p class="lede">
+          Reach Sade at the stall, then take the loading lane. The collectors
+          patrol the lane in the dark. Crouch to stay low; run only when you
+          have to be loud.
+        </p>
+        <dl class="controls">
+          <div><dt>W A S D</dt><dd>Move</dd></div>
+          <div><dt>Mouse</dt><dd>Look</dd></div>
+          <div><dt>Shift</dt><dd>Run (loud)</dd></div>
+          <div><dt>Ctrl / C</dt><dd>Crouch (quiet)</dd></div>
+          <div><dt>E / Space</dt><dd>Talk, interact</dd></div>
+          <div><dt>Esc</dt><dd>Pause</dd></div>
+          <div><dt>Gamepad</dt><dd>Either stick, triggers, A</dd></div>
+        </dl>
+        <button id="start" disabled>Loading…</button>
+        <p id="status" class="status" hidden></p>
+        <p class="fineprint">
+          Unapproved gameplay study. Uses the approved Marcus asset; the lane,
+          props and collectors are study geometry, not canon. Not inserted into
+          the approved opening.
+        </p>
+      </div>
+    </div>
+
+    <div id="pause" class="screen" hidden>
+      <div class="card compact">
+        <h2>Paused</h2>
+        <button id="resume">Resume</button>
+        <p class="fineprint">Press Esc or click Resume to continue.</p>
+      </div>
+    </div>
+
+    <script>
+      // Surface module/network failures on the page instead of only in the
+      // console: this build is often opened by someone reviewing it briefly.
+      window.addEventListener("error", (e) => {
+        const s = document.getElementById("status");
+        if (s && !s.dataset.error) {
+          s.hidden = false;
+          s.dataset.error = "1";
+          s.textContent = "Failed to start: " + (e.message || "unknown error");
+        }
+      });
+      window.addEventListener("unhandledrejection", (e) => {
+        const s = document.getElementById("status");
+        if (s) {
+          s.hidden = false;
+          s.dataset.error = "1";
+          s.textContent = "Failed to start: " + ((e.reason && e.reason.message) || e.reason);
+        }
+      });
+    </script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three/three.module.js",
+          "three/examples/jsm/": "./vendor/three/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
