@@ -1,0 +1,64 @@
+{
+  "status": "timing data only; no pickup, facial animation or runtime integration",
+  "sample_rate_hz": 44100,
+  "mix_samples": 1074259,
+  "mix_pcm_sha256": "05cd709bf9e003b46e15b4e545438cbbe88f69b9cd1342b5326d6b7965ff5fac",
+  "events": [
+    {
+      "speaker": "marcus",
+      "file": "marcus_01.wav",
+      "start_sample": 0,
+      "end_sample": 73216,
+      "pause_end_sample": 88651,
+      "source_sha256": "133f5517dcb487c1e9db7cb7f3976bcdcb5901c9ea2098652154add1690b5ba4"
+    },
+    {
+      "speaker": "brother",
+      "file": "brother_01.wav",
+      "start_sample": 88651,
+      "end_sample": 268578,
+      "pause_end_sample": 279603,
+      "source_sha256": "2b2ed42925a0d55f20329d3f3b8c0b876ac8189c9b4328d47ca40136734bb38c"
+    },
+    {
+      "speaker": "marcus",
+      "file": "marcus_02.wav",
+      "start_sample": 279603,
+      "end_sample": 313395,
+      "pause_end_sample": 322215,
+      "source_sha256": "e417b3171e38648a9711569f20e6712d8bd94c5991b8db000045f7265ad3ac2b"
+    },
+    {
+      "speaker": "brother",
+      "file": "brother_02.wav",
+      "start_sample": 322215,
+      "end_sample": 616802,
+      "pause_end_sample": 630032,
+      "source_sha256": "d1dd3643ddc709dda6ba56e6f456ff010bbfa44f7947f741c266b2aad2872a5d"
+    },
+    {
+      "speaker": "marcus",
+      "file": "marcus_03.wav",
+      "start_sample": 630032,
+      "end_sample": 801040,
+      "pause_end_sample": 809860,
+      "source_sha256": "b7f98233073708c8d8104f8cfdb429bf8b0ce1eb3573c0004b7a35d1d4e453bb"
+    },
+    {
+      "speaker": "brother",
+      "file": "brother_03.wav",
+      "start_sample": 809860,
+      "end_sample": 940395,
+      "pause_end_sample": 958035,
+      "source_sha256": "b03e814a380916bf56e4b7b11cf4e8df5d64a6b2245f99748b4208cc7f7123ab"
+    },
+    {
+      "speaker": "marcus",
+      "file": "marcus_04.wav",
+      "start_sample": 958035,
+      "end_sample": 1074259,
+      "pause_end_sample": 1074259,
+      "source_sha256": "bdbf5c72caa8582bae2c2f50f2a9fd70f07b53579baf883d0fdad82ab4b69681"
+    }
+  ]
+}
