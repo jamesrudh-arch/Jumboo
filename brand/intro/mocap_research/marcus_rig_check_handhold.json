@@ -1,0 +1,1062 @@
+{
+  "notice": "Exploratory heuristic rig inspection, not production verdict or owner approval. Quick joint stress only. See README.",
+  "tool": "Handhold Rig Check",
+  "tool_revision": "270b74ee4d5c64f8e7d7ac19aea760115d3aba59",
+  "input_sha256": "c41f2bfc62b03a8dd8fbae37d201d4c73bba3806678984c6895f59a7cbf22c4f",
+  "report": {
+    "model": "brand/characters/marcus/marcus_approved_source.glb",
+    "kind": "humanoid",
+    "pass": false,
+    "score": {
+      "pass": 11,
+      "warn": 2,
+      "fail": 3,
+      "of": 16
+    },
+    "height_m": 1.8,
+    "bones": 54,
+    "deform_bones": 54,
+    "meshes": [
+      {
+        "name": "char1",
+        "vertices": 167662
+      }
+    ],
+    "roles": {
+      "calf_l": "LeftLeg",
+      "calf_r": "RightLeg",
+      "clavicle_l": "LeftShoulder",
+      "clavicle_r": "RightShoulder",
+      "foot_l": "LeftFoot",
+      "foot_r": "RightFoot",
+      "hand_l": "LeftHand",
+      "hand_r": "RightHand",
+      "head": "Head",
+      "hips": "Hips",
+      "lowerarm_l": "LeftForeArm",
+      "lowerarm_r": "RightForeArm",
+      "neck": "neck",
+      "spine": "Spine01",
+      "thigh_l": "LeftUpLeg",
+      "thigh_r": "RightUpLeg",
+      "upperarm_l": "LeftArm",
+      "upperarm_r": "RightArm"
+    },
+    "skeleton": [
+      {
+        "key": "roles",
+        "title": "Every bone a default humanoid rig has, in its place",
+        "status": "pass",
+        "value": "all 16",
+        "fix": ""
+      },
+      {
+        "key": "lengths",
+        "title": "Limb lengths in a person's range, left as long as right",
+        "status": "pass",
+        "value": "in range",
+        "fix": ""
+      },
+      {
+        "key": "mirror",
+        "title": "Left joints mirror the right",
+        "status": "pass",
+        "value": "worst 0.5% of the height (calf)",
+        "fix": ""
+      },
+      {
+        "key": "aim",
+        "title": "Every bone points at its child",
+        "status": "pass",
+        "value": "0 degrees off at worst (); 0 over 10",
+        "fix": ""
+      },
+      {
+        "key": "joints",
+        "title": "Every joint inside the skin, near the middle of the limb",
+        "status": "warn",
+        "value": "51 inside; off the middle: LeftArm 65%, neck 52%, RightArm 69%",
+        "fix": "Move the joint into the limb, at the crease where the skin bends; a joint outside the skin bends it about a point in the air. A joint in a gap (a sleeve ending short of a glove) shows the gap when it bends: close it in the mesh.",
+        "outside": [],
+        "off_centre": [
+          "LeftArm 65%",
+          "neck 52%",
+          "RightArm 69%"
+        ],
+        "gaps": []
+      }
+    ],
+    "weights": [
+      {
+        "key": "unweighted",
+        "title": "Every vertex follows a bone",
+        "status": "pass",
+        "value": "0 of 167,662 follow none",
+        "fix": ""
+      },
+      {
+        "key": "sum",
+        "title": "Weights add to 1",
+        "status": "pass",
+        "value": "0 vertices off by more than 0.02",
+        "fix": ""
+      },
+      {
+        "key": "influences",
+        "title": "At most 4 bones a vertex (what game engines blend)",
+        "status": "pass",
+        "value": "0 vertices have more",
+        "fix": ""
+      },
+      {
+        "key": "far",
+        "title": "No vertex weighted to a bone far from it",
+        "status": "fail",
+        "value": "37 vertices (on RightArm 23, LeftArm 16)",
+        "fix": "rig-check fix --far takes those weights off; they drag skin across the body when that bone moves.",
+        "bones": {
+          "LeftArm": 16,
+          "RightArm": 23
+        }
+      },
+      {
+        "key": "spikes",
+        "title": "Weights change smoothly from vertex to vertex",
+        "status": "pass",
+        "value": "0 vertices unlike their neighbours",
+        "fix": ""
+      },
+      {
+        "key": "orphans",
+        "title": "Every vertex group is a bone",
+        "status": "pass",
+        "value": "0 are not",
+        "fix": ""
+      },
+      {
+        "key": "mirror_weights",
+        "title": "The left weighted like the right",
+        "status": "warn",
+        "value": "3% of 2712 mirrored points weighted unlike their other side",
+        "fix": "rig-check fix --mirror gives each mirrored pair the average of the two (Blender: Weights > Mirror from the better side)."
+      }
+    ],
+    "stress": [
+      {
+        "key": "stress_kept",
+        "title": "The skin keeps its thickness when a joint turns",
+        "status": "pass",
+        "value": "0.81 kept at worst (RightHand); 0 joints collapse",
+        "fix": ""
+      },
+      {
+        "key": "stress_stretch",
+        "title": "No edge tears or stretches when a joint turns",
+        "status": "pass",
+        "value": "99% of edges within 1.59x (LeftLeg); the worst 0.1% 1.92x (LeftLeg)",
+        "fix": ""
+      },
+      {
+        "key": "stress_drag",
+        "title": "Skin far from a joint stays put when it turns",
+        "status": "fail",
+        "value": "143 vertices dragged at worst (RightArm)",
+        "fix": "Take that bone's weight off skin far from it (rig-check fix --far)."
+      },
+      {
+        "key": "stress_lag",
+        "title": "Skin out on a limb goes round with it",
+        "status": "fail",
+        "value": "338 vertices left behind at worst (RightArm)",
+        "fix": "That skin is weighted to a bone outside the limb: give it to the limb's own bones (rig-check fix --limbs, or paint it)."
+      }
+    ],
+    "joints": [
+      {
+        "bone": "LeftUpLeg",
+        "radius_cm": 10.3,
+        "range": [
+          60,
+          30,
+          30
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.96,
+            "stretch_max": 1.8,
+            "stretch_p99": 1.44,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.96,
+            "stretch_max": 1.71,
+            "stretch_p99": 1.48,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 0.992,
+            "stretch_max": 1.31,
+            "stretch_p99": 1.17,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 0.992,
+            "stretch_max": 1.44,
+            "stretch_p99": 1.29,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.988,
+            "stretch_max": 1.32,
+            "stretch_p99": 1.22,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.988,
+            "stretch_max": 1.4,
+            "stretch_p99": 1.25,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.96,
+        "stretch_max": 1.8,
+        "stretch_p99": 1.48,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      },
+      {
+        "bone": "LeftLeg",
+        "radius_cm": 5.0,
+        "range": [
+          60,
+          5,
+          10
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.961,
+            "stretch_max": 1.46,
+            "stretch_p99": 1.3,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.961,
+            "stretch_max": 1.92,
+            "stretch_p99": 1.59,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 1.0,
+            "stretch_max": 1.06,
+            "stretch_p99": 1.04,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 1.0,
+            "stretch_max": 1.07,
+            "stretch_p99": 1.05,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.998,
+            "stretch_max": 1.11,
+            "stretch_p99": 1.08,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.998,
+            "stretch_max": 1.09,
+            "stretch_p99": 1.06,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.961,
+        "stretch_max": 1.92,
+        "stretch_p99": 1.59,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      },
+      {
+        "bone": "LeftFoot",
+        "radius_cm": 5.1,
+        "range": [
+          30,
+          20,
+          15
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.988,
+            "stretch_max": 1.89,
+            "stretch_p99": 1.31,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.988,
+            "stretch_max": 1.22,
+            "stretch_p99": 1.18,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 0.995,
+            "stretch_max": 1.21,
+            "stretch_p99": 1.13,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 0.995,
+            "stretch_max": 1.29,
+            "stretch_p99": 1.12,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.996,
+            "stretch_max": 1.25,
+            "stretch_p99": 1.12,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.996,
+            "stretch_max": 1.24,
+            "stretch_p99": 1.11,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.988,
+        "stretch_max": 1.89,
+        "stretch_p99": 1.31,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      },
+      {
+        "bone": "RightUpLeg",
+        "radius_cm": 10.1,
+        "range": [
+          60,
+          30,
+          30
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.958,
+            "stretch_max": 1.77,
+            "stretch_p99": 1.46,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.958,
+            "stretch_max": 1.69,
+            "stretch_p99": 1.45,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 0.991,
+            "stretch_max": 1.53,
+            "stretch_p99": 1.33,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 0.991,
+            "stretch_max": 1.32,
+            "stretch_p99": 1.17,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.987,
+            "stretch_max": 1.47,
+            "stretch_p99": 1.29,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.987,
+            "stretch_max": 1.32,
+            "stretch_p99": 1.21,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.958,
+        "stretch_max": 1.77,
+        "stretch_p99": 1.46,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      },
+      {
+        "bone": "RightLeg",
+        "radius_cm": 5.0,
+        "range": [
+          60,
+          5,
+          10
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.958,
+            "stretch_max": 1.46,
+            "stretch_p99": 1.26,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.958,
+            "stretch_max": 1.87,
+            "stretch_p99": 1.59,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 1.0,
+            "stretch_max": 1.05,
+            "stretch_p99": 1.04,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 1.0,
+            "stretch_max": 1.04,
+            "stretch_p99": 1.03,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.998,
+            "stretch_max": 1.09,
+            "stretch_p99": 1.06,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.998,
+            "stretch_max": 1.1,
+            "stretch_p99": 1.07,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.958,
+        "stretch_max": 1.87,
+        "stretch_p99": 1.59,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      },
+      {
+        "bone": "RightFoot",
+        "radius_cm": 5.2,
+        "range": [
+          30,
+          20,
+          15
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.985,
+            "stretch_max": 1.42,
+            "stretch_p99": 1.24,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.985,
+            "stretch_max": 1.25,
+            "stretch_p99": 1.18,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 0.994,
+            "stretch_max": 1.16,
+            "stretch_p99": 1.1,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 0.994,
+            "stretch_max": 1.16,
+            "stretch_p99": 1.1,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.996,
+            "stretch_max": 1.12,
+            "stretch_p99": 1.07,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.996,
+            "stretch_max": 1.13,
+            "stretch_p99": 1.08,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.985,
+        "stretch_max": 1.42,
+        "stretch_p99": 1.24,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      },
+      {
+        "bone": "Spine01",
+        "radius_cm": 17.1,
+        "range": [
+          30,
+          20,
+          25
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.995,
+            "stretch_max": 1.42,
+            "stretch_p99": 1.15,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.995,
+            "stretch_max": 1.28,
+            "stretch_p99": 1.21,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 0.996,
+            "stretch_max": 1.32,
+            "stretch_p99": 1.15,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 0.996,
+            "stretch_max": 1.28,
+            "stretch_p99": 1.15,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.994,
+            "stretch_max": 1.35,
+            "stretch_p99": 1.16,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.994,
+            "stretch_max": 1.32,
+            "stretch_p99": 1.15,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.994,
+        "stretch_max": 1.42,
+        "stretch_p99": 1.21,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      },
+      {
+        "bone": "LeftArm",
+        "radius_cm": 8.0,
+        "range": [
+          60,
+          40,
+          45
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.968,
+            "stretch_max": 1.59,
+            "stretch_p99": 1.27,
+            "dragged": 36,
+            "left_behind": 68
+          },
+          "bend-": {
+            "kept": 0.968,
+            "stretch_max": 1.8,
+            "stretch_p99": 1.44,
+            "dragged": 36,
+            "left_behind": 68
+          },
+          "side+": {
+            "kept": 0.978,
+            "stretch_max": 1.38,
+            "stretch_p99": 1.19,
+            "dragged": 0,
+            "left_behind": 40
+          },
+          "side-": {
+            "kept": 0.978,
+            "stretch_max": 1.77,
+            "stretch_p99": 1.32,
+            "dragged": 0,
+            "left_behind": 40
+          },
+          "roll+": {
+            "kept": 0.981,
+            "stretch_max": 1.67,
+            "stretch_p99": 1.19,
+            "dragged": 11,
+            "left_behind": 40
+          },
+          "roll-": {
+            "kept": 0.981,
+            "stretch_max": 1.77,
+            "stretch_p99": 1.15,
+            "dragged": 11,
+            "left_behind": 40
+          }
+        },
+        "kept": 0.968,
+        "stretch_max": 1.8,
+        "stretch_p99": 1.44,
+        "dragged": 36,
+        "left_behind": 68,
+        "status": "fail"
+      },
+      {
+        "bone": "LeftForeArm",
+        "radius_cm": 6.0,
+        "range": [
+          60,
+          10,
+          20
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.963,
+            "stretch_max": 1.7,
+            "stretch_p99": 1.44,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.963,
+            "stretch_max": 1.55,
+            "stretch_p99": 1.41,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 0.999,
+            "stretch_max": 1.11,
+            "stretch_p99": 1.07,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 0.999,
+            "stretch_max": 1.13,
+            "stretch_p99": 1.09,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.993,
+            "stretch_max": 1.19,
+            "stretch_p99": 1.13,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.993,
+            "stretch_max": 1.18,
+            "stretch_p99": 1.13,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.963,
+        "stretch_max": 1.7,
+        "stretch_p99": 1.44,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      },
+      {
+        "bone": "LeftHand",
+        "radius_cm": 2.7,
+        "range": [
+          60,
+          30,
+          90
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.947,
+            "stretch_max": 1.45,
+            "stretch_p99": 1.33,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.947,
+            "stretch_max": 1.46,
+            "stretch_p99": 1.4,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 0.985,
+            "stretch_max": 1.23,
+            "stretch_p99": 1.2,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 0.985,
+            "stretch_max": 1.33,
+            "stretch_p99": 1.28,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.847,
+            "stretch_max": 1.49,
+            "stretch_p99": 1.42,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.847,
+            "stretch_max": 1.5,
+            "stretch_p99": 1.42,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.847,
+        "stretch_max": 1.5,
+        "stretch_p99": 1.42,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      },
+      {
+        "bone": "neck",
+        "radius_cm": 6.4,
+        "range": [
+          30,
+          20,
+          40
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.994,
+            "stretch_max": 1.49,
+            "stretch_p99": 1.24,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.994,
+            "stretch_max": 1.15,
+            "stretch_p99": 1.07,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 0.995,
+            "stretch_max": 1.23,
+            "stretch_p99": 1.15,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 0.995,
+            "stretch_max": 1.22,
+            "stretch_p99": 1.14,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.982,
+            "stretch_max": 1.41,
+            "stretch_p99": 1.2,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.982,
+            "stretch_max": 1.38,
+            "stretch_p99": 1.2,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.982,
+        "stretch_max": 1.49,
+        "stretch_p99": 1.24,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      },
+      {
+        "bone": "Head",
+        "radius_cm": 7.7,
+        "range": [
+          30,
+          20,
+          40
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.993,
+            "stretch_max": 1.34,
+            "stretch_p99": 1.18,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.993,
+            "stretch_max": 1.35,
+            "stretch_p99": 1.17,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 0.997,
+            "stretch_max": 1.2,
+            "stretch_p99": 1.14,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 0.997,
+            "stretch_max": 1.19,
+            "stretch_p99": 1.11,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.98,
+            "stretch_max": 1.29,
+            "stretch_p99": 1.2,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.98,
+            "stretch_max": 1.26,
+            "stretch_p99": 1.17,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.98,
+        "stretch_max": 1.35,
+        "stretch_p99": 1.2,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      },
+      {
+        "bone": "RightArm",
+        "radius_cm": 6.6,
+        "range": [
+          60,
+          40,
+          45
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.967,
+            "stretch_max": 1.61,
+            "stretch_p99": 1.35,
+            "dragged": 143,
+            "left_behind": 338
+          },
+          "bend-": {
+            "kept": 0.967,
+            "stretch_max": 1.72,
+            "stretch_p99": 1.5,
+            "dragged": 143,
+            "left_behind": 338
+          },
+          "side+": {
+            "kept": 0.975,
+            "stretch_max": 1.62,
+            "stretch_p99": 1.41,
+            "dragged": 10,
+            "left_behind": 225
+          },
+          "side-": {
+            "kept": 0.975,
+            "stretch_max": 1.35,
+            "stretch_p99": 1.23,
+            "dragged": 10,
+            "left_behind": 225
+          },
+          "roll+": {
+            "kept": 0.975,
+            "stretch_max": 1.45,
+            "stretch_p99": 1.25,
+            "dragged": 55,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.975,
+            "stretch_max": 1.36,
+            "stretch_p99": 1.24,
+            "dragged": 55,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.967,
+        "stretch_max": 1.72,
+        "stretch_p99": 1.5,
+        "dragged": 143,
+        "left_behind": 338,
+        "status": "fail"
+      },
+      {
+        "bone": "RightForeArm",
+        "radius_cm": 5.9,
+        "range": [
+          60,
+          10,
+          20
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.962,
+            "stretch_max": 1.91,
+            "stretch_p99": 1.5,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.962,
+            "stretch_max": 1.59,
+            "stretch_p99": 1.36,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 0.999,
+            "stretch_max": 1.19,
+            "stretch_p99": 1.11,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 0.999,
+            "stretch_max": 1.1,
+            "stretch_p99": 1.06,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.993,
+            "stretch_max": 1.23,
+            "stretch_p99": 1.14,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.993,
+            "stretch_max": 1.3,
+            "stretch_p99": 1.16,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.962,
+        "stretch_max": 1.91,
+        "stretch_p99": 1.5,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      },
+      {
+        "bone": "RightHand",
+        "radius_cm": 2.6,
+        "range": [
+          60,
+          30,
+          90
+        ],
+        "turns": {
+          "bend+": {
+            "kept": 0.936,
+            "stretch_max": 1.4,
+            "stretch_p99": 1.29,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "bend-": {
+            "kept": 0.936,
+            "stretch_max": 1.51,
+            "stretch_p99": 1.4,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side+": {
+            "kept": 0.985,
+            "stretch_max": 1.37,
+            "stretch_p99": 1.25,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "side-": {
+            "kept": 0.985,
+            "stretch_max": 1.2,
+            "stretch_p99": 1.16,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll+": {
+            "kept": 0.808,
+            "stretch_max": 1.75,
+            "stretch_p99": 1.42,
+            "dragged": 0,
+            "left_behind": 0
+          },
+          "roll-": {
+            "kept": 0.808,
+            "stretch_max": 1.7,
+            "stretch_p99": 1.41,
+            "dragged": 0,
+            "left_behind": 0
+          }
+        },
+        "kept": 0.808,
+        "stretch_max": 1.75,
+        "stretch_p99": 1.42,
+        "dragged": 0,
+        "left_behind": 0,
+        "status": "pass"
+      }
+    ]
+  }
+}
