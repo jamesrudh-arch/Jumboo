@@ -36,10 +36,28 @@ def export(relative, filename):
     table = bpy.data.objects.get('table')
     if table:
         selected.append(table)
+    if filename.endswith('conversation.glb'):
+        # The connected state begins just before the pickup finishes. Include
+        # two additional seconds beyond the 24-second dialogue for a continuous
+        # counter, using the same font, placement and styling as the source.
+        template = bpy.data.objects['elapsed call 24']
+        for second in (25, 26):
+            extra = template.copy()
+            extra.data = template.data.copy()
+            extra.name = f'elapsed call {second:02d}'
+            extra.data.body = f'00:{second:02d}'
+            scene.collection.objects.link(extra)
     for ob in list(phone.children):
-        # Visibility changes do not export as glTF animation. Retain only the
-        # screen state visible at the beginning; no live call UI is implied.
-        if ob.hide_render or ob.hide_viewport:
+        # Export all pre-authored elapsed labels. Godot controls visibility;
+        # glTF does not export Blender visibility curves. Other hidden display
+        # elements remain excluded. Changes are in memory, never saved.
+        counter = filename.endswith("conversation.glb") and ob.name.startswith("elapsed call ")
+        if counter:
+            ob.animation_data_clear()
+            ob.hide_render = False
+            ob.hide_viewport = False
+            ob.hide_set(False)
+        elif ob.hide_render or ob.hide_viewport:
             continue
         if ob.type == 'FONT':
             # glTF doesn't support text objects; conversion is in-memory only.
