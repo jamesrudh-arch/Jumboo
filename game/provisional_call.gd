@@ -16,6 +16,9 @@ const CONNECT_AT_PICKUP_SECONDS := 1.7
 var establishing_duration := 0.0
 var establishing_elapsed := 0.0
 var camera: Camera3D
+var stage_table: Node3D
+var stage_floor: MeshInstance3D
+var stage_table_legs: Array[MeshInstance3D] = []
 
 var phase := "loading"
 var error_message := ""
@@ -43,6 +46,8 @@ func _ready() -> void:
 	if not pickup:
 		return
 	add_child(pickup)
+	if not _prepare_stage_table():
+		return
 	pickup_animation = _find_animation(pickup)
 	if not pickup_animation:
 		_fail("Pickup animation is missing")
@@ -125,6 +130,38 @@ func _conversation_finished(_name: StringName) -> void:
 	phase = "complete"
 	call_completed.emit()
 
+# Keep the same provisional table visible across the pickup/conversation cut.
+# The slab remains the original diagnostic mesh; the simple supports and floor
+# are neutral staging, not an approved location or finished environment.
+func _prepare_stage_table() -> bool:
+	stage_table = pickup.find_child("table", true, false) as Node3D
+	if not stage_table:
+		_fail("Pickup table is missing")
+		return false
+	stage_table.reparent(self, true)
+	var floor_material := StandardMaterial3D.new()
+	floor_material.albedo_color = Color("293136")
+	floor_material.roughness = .92
+	stage_floor = _make_box("ProvisionalFloor", Vector3(6.0, .04, 6.0), Vector3(0, -.02, 0), floor_material)
+	var leg_material := StandardMaterial3D.new()
+	leg_material.albedo_color = Color("252a2c")
+	leg_material.roughness = .7
+	for x in [.17, .67]:
+		for z in [.295, .63]:
+			stage_table_legs.append(_make_box("ProvisionalDeskLeg", Vector3(.045, .905, .045), Vector3(x, .4525, z), leg_material))
+	return true
+
+func _make_box(node_name: String, size: Vector3, center: Vector3, material: Material) -> MeshInstance3D:
+	var box := BoxMesh.new()
+	box.size = size
+	box.material = material
+	var mesh := MeshInstance3D.new()
+	mesh.name = node_name
+	mesh.mesh = box
+	mesh.position = center
+	add_child(mesh)
+	return mesh
+
 func _load_model(path: String) -> Node3D:
 	if ResourceLoader.exists(path, "PackedScene"):
 		var packed := load(path) as PackedScene
@@ -182,6 +219,15 @@ func _setup_stage() -> void:
 	light.rotation_degrees = Vector3(-35, -35, 0)
 	light.light_energy = 1.5
 	add_child(light)
+	# A soft frontal fill supports face readability; this is provisional and
+	# must still be reviewed with the actual renderer and target device.
+	var fill := OmniLight3D.new()
+	fill.name = "ProvisionalFaceFill"
+	fill.position = Vector3(.3, 2.1, 2.6)
+	fill.light_color = Color("f3e7d7")
+	fill.light_energy = 1.4
+	fill.omni_range = 6.0
+	add_child(fill)
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	camera.size = 1.18
