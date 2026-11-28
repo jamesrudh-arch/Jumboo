@@ -32,6 +32,7 @@ const TEMPLATE = `
 <div class="cb-crosshair" data-field="crosshair" hidden><i></i><b></b></div>
 <div class="cb-hitmark" data-field="hitmark" hidden>x</div>
 <div class="cb-damage" data-field="damage" hidden></div>
+<div class="cb-hazard" data-field="hazard" hidden></div>
 <div class="cb-takedown" data-field="takedown" hidden>
   <span class="cb-key">E</span><span data-field="takedownText">Take down</span>
 </div>
@@ -97,6 +98,14 @@ const STYLE = `
   border-top: 3px solid var(--signal, #E88771); border-radius: 26px 26px 0 0;
   transform-origin: 26px 128px; display: block; }
 .cb-damage i[data-behind="1"] { border-top-color: var(--amber, #E0B77E); }
+
+/* The hazard prompt sits above the takedown prompt, and is deliberately a
+   different colour: using the street is a bigger decision than a knife. */
+.cb-hazard { position: absolute; left: 50%; top: 50%; transform: translate(-50%, 46px);
+  padding: 4px 10px; font: 600 11px/1.4 var(--mono, monospace); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--amber, #E0B77E);
+  background: rgba(12, 10, 9, 0.72); border: 1px solid rgba(224, 183, 126, 0.5);
+  border-radius: 3px; white-space: nowrap; }
 
 /* The takedown prompt sits just below the crosshair: it is about a body in front
    of the player, so it belongs where they are already looking. */
@@ -209,6 +218,16 @@ export class CombatHud {
         });
       }
     }
+
+    // The hazard prompt. Only when one is in reach, and only when there is no
+    // takedown offered, because the takedown is the more specific action.
+    const hazard = state.hazard;
+    const hazardText = hazard?.prompt ?? "";
+    if (hazardText !== this.lastHazard) {
+      this.lastHazard = hazardText;
+      f.hazard.textContent = hazardText ? `${hazardText}  [T]` : "";
+    }
+    f.hazard.hidden = !hazardText;
 
     // Directional damage. Rebuilt only when the set of marks changes, so a
     // firefight does not thrash the DOM every frame.

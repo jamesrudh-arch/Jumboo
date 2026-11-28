@@ -19,6 +19,9 @@ import { ARCHETYPES, statLine } from "./enemies.js";
 import { steer, resolveOverlaps } from "./navigation.js";
 import { findTakedownTarget, performTakedown, promptFor, TAKEDOWN } from "./takedown.js";
 import { DamageMarks, bearingTo } from "./damagedir.js";
+import {
+  HAZARD, blastTargets, chainFrom, fallsInWater, shove, usableHazards,
+} from "./hazards.js";
 import { resolveCircle } from "./collision.js";
 
 /**
@@ -57,6 +60,9 @@ export class Arena {
     // Where the last hits came from, so the HUD can show a bearing. A hit from
     // off-screen with no indicator is a coin flip, not a fight.
     this.damageMarks = new DamageMarks();
+    // Every hazard in the district, and the fires currently burning.
+    this.hazards = [];
+    this.fires = [];
     this.handlers = { onWaveStart: null, onWaveEnd: null, onDeath: null };
   }
 
@@ -170,6 +176,7 @@ export class Arena {
     }
     const sim = this.feel.tick(dt);
     this.damageMarks.tick(dt);
+    this.tickHazards(dt);
 
     for (const e of this.wave.live) {
       if (e.dead) continue;
@@ -349,6 +356,166 @@ export class Arena {
   }
 
   /**
+   * Register the district's hazards. Called once when the world is attached, so
+   * a barrel is where the geometry says it is rather than where a second copy of
+   * the layout thinks it is.
+   */
+  attachHazards(props = [], water = null) {
+    this.hazards = props
+      .filter((p) => HAZARD[p.kind])
+      .map((p) => ({ kind: p.kind, x: p.x, z: p.z, spent: false }));
+    this.hazardWater = water;
+    return this.hazards.length;
+  }
+
+  /** Hazards the player could use from where they stand. Drives the HUD prompt. */
+  hazardOffer() {
+    if (!this.inWave || !this.world?.player) return null;
+    const p = this.world.player;
+    const usable = usableHazards(this.hazards, p, this.world.cameraYaw ?? p.yaw ?? 0);
+    if (!usable.length) return null;
+    const h = usable[0].hazard;
+    return { hazard: h, prompt: `Use ${HAZARD[h.kind].label}`, distance: usable[0].distance };
+  }
+
+  /**
+   * Set one off.
+   *
+   * This is the leverage the fiction promised. A drum kills more than a magazine
+   * does, and costs nothing but the walk to it. It is loud — 42 metres of noise —
+   * so the street comes to you afterwards, which is the price.
+   */
+  trigger(hazard = this.hazardOffer()?.hazard) {
+    if (!hazard || hazard.spent) return null;
+    const spec = HAZARD[hazard.kind];
+    hazard.spent = true;
+    const kills = [];
+    const origin = { x: hazard.x, z: hazard.z };
+
+    const hits = blastTargets(origin, this.wave.live, spec.reach);
+    for (const hit of hits) {
+      const damage = Math.round(spec.damage * hit.falloff);
+      const verdict = this.wave.damage(hit.enemy, damage);
+      // The shove is what puts a body in the canal, so it happens before the
+      // death check: the body is moved, then the water is asked about it.
+      const pushed = shove(
+        { x: hit.enemy.root.position.x, y: hit.enemy.root.position.y, z: hit.enemy.root.position.z },
+        origin,
+        spec.reach * 0.5,
+      );
+      if (!hit.enemy.dead) {
+        hit.enemy.root.position.x = pushed.x;
+        hit.enemy.root.position.z = pushed.z;
+      }
+      if (verdict === "killed" || hit.enemy.dead) kills.push(hit.enemy);
+    }
+
+    // Anything thrown over the bank drowns. This is the environmental kill that
+    // needs no trigger at all — the canal is simply where the street ends.
+    if (this.hazardWater) {
+      for (const enemy of this.wave.live) {
+        if (enemy.dead) continue;
+        if (!fallsInWater(enemy.root.position, this.hazardWater)) continue;
+        this.wave.damage(enemy, 999);
+        kills.push(enemy);
+        this.audio?.playEvent?.({ type: "splash", x: enemy.root.position.x, z: enemy.root.position.z }, this.world.player);
+      }
+    }
+
+    // Fire, which keeps working after the bang.
+    if (spec.fire) {
+      this.fires.push({
+        x: hazard.x, z: hazard.z, radius: spec.fire.radius,
+        left: spec.fire.seconds, perSecond: spec.fire.perSecond, tick: 0,
+      });
+    }
+
+    // The chain, bounded so a street of drums is an event and not a hang.
+    const spent = new Set([hazard]);
+    let frontier = [hazard];
+    for (let depth = 1; depth <= spec.chainDepth && frontier.length; depth++) {
+      const next = [];
+      for (const h of frontier) next.push(...chainFrom(h, this.hazards, { depth: depth - 1, spent }));
+      for (const h of next) spent.add(h);
+      for (const h of next) {
+        const chained = this.detonate(h);
+        if (chained) kills.push(...chained);
+      }
+      frontier = next;
+    }
+
+    // The feel of it: everything at once, and the loudest thing in the game.
+    if (this.feel.explosion) this.feel.explosion({ x: hazard.x, z: hazard.z });
+    else this.feel.shake.add(1.2);
+    this.audio?.playEvent?.({ type: "explosion", x: hazard.x, z: hazard.z }, this.world.player);
+    this.stats.hazardKills = (this.stats.hazardKills ?? 0) + kills.length;
+    this.hazardLock = 0.35;
+    this.onHazard?.({ hazard, kills, chained: spent.size - 1 });
+
+    // Noise: the whole street heard that.
+    this.world?.hearSound?.({ x: hazard.x, z: hazard.z, radius: spec.noise, loud: true });
+    return { hazard, kills, chained: spent.size - 1 };
+  }
+
+  /**
+   * Fire keeps working after the bang.
+   *
+   * A blast that only removes health once is a big bullet. A fire is a place you
+   * cannot stand, and it is the reason a burning drum changes the shape of a
+   * fight for six seconds rather than half of one. Ticked at a fixed interval
+   * rather than per frame so the damage does not depend on frame rate.
+   */
+  tickHazards(dt) {
+    if (!this.fires.length) return;
+    for (const fire of this.fires) {
+      fire.left -= dt;
+      fire.tick += dt;
+      // Four times a second, which is fast enough to read as burning and slow
+      // enough that a body survives long enough to run out of it.
+      const interval = 0.25;
+      if (fire.tick < interval) continue;
+      const ticks = Math.floor(fire.tick / interval);
+      fire.tick -= ticks * interval;
+      for (const enemy of this.wave.live) {
+        if (enemy.dead) continue;
+        const d = Math.hypot(enemy.root.position.x - fire.x, enemy.root.position.z - fire.z);
+        if (d > fire.radius) continue;
+        this.wave.damage(enemy, Math.round(fire.perSecond * interval * ticks));
+      }
+      // The player burns too. Standing in your own fire is a mistake the game
+      // should allow you to make.
+      const p = this.world?.player;
+      if (p && this.run.state !== "dead" && this.run.state !== "down" && this.run.health > 0) {
+        const d = Math.hypot(p.x - fire.x, p.z - fire.z);
+        if (d <= fire.radius) {
+          this.run.takeDamage(Math.round(fire.perSecond * 0.5 * interval * ticks));
+        }
+      }
+    }
+    this.fires = this.fires.filter((f) => f.left > 0);
+  }
+
+  /** Recursive detonation used by the chain. Returns the bodies it killed. */
+  detonate(hazard) {
+    if (!hazard || hazard.spent) return null;
+    const spec = HAZARD[hazard.kind];
+    if (!spec) return null;
+    hazard.spent = true;
+    const kills = [];
+    for (const hit of blastTargets({ x: hazard.x, z: hazard.z }, this.wave.live, spec.reach)) {
+      const verdict = this.wave.damage(hit.enemy, Math.round(spec.damage * hit.falloff));
+      if (verdict === "killed" || hit.enemy.dead) kills.push(hit.enemy);
+    }
+    if (spec.fire) {
+      this.fires.push({
+        x: hazard.x, z: hazard.z, radius: spec.fire.radius,
+        left: spec.fire.seconds, perSecond: spec.fire.perSecond, tick: 0,
+      });
+    }
+    return kills;
+  }
+
+  /**
    * Is a takedown available right now? Cheap enough to ask every frame: it looks
    * at the live bodies and returns either null or { enemy } plus copy for the
    * prompt. The HUD shows it, and E performs it.
@@ -426,6 +593,7 @@ export class Arena {
       revivesLeft: this.run.deathsAllowed,
       takedowns: this.quietTakedowns ?? 0,
       damageMarks: this.damageMarks.render(),
+      hazard: this.hazardOffer(),
     };
   }
 

@@ -34,6 +34,9 @@ const C = {
   glassWarm: 0xe0b77e,
   glassCold: 0x6f93a3,
   rust: 0x7a4a34,
+  // A single saturated colour reserved for things that will hurt you. Nothing
+  // else in the district uses it, so it reads as a warning at a glance.
+  hazardPaint: 0xd8a13a,
   leafDark: 0x2c4030,
   leafLight: 0x44603c,
   trunk: 0x453529,
@@ -171,6 +174,7 @@ export class CityView {
         emissiveIntensity: 1.35,
       }),
       rust: mat(C.rust, { roughness: 0.95 }),
+      hazardPaint: mat(C.hazardPaint, { roughness: 0.7 }),
       leafDark: mat(C.leafDark, { roughness: 0.95 }),
       leafLight: mat(C.leafLight, { roughness: 0.95 }),
       trunk: mat(C.trunk, { roughness: 0.95 }),
@@ -1209,6 +1213,17 @@ export class CityView {
     } else if (p.kind === "utilityBox") {
       bin.box(M.metal, p.x, 0.55, p.z, 1.0, 1.1, 0.7);
       bin.box(M.rust, p.x, 1.12, p.z, 1.06, 0.08, 0.76);
+    } else if (p.kind === "barrel") {
+      // A drum has to read as dangerous from a distance or it is just a bin. A
+      // rusted band and a bright cap do that without a texture.
+      bin.box(M.rust, p.x, 0.48, p.z, 0.62, 0.95, 0.62);
+      bin.box(M.metal, p.x, 0.72, p.z, 0.66, 0.1, 0.66);
+      bin.box(M.hazardPaint ?? M.rust, p.x, 0.97, p.z, 0.5, 0.06, 0.5);
+    } else if (p.kind === "gasMain") {
+      // A standpipe against the alley wall: a valve wheel and a painted band.
+      bin.box(M.metal, p.x, 0.35, p.z, 0.18, 0.7, 0.18);
+      bin.box(M.rust, p.x, 0.68, p.z, 0.44, 0.1, 0.44);
+      bin.box(M.hazardPaint ?? M.rust, p.x, 0.78, p.z, 0.12, 0.2, 0.12);
     }
   }
 

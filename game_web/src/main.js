@@ -41,6 +41,9 @@ const KEY = {
   reload: ["KeyR"],
   cycle: ["KeyQ"],
   grenade: ["KeyG"],
+  // Using the street: a drum, a gas main, a car. Deliberately not F, which is
+  // fire — a player reaching for a barrel should not also empty a magazine.
+  leverage: ["KeyT"],
   aim: ["ShiftRight"],
   weapon1: ["Digit1"], weapon2: ["Digit2"], weapon3: ["Digit3"],
   weapon4: ["Digit4"], weapon5: ["Digit5"], weapon6: ["Digit6"],
@@ -439,6 +442,12 @@ async function boot() {
   combatHud = new CombatHud();
   muzzleFlash = new MuzzleFlash();
   arena.attach(scene, world);
+  // Hazards come from the built level, so a drum is where the geometry put it
+  // rather than where a second copy of the layout thinks it is.
+  arena.attachHazards(
+    cityBuilt.props ?? [],
+    CITY.water.find((w) => w.kind === "canal") ?? null,
+  );
   arena.handlers.onWaveStart = (wave) => {
     state.banner = { title: `Wave ${wave.n}`, body: wave.name, ms: 2400 };
     state.bannerUntil = performance.now() + 2400;
@@ -568,6 +577,16 @@ function handleCombatKey(code) {
       arena.takedown();
       return true;
     }
+  }
+  // Using the street. Checked before reload so T never falls through to
+  // anything else, and it is the only key that turns scenery into a weapon.
+  if (code === KEY.leverage[0]) {
+    const offer = arena.hazardOffer();
+    if (offer) {
+      const result = arena.trigger(offer.hazard);
+      if (result) return true;
+    }
+    return false;
   }
   if (code === KEY.reload[0]) { arena.reload(); return true; }
   if (code === KEY.cycle[0]) { arena.cycle(1); refreshHeldWeapon(); return true; }

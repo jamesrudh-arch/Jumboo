@@ -622,6 +622,13 @@ export function buildCity(city = CITY, tier = { buildings: 84, treeCount: 200 })
       if (!insideRect(x, z, city.bounds, -3)) continue;
       if (waterAt(city, x, z) || !lampClear(x, z) || !roadClear(x, z, 0.6)) continue;
       const roll = furnitureRand();
+      // One pavement in nine gets something that goes off. Deliberately rare:
+      // a barrel on every corner stops being a decision and becomes scenery.
+      if (furnitureRand() < 0.11) {
+        props.push({ kind: "barrel", x, z, yaw: furnitureRand() * 0.9 - 0.45, tone: furnitureRand() });
+        boxes.push(box(x - 0.3, z - 0.3, x + 0.3, z + 0.3, 0, 0.95, "barrel"));
+        continue;
+      }
       const kind =
         roll < 0.24 ? "bin" :
         roll < 0.42 ? "hydrant" :
@@ -633,6 +640,23 @@ export function buildCity(city = CITY, tier = { buildings: 84, treeCount: 200 })
       if (kind === "utilityBox") boxes.push(box(x - 0.5, z - 0.35, x + 0.5, z + 0.35, 0, 1.1, "utilityBox"));
       if (kind === "planter") boxes.push(box(x - 0.6, z - 0.6, x + 0.6, z + 0.6, 0, 0.55, "planter"));
       if (kind === "bin") boxes.push(box(x - 0.3, z - 0.3, x + 0.3, z + 0.3, 0, 0.9, "bin"));
+    }
+  }
+
+  // ---------------------------------------------------------------- gas mains
+  // A gas main in the alleys. Deliberately the strongest hazard in the game and
+  // deliberately the hardest to reach: an alley is where a fight becomes a trap,
+  // and hitting the main is the way out of it.
+  const mainRand = mulberry32(0x6a55);
+  for (const road of city.roads) {
+    if (road.kind !== "alley") continue;
+    const cx = (road.x1 + road.x2) / 2;
+    for (let i = 0; i < 2; i++) {
+      const x = cx + (mainRand() - 0.5) * 6;
+      const z = (i === 0 ? road.z1 + 1.2 : road.z2 - 1.2);
+      if (waterAt(city, x, z)) continue;
+      props.push({ kind: "gasMain", x, z, yaw: mainRand() * 0.6 });
+      boxes.push(box(x - 0.25, z - 0.25, x + 0.25, z + 0.25, 0, 0.7, "gasMain"));
     }
   }
 
