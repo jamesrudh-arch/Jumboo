@@ -108,6 +108,12 @@ npm run smoke          # drives the page, presses keys, checks the frame
   dropped bag (90 pts, quiet), talk to a dockhand (150 pts). Each is a pulsing
   marker with a hold-to-complete prompt, they pay into the score, and the
   approved beat still wins the run without them.
+- **Controls** (`src/input.js`, `src/main.js`): keyboard and mouse (pointer-lock
+  or drag-to-look, wheel to zoom, `M` to mute), a four-button touch scheme plus
+  a half-screen stick and look pad with its own pause button, and a standard
+  gamepad — either stick, face buttons, triggers and Start-to-pause. The gamepad
+  mapping is a pure function with its own tests, so it is not just written but
+  exercised.
 - **HUD** (`src/hud.js`): objective, compass, stamina, noise, stance, suspicion,
   prompt, timer, banners, the weather and wet-street readout, the named chaos
   event, and the errand progress/tally. Copy stays inside M01 / EV-01..EV-06.

@@ -18,6 +18,7 @@ import { CityView, makeVehicleMesh, makePedestrianMesh } from "./cityview.js";
 import { detectTierFromWindow } from "./config.js";
 import { Weather, Wetness } from "./weather.js";
 import { createAudio } from "./audio.js";
+import { applyGamepad, firstConnectedPad } from "./input.js";
 
 const KEY = {
   forward: ["KeyW", "ArrowUp"],
@@ -380,6 +381,12 @@ function bindHoldButton(id, onDown, onUp) {
 bindHoldButton("touch-run", () => { touchState.run = true; }, () => { touchState.run = false; });
 bindHoldButton("touch-crouch", () => { touchState.crouch = true; }, () => { touchState.crouch = false; });
 bindHoldButton("touch-interact", () => { touchState.interact = true; }, () => { touchState.interact = false; });
+// A phone has no Escape key, so pause needs its own target. It is a tap, not a
+// hold, and it stops the simulation without clearing the run.
+document.getElementById("touch-pause")?.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  togglePause();
+}, { passive: false });
 canvas.addEventListener(
   "touchstart",
   (e) => {
@@ -454,25 +461,17 @@ function togglePause() {
   }
 }
 
+let padPauseHeld = false;
+
 /** Merge keyboard/touch intent with an optional gamepad (standard mapping). */
 function withGamepad(intent) {
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-  const pad = pads && Array.from(pads).find((p) => p && p.connected);
-  if (!pad) return intent;
-  const dz = (v) => (Math.abs(v) < 0.18 ? 0 : v);
-  const lx = dz(pad.axes[0] || 0);
-  const ly = dz(pad.axes[1] || 0);
-  const rx = dz(pad.axes[2] || 0);
-  const ry = dz(pad.axes[3] || 0);
-  const btn = (i) => !!(pad.buttons[i] && pad.buttons[i].pressed);
-  if (rx || ry) world.look(rx * 0.045, ry * 0.03);
-  return {
-    moveX: lx || intent.moveX,
-    moveZ: -ly || intent.moveZ,
-    run: intent.run || btn(5) || btn(7),
-    crouch: intent.crouch || btn(1) || btn(10),
-    interact: intent.interact || btn(0),
-  };
+  const merged = applyGamepad(firstConnectedPad(pads), intent);
+  if (merged.look) world.look(merged.look.dx, merged.look.dy);
+  // Start is a tap, not a hold: fire once on the press edge.
+  if (merged.pause && !padPauseHeld) togglePause();
+  padPauseHeld = merged.pause;
+  return merged.intent;
 }
 
 function start() {

@@ -177,6 +177,13 @@ button[hidden] { display: none; }
   touch-action: none;
 }
 
+.touch-btn.small {
+  width: 44px;
+  height: 44px;
+  font-size: 9px;
+  align-self: flex-end;
+}
+
 .touch-btn.primary {
   border-color: rgba(224, 183, 126, 0.65);
   color: #e0b77e;
