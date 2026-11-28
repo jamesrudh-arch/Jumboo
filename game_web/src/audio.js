@@ -73,6 +73,24 @@ const VOICES = {
   reloadClick: { kind: "noise", dur: 0.07, gain: 0.14, filter: "bandpass", freq: 1800, q: 2.4 },
 };
 
+/**
+ * How much of each voice goes to the reverb, 0..1.
+ *
+ * Not a global "reverb amount": a shot in a street needs a tail and a reload
+ * click in the player's own hands needs none. Sending everything equally is what
+ * makes a mix sound like it is playing in a cave.
+ */
+const REVERB_SEND = {
+  pistolShot: 0.5, silencedShot: 0.22, autoShot: 0.45, shotgunBlast: 0.62,
+  rifleCrack: 0.75, launcherThump: 0.6, explosion: 0.85, energyZap: 0.4,
+  flame: 0.2, blade: 0.18, swing: 0.12, hitFlesh: 0.1, hitArmour: 0.3,
+  bodyFall: 0.3, honk: 0.5, honkFar: 0.7, thunder: 0.4,
+  step: 0.12, stepWet: 0.16, splash: 0.3, thud: 0.2, ping: 0.1,
+};
+
+/** Sounds that must stay dry: they are in the player's hands, not the world. */
+const DRY_ONLY = new Set(["dryFire", "reloadClick"]);
+
 export class CityAudio {
   /**
    * @param {object} options
@@ -120,6 +138,28 @@ export class CityAudio {
         this.bus = this.limiter;
       } else {
         this.bus = this.master;
+      }
+
+      // ------------------------------------------------------------- space
+      // A reverb send. Without one every sound arrives dry, which is the single
+      // most "prototype" thing a synth mix can do: a gunshot in a street with
+      // buildings on both sides has a tail, and a shot in the open does not.
+      //
+      // The impulse is *generated* rather than loaded: a decaying noise burst
+      // with a slight pre-delay. That keeps the build file-free, and it means the
+      // reverb length can follow the district (the canal is open, the lane is
+      // not) without shipping two more files.
+      if (ctx.createConvolver) {
+        this.reverb = ctx.createConvolver();
+        this.reverb.buffer = this.makeImpulse(1.5, 2.4);
+        this.reverbReturn = ctx.createGain();
+        this.reverbReturn.gain.value = 0.34;
+        this.reverb.connect(this.reverbReturn);
+        this.reverbReturn.connect(this.bus);
+        // Send level per source is decided at play time; this is the master.
+        this.reverbSend = ctx.createGain();
+        this.reverbSend.gain.value = 1;
+        this.reverbSend.connect(this.reverb);
       }
 
       // Rain: broadband noise, low-passed, level from the weather.
@@ -292,6 +332,36 @@ export class CityAudio {
     }
   }
 
+  /**
+   * A generated reverb impulse: exponentially decaying noise with a short
+   * pre-delay. `seconds` is the tail length and `decay` how fast it falls; a
+   * higher decay is a tighter, more enclosed space.
+   */
+  makeImpulse(seconds = 1.5, decay = 2.4) {
+    const rate = this.ctx.sampleRate || 44100;
+    const length = Math.max(1, Math.floor(rate * seconds));
+    const buffer = this.ctx.createBuffer(2, length, rate);
+    // Deterministic noise: a reverb that differs every load makes two identical
+    // shots sound different, which is exactly the sort of thing that reads as a
+    // bug to a player without them being able to name it.
+    let seed = 0x2f6e2b1;
+    const rand = () => {
+      seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5;
+      return ((seed >>> 0) / 4294967296) * 2 - 1;
+    };
+    const preDelay = Math.floor(rate * 0.012);
+    for (let c = 0; c < 2; c++) {
+      const data = buffer.getChannelData(c);
+      for (let i = 0; i < length; i++) {
+        if (i < preDelay) { data[i] = 0; continue; }
+        const t = (i - preDelay) / (length - preDelay);
+        // A little damping at the tail, as a real room's high end dies first.
+        data[i] = rand() * Math.pow(1 - t, decay);
+      }
+    }
+    return buffer;
+  }
+
   // ---------------------------------------------------------------- one-shots
   /**
    * Stereo position for a one-shot, from its world position and the camera yaw.
@@ -358,13 +428,26 @@ export class CityAudio {
     // the street was closing from. Same camera convention as updateTyres:
     // forward is (sin yaw, cos yaw), so right is (cos yaw, -sin yaw).
     const pan = this.panFor(options);
-    if (pan) {
-      const panner = ctx.createStereoPanner();
-      panner.pan.value = pan;
-      gain.connect(panner);
-      panner.connect(this.bus);
+    const out = pan ? ctx.createStereoPanner() : null;
+    if (out) {
+      out.pan.value = pan;
+      gain.connect(out);
+      out.connect(this.bus);
     } else {
       gain.connect(this.bus);
+    }
+
+    // Reverb send, taken from the panned (or raw) output so the tail sits where
+    // the sound sits. Dry-only voices skip it: a reload in your hands does not
+    // echo off the buildings.
+    if (this.reverbSend && !DRY_ONLY.has(name)) {
+      const amount = (REVERB_SEND[name] ?? 0.18) * (options.reverb ?? 1);
+      if (amount > 0.01) {
+        const send = ctx.createGain();
+        send.gain.value = amount;
+        (out ?? gain).connect(send);
+        send.connect(this.reverbSend);
+      }
     }
 
     source.start(now);

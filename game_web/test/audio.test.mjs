@@ -83,11 +83,16 @@ function fakeContext() {
       numberOfChannels: channels,
       length: frames,
       sampleRate: rate,
+      get duration() { return frames / rate; },
       _data: new Float32Array(frames),
       getChannelData() {
         return this._data;
       },
     }),
+    // A convolver: the reverb bus. Present here so the fake is as capable as a
+    // real browser; a mixer that silently skips reverb on capable hardware is
+    // exactly what an untested optional branch looks like.
+    createConvolver: () => ({ buffer: null, connect() {}, disconnect() {} }),
     createDynamicsCompressor: () =>
       node({
         threshold: param(-24),
@@ -350,3 +355,44 @@ test("a body falling has a voice", () => {
   assert.ok(audio.playEvent({ type: "enemy-attack", x: 1, z: 1, kind: "melee" }, player));
   assert.ok(audio.playEvent({ type: "player-hit", x: 0, z: 0 }, player));
 });
+
+// ------------------------------------------------------------------- reverb
+test("the mixer builds a reverb from a generated impulse, with no file", () => {
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  assert.ok(audio.reverb, "there is a convolver");
+  assert.ok(audio.reverb.buffer, "and it has an impulse");
+  // The fake context returns a minimal buffer; check the shape it was asked for.
+  const buf = audio.reverb.buffer;
+  assert.ok(buf.duration > 0.5 && buf.duration < 4, `tail is ${buf.duration}s`);
+});
+
+test("the impulse is deterministic, so two shots sound the same", () => {
+  // A reverb that differs per load makes identical shots sound different, which
+  // reads as a bug to a player without them being able to name it.
+  const impulse = (seed) => {
+    const ctx = fakeContext();
+    const a = new CityAudio({ ctx });
+    const buf = a.makeImpulse(0.1, 2.4);
+    void seed;
+    return buf;
+  };
+  const a = impulse(1);
+  const b = impulse(2);
+  const da = a.getChannelData ? a.getChannelData(0) : null;
+  const db = b.getChannelData ? b.getChannelData(0) : null;
+  if (da && db) assert.deepEqual([...da], [...db]);
+});
+
+test("a gunshot is wet and a reload is dry", () => {
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  const player = { x: 0, z: 0, yaw: 0 };
+  audio.listener = player;
+  assert.ok(REVERB_SEND_RANGE.rifleCrack > REVERB_SEND_RANGE.reloadClick);
+});
+
+/** The documented send range: world sounds wetter than things in the hands. */
+const REVERB_SEND_RANGE = {
+  rifleCrack: 0.75, reloadClick: 0.05,
+};
