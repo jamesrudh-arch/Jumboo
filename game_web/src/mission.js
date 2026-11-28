@@ -32,6 +32,16 @@ export const BEAT = {
   HOLD: "hold",
   /** Nothing to do but watch. Used sparingly; always skippable. */
   BEAT: "beat",
+  /**
+   * Reach a place without being seen.
+   *
+   * This is the beat that makes a level rather than a corridor: the player has to
+   * decide where to walk, not just where to end up. Being spotted does not fail
+   * the beat — it changes which beat comes next, because a stealth section that
+   * restarts on detection teaches players to crawl, and one that escalates
+   * teaches them to think.
+   */
+  SNEAK: "sneak",
 };
 
 /** How a mission ended. */
@@ -107,6 +117,7 @@ export class Mission {
       case BEAT.CLEAR: return "Clear the street";
       case BEAT.HOLD: return "Hold";
       case BEAT.TALK: return "Talk";
+      case BEAT.SNEAK: return "Get there unseen";
       default: return this.title;
     }
   }
@@ -150,8 +161,25 @@ export class Mission {
     this.deps.onBeatEnter?.(beat, this);
   }
 
-  /** Should this beat be skipped because the state already decides it? */
+  /**
+   * Should this beat be skipped because the state already decides it?
+   *
+   * Two kinds of condition, both resolved against state the mission already has:
+   *  - `unless` / `unlessValue` — skip when a flag already holds a given value,
+   *    which is how the fight after a negotiation is skipped;
+   *  - `requiresDetected` — skip when the mission was NOT detected, which is how
+   *    the confrontation-arrives-early beat stays off the quiet route.
+   *
+   * Resolving on entry rather than asking the level to check keeps the condition
+   * next to the beat it belongs to.
+   */
   _skippable(beat) {
+    if (beat.requiresDetected && !this.detected) return true;
+    // An optional beat that is not a conversation the player must start — a
+    // flag beat with `expect: false`, an ambient camera they may ignore — is
+    // skipped on entry. If it were not, every optional beat would be a doorway
+    // the mission waits behind, which is the opposite of optional.
+    if (beat.optional && beat.kind !== BEAT.FLAG) return true;
     if (!beat.unless) return false;
     const values = beat.unlessValue ?? true;
     const actual = this.flags[beat.unless];
@@ -249,9 +277,33 @@ export class Mission {
         }
         break;
       }
+      case BEAT.SNEAK: {
+        const at = beat.at;
+        const seen = world.spotted === true || (world.suspicion ?? 0) >= (beat.tolerance ?? 1);
+        if (seen) {
+          // Detected: the confrontation arrives early, on the street's terms.
+          this.detected = true;
+          this._advance("detected");
+          break;
+        }
+        if (at && world.player) {
+          const d = Math.hypot(world.player.x - at.x, world.player.z - at.z);
+          if (d <= (at.radius ?? 3)) this._advance("unseen");
+        }
+        break;
+      }
       case BEAT.CLEAR: {
         const live = (world.bodies ?? []).filter((b) => !b.dead).length;
-        if (live === 0) this._advance("cleared");
+        // A clear beat that has not been given any bodies yet is not cleared, it
+        // has not started. Without this, the beat completes on its first tick —
+        // before the spawner has run — and the mission ends with the fight
+        // unplayed. Give the spawner a moment to fill the street.
+        if (live === 0) {
+          if (this.beatTime < (beat.grace ?? 0.5)) break;
+          this._advance("cleared");
+        } else {
+          this.sawBodies = true;
+        }
         break;
       }
       case BEAT.HOLD: {

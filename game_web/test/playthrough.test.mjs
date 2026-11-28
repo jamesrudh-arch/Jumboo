@@ -104,19 +104,28 @@ test("a full playthrough shows every beat and ends with the mission complete", (
   s.render();
   sample();
 
-  s.goTo(M01_PLACES.charger, { seconds: 0.4, press: true, sample });
+  s.goTo(M01_PLACES.charger, { seconds: 0.2, press: true, sample });
+  s.goTo(M01_PLACES.charger, { seconds: 0.2, sample });
   s.goTo(M01_PLACES.shop, { seconds: 0.2, sample });
-  s.goTo(M01_PLACES.shop, { seconds: 90, sample });
-  s.goTo(M01_PLACES.lane, { seconds: 1, sample });
+  s.goTo(M01_PLACES.shop, { seconds: 120, sample });
+  s.goTo(M01_PLACES.shop, { seconds: 60, sample });      // Tessa, plainly
+  s.goTo(M01_PLACES.market, { seconds: 60, sample });    // the stall
+  s.goTo(M01_PLACES.van, { seconds: 2, sample });
+  s.goTo(M01_PLACES.lane, { seconds: 2, sample });
+  s.goTo(M01_PLACES.alleyEast, { seconds: 60, sample }); // the long way round
+  s.goTo(M01_PLACES.laneShadow, { seconds: 3, sample });
   s.goTo(M01_PLACES.sade, { seconds: 0.2, sample });
   s.goTo(M01_PLACES.sade, { seconds: 120, sample });
   s.goTo(M01_PLACES.collectors, { seconds: 0.2, sample });
   s.goTo(M01_PLACES.collectors, { seconds: 120, sample });
+  s.goTo(M01_PLACES.collectors, { seconds: 120, sample }); // the debrief
 
   for (const expected of [
     "Inspect the charger",
     "Talk to Tessa",
-    "Get to the loading lane",
+    "Say it to Tessa plainly",
+    "Find where the van came from",
+    "Take the long way round",
     "Talk to Sade",
     "Two men at the alley",
   ]) {

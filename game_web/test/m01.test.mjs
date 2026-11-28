@@ -12,6 +12,8 @@ import { Mission, MISSION } from "../src/mission.js";
 import { Conversation } from "../src/dialogue.js";
 import {
   m01Definition, M01_SHOP, M01_SADE, M01_COLLECTORS, M01_FLAGS, M01_CONVERSATIONS,
+  M01_LOG, M01_TESSA_LANE, M01_CAMERA, M01_SPOTTED, M01_MARKET, M01_ALLEY, M01_FAVOUR,
+  M01_PLACES,
 } from "../src/missions/m01.js";
 
 const run = (script, { flags = {}, pick = null } = {}) => {
@@ -129,10 +131,29 @@ test("choosing to fight is remembered so the mission can require the fight", () 
 
 // ------------------------------------------------------------- the mission shape
 
-test("M01 has seven beats in the order the document describes", () => {
+test("M01 is the document's four stages, in order", () => {
   const def = m01Definition();
-  assert.deepEqual(def.beats.map((b) => b.id),
-    ["charger", "tessa", "call", "lane", "sade", "collectors", "fight"]);
+  assert.deepEqual(def.beats.map((b) => b.id), [
+    // stage 1: ordinary work
+    "charger", "tessa", "call",
+    // stage 2: the interruption, out into the district
+    "log", "tessaLane", "market", "trace", "van", "lane",
+    // stage 3: the witness, by the long way round
+    "alley", "alleyTalk", "sneak", "camera", "sade",
+    // stage 4: street pressure
+    "spotted", "collectors", "favour", "fight",
+  ]);
+});
+
+test("every stage has more than one thing to do, or it is not a stage", () => {
+  // The reason this test exists: M01 was measured at 1.2 minutes because it had
+  // three conversations and two walks. A stage with one interaction in it is a
+  // prompt, not a stage, and that is how a level ends up far shorter than its
+  // author believed.
+  const def = m01Definition();
+  assert.ok(def.beats.length >= 18, `${def.beats.length} beats`);
+  const talks = def.beats.filter((b) => b.kind === "talk").length;
+  assert.ok(talks >= 6, `${talks} conversations`);
 });
 
 test("every conversation the mission names actually exists", () => {
@@ -152,10 +173,13 @@ test("the mission requires a lead — description or camera", () => {
 
 test("a player who talked the collectors down is not sent to fight them", () => {
   const flags = { [M01_FLAGS.COLLECTORS]: "talked" };
-  const m = new Mission(m01Definition(), { flags });
+  const def = m01Definition();
+  const m = new Mission(def, { flags });
   m.start();
-  // Walk to the fight beat directly.
-  m.index = 6;
+  // Walk to the fight beat directly. Resolved by id, not by index: an index in a
+  // test is a number that silently starts pointing at a different beat the first
+  // time the mission is reordered.
+  m.index = def.beats.findIndex((b) => b.id === "fight");
   m._enterBeat();
   assert.equal(m.state, MISSION.COMPLETE, "the fight beat was skipped");
   assert.ok(m.completedBeats.some((b) => b.id === "fight" && b.reason === "condition"));
@@ -163,9 +187,10 @@ test("a player who talked the collectors down is not sent to fight them", () => 
 
 test("a player who chose to fight does get the fight beat", () => {
   const flags = { [M01_FLAGS.COLLECTORS]: "fought" };
-  const m = new Mission(m01Definition(), { flags });
+  const def = m01Definition();
+  const m = new Mission(def, { flags });
   m.start();
-  m.index = 6;
+  m.index = def.beats.findIndex((b) => b.id === "fight");
   m._enterBeat();
   assert.equal(m.state, MISSION.ACTIVE, "the fight is required");
   assert.equal(m.beat.id, "fight");
@@ -185,9 +210,10 @@ test("the call beat accepts either answer", () => {
 
 test("an incomplete mission reports what it is missing rather than completing silently", () => {
   let missing = null;
-  const m = new Mission(m01Definition(), { flags: {}, onIncomplete: (reqs) => { missing = reqs; } });
+  const def = m01Definition();
+  const m = new Mission(def, { flags: {}, onIncomplete: (reqs) => { missing = reqs; } });
   m.start();
-  m.index = 6;
+  m.index = def.beats.findIndex((b) => b.id === "fight");
   m._enterBeat(); // fight beat, no unless-flag set, so it is required
   m.satisfy("fight"); // clears the last beat with no lead acquired
   assert.equal(m.state, MISSION.COMPLETE);
@@ -198,25 +224,47 @@ test("the full canonical path completes with a lead", () => {
   const flags = {};
   const m = new Mission(m01Definition(), { flags });
   m.start();
-  // 1 charger
+  // Stage 1: charger, Tessa, the call.
   m.tick(1 / 60, { player: { x: -10.2, z: -8.4 }, interact: () => true });
   assert.equal(m.beat.id, "tessa");
-  // 2 tessa: the conversation runs, then satisfies the beat
   run(M01_SHOP, { flags, pick: 0 });
   m.satisfy("tessa");
-  // 3 call memory
   m.tick(1 / 60, {});
-  assert.equal(m.beat.id, "lane");
-  // 4 walk there
-  m.tick(1 / 60, { player: { x: -8.6, z: -22 } });
-  assert.equal(m.beat.id, "sade");
-  // 5 sade
+  // The call was answered, so the log beat is skipped and the player goes
+  // straight to telling Tessa about it.
+  assert.equal(m.beat.id, "tessaLane", "an answered call skips the log");
+  // Stage 2: the lane.
+  run(M01_TESSA_LANE, { flags });
+  m.satisfy("tessaLane");
+  m.tick(1 / 60, { player: { x: M01_PLACES.market.x, z: M01_PLACES.market.z } });
+  assert.equal(m.beat.id, "trace", "reaching the market opens the stall conversation");
+  run(M01_MARKET, { flags, pick: 0 });
+  m.satisfy("trace");
+  m.tick(1 / 60, { player: { x: M01_PLACES.van.x, z: M01_PLACES.van.z } });
+  assert.equal(m.beat.id, "lane", "the van is a place, and reaching it does not need a prompt");
+  m.tick(1 / 60, { player: { x: M01_PLACES.lane.x, z: M01_PLACES.lane.z } });
+  assert.equal(m.beat.id, "alley");
+  m.tick(1 / 60, { player: { x: M01_PLACES.alleyEast.x, z: M01_PLACES.alleyEast.z } });
+  assert.equal(m.beat.id, "alleyTalk");
+  run(M01_ALLEY, { flags });
+  m.satisfy("alleyTalk");
+  // Stage 3: cross the watched lane unseen, skip the camera, reach Sade.
+  m.tick(1 / 60, { player: { x: M01_PLACES.laneShadow.x, z: M01_PLACES.laneShadow.z }, suspicion: 0 });
+  const sneak = m.completedBeats.find((b) => b.id === "sneak");
+  assert.equal(sneak.reason, "unseen", "crossing quietly is recorded as unseen");
+  assert.equal(m.beat.id, "sade", "the optional camera beat is passed over");
   run(M01_SADE, { flags, pick: 0 });
   m.satisfy("sade");
-  // 6 collectors
+  // Stage 4: never detected, so the early confrontation is skipped.
+  m.tick(1 / 60, {});
+  assert.equal(m.beat.id, "collectors", "the detected route did not fire");
   run(M01_COLLECTORS, { flags, pick: 0 });
   m.satisfy("collectors");
-  // 7 fight, skipped because they were talked down
+  // Talking them down opens the debrief where the obligation is walked through.
+  assert.equal(m.beat.id, "favour", "the peace route costs a debrief");
+  run(M01_FAVOUR, { flags, pick: 0 });
+  m.satisfy("favour");
+  // The fight is skipped because they were talked down.
   m.tick(1 / 60, {});
   assert.equal(m.state, MISSION.COMPLETE);
   assert.equal(flags[M01_FLAGS.HAS_VEHICLE_DESC], true);
@@ -227,9 +275,10 @@ test("a down mid-mission rewinds to the beat, keeping the flags", () => {
   const flags = { [M01_FLAGS.ANSWERED_CALL]: true };
   const m = new Mission(m01Definition(), { flags });
   m.start();
-  m.index = 4; // sade
+  const def = m01Definition();
+  m.index = def.beats.findIndex((b) => b.id === "sade");
   m._enterBeat();
   const cp = m.playerDown();
-  assert.equal(cp.index, 4);
+  assert.equal(cp.index, m.index);
   assert.equal(cp.flags[M01_FLAGS.ANSWERED_CALL], true);
 });

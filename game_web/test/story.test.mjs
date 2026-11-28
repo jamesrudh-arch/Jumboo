@@ -74,10 +74,22 @@ test("the mission can be played from the first beat to the last", () => {
 
   // Beat 3: the call is a flag beat, satisfied by the conversation just played.
   director.tick(0.1, worldAt(M01_PLACES.shop));
-  assert.equal(mission.beat.id, "lane");
+  assert.equal(mission.beat.id, "tessaLane");
 
-  // Beat 4: reach the loading lane.
+  // Beat 4: the market edge, out into the district.
+  director.tick(0.1, worldAt(M01_PLACES.shop));
+  until(director, worldAt(M01_PLACES.shop), () => !director.talking);
+  director.tick(0.1, worldAt(M01_PLACES.market));
+  assert.equal(mission.beat.id, "trace");
+  until(director, worldAt(M01_PLACES.market), () => !director.talking);
+  director.tick(0.1, worldAt(M01_PLACES.van));
   director.tick(0.1, worldAt(M01_PLACES.lane));
+  assert.equal(mission.beat.id, "alley");
+
+  // Beat 5: the long way round, then the watched lane, then Sade.
+  director.tick(0.1, worldAt(M01_PLACES.alleyEast));
+  until(director, worldAt(M01_PLACES.alleyEast), () => !director.talking);
+  director.tick(0.1, worldAt(M01_PLACES.laneShadow));
   assert.equal(mission.beat.id, "sade");
 
   // Beat 5: Sade.
@@ -91,7 +103,10 @@ test("the mission can be played from the first beat to the last", () => {
   assert.ok(director.talking, "the collector conversation opened");
   until(director, worldAt(M01_PLACES.collectors), () => !director.talking);
 
-  // Talking them down skips the fight.
+  // Talking them down opens the debrief, then skips the fight.
+  assert.equal(mission.beat.id, "favour", "the peace route owes a debrief");
+  director.tick(0.1, worldAt(M01_PLACES.collectors));
+  until(director, worldAt(M01_PLACES.collectors), () => !director.talking);
   assert.equal(mission.state, "complete");
   assert.ok(seen.ended, "the mission reported its end");
 });
@@ -174,10 +189,12 @@ test("a body count from the fight beat ends it when the street is clear", () => 
   mission._enterBeat();
   director.tick(0.1, {});
   assert.equal(mission.beat.id, "fight");
-  director.tick(0.1, {});
+  for (let i = 0; i < 20; i++) director.tick(0.1, {});
   assert.equal(mission.state, "active", "two bodies left, so the beat holds");
   alive = 0;
-  director.tick(0.1, {});
+  // Run past the clear beat's grace window, which exists so the beat cannot
+  // complete before its spawner has filled the street.
+  for (let i = 0; i < 40; i++) director.tick(0.1, {});
   assert.equal(mission.state, "complete", "the street is clear");
 });
 
