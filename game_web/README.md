@@ -57,7 +57,9 @@ npm run smoke          # drives the page, presses keys, checks the frame
   quay lips are *steps*, not walls, so the lane mouth is open. 32 of the checks
   cover this, including a flood-fill that proves every objective is walkable
   from the spawn. `tools/bot.mjs` is a headless playthrough bot used to find the
-  above; it reports win rate, time, sightings and where a run stalls.
+  above; it reports win rate, time, sightings and where a run stalls. Run it
+  with `--ghosts` to remove the collectors and test navigation on its own, and
+  `--no-errands` for the approved beat alone.
 - **Level** (`src/level.js`, `src/scene.js`): a night loading lane with shop
   fronts, cover, a walkway, a dock and a market mouth; 7 practicals, one
   shadow-casting moon, procedural canvas textures. All study geometry.
@@ -69,7 +71,8 @@ npm run smoke          # drives the page, presses keys, checks the frame
   100 trees, 84 street lamps, ~20 parked cars, container stacks, cranes and the
   harbour. Roads, pavements, kerbs, road paint, a canal with three bridges, a
   harbour basin and a park pond are all generated from the same plain data the
-  tests use. 26 of the checks cover it.
+  tests use. 27 of the checks cover it, including that all three bridges are
+  dry to walk across and the open canal is not.
 - **Audio** (`src/audio.js`): a synthesised mixer, no audio assets. Rain, wind and
   city hum beds follow the weather blend; tyres are panned by distance and
   speed; footsteps follow the animation phase and change with stance and wetness;
