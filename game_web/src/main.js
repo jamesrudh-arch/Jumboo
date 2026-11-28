@@ -20,6 +20,10 @@ import { Weather, Wetness } from "./weather.js";
 import { createAudio } from "./audio.js";
 import { applyGamepad, firstConnectedPad } from "./input.js";
 import { loadKit, loadCityKit, loadKenneyPack } from "./kit.js";
+import { Arena } from "./arena.js";
+import { CombatHud } from "./combathud.js";
+import { WeaponRack, MuzzleFlash } from "./weaponview.js";
+import { WEAPONS, weaponById } from "./arsenal.js";
 
 const KEY = {
   forward: ["KeyW", "ArrowUp"],
@@ -29,6 +33,16 @@ const KEY = {
   run: ["ShiftLeft", "ShiftRight"],
   crouch: ["ControlLeft", "ControlRight", "KeyC"],
   interact: ["KeyE", "Space"],
+  // Combat. F fires, R reloads, Q cycles the arsenal, G throws a frag, and the
+  // number keys jump straight to a weapon so a player never has to cycle past
+  // the pistol to reach the thing they need.
+  fire: ["KeyF"],
+  reload: ["KeyR"],
+  cycle: ["KeyQ"],
+  grenade: ["KeyG"],
+  aim: ["ShiftRight"],
+  weapon1: ["Digit1"], weapon2: ["Digit2"], weapon3: ["Digit3"],
+  weapon4: ["Digit4"], weapon5: ["Digit5"], weapon6: ["Digit6"],
 };
 
 const config = {
@@ -175,6 +189,19 @@ let kit = null;
 let cityKitRef = null; // trees and parks
 let waterKitRef = null; // watercraft
 const errandMarkers = [];
+
+// ------------------------------------------------------------------ the fight
+// The arena owns the wave, the cast and the trigger. It is created here but not
+// attached until the character and the street exist, because it places bodies on
+// the ground the world has already built.
+let arena = null;
+let combatHud = null;
+let weaponRack = null;
+let muzzleFlash = null;
+let heldWeapon = null;
+let heldId = null;
+let combatEnabled = false;
+const combatButtons = { fire: false, reload: false, cycle: false, aim: false };
 
 /** Meshes for the live traffic and the crowd (built once, then moved). */
 function buildStreetActors() {
@@ -338,6 +365,25 @@ async function boot() {
     console.warn("[kit] street kit unavailable, using generated actors", err);
     kit = null;
   }
+
+  // The cast and the arsenal. Both are optional in the sense that a failure
+  // leaves the stealth slice playable, but a failure is loud in the console
+  // because a missing enemy model is a design defect, not weather.
+  setStatus("Loading the cast…");
+  arena = new Arena({ audio });
+  try {
+    const cast = await arena.preload((p) => setStatus(`Loading the cast… ${Math.round(p * 100)}%`));
+    console.log(`[cast] ${cast.loaded}/${cast.requested} models, ${cast.tris} tris, ${cast.bones} bones max`);
+  } catch (err) {
+    console.warn("[cast] the roster fell back to proxy bodies", err);
+  }
+  try {
+    weaponRack = new WeaponRack();
+    const report = await weaponRack.preload(WEAPONS, (p) => setStatus(`Loading the arsenal… ${Math.round(p * 100)}%`));
+    console.log(`[arsenal] ${report.loaded}/${report.requested} models, ${report.tris} tris`);
+  } catch (err) {
+    console.warn("[arsenal] weapons fell back to stubs", err);
+  }
   setStatus("Loading trees and parks…");
   let cityKit = null;
   try {
@@ -388,10 +434,92 @@ async function boot() {
   button.disabled = false;
   button.textContent = "Begin";
   button.focus();
+  // Attach the arena now that the world and the street both exist.
+  combatHud = new CombatHud();
+  muzzleFlash = new MuzzleFlash();
+  arena.attach(scene, world);
+  arena.handlers.onWaveStart = (wave) => {
+    state.banner = { title: `Wave ${wave.n}`, body: wave.name, ms: 2400 };
+    state.bannerUntil = performance.now() + 2400;
+    refreshHeldWeapon();
+  };
+  arena.handlers.onWaveEnd = (e) => {
+    state.banner = { title: `Wave ${e.wave} cleared`, body: "Choose: 1, 2 or 3.", ms: 5200 };
+    state.bannerUntil = performance.now() + 5200;
+    pendingOffer = e.offer;
+  };
+  arena.handlers.onDeath = () => {
+    state.banner = { title: "Taken.", body: "Press R to get up. Your score stays.", ms: 4000 };
+    state.bannerUntil = performance.now() + 4000;
+  };
+  arena.handlers.onHurt = () => {
+    // A wounded frame reads as damage without a full-screen red wash, which
+    // would fight the night palette.
+    state.hurtUntil = performance.now() + 220;
+  };
+
   state.ready = true;
 }
 
-// --------------------------------------------------------------------- input
+// --------------------------------------------------------------- the weapon
+/** Mount the held weapon on the character's right hand. */
+function refreshHeldWeapon() {
+  if (!arena || !marcus || !weaponRack) return;
+  const weapon = arena.run.loadout.weapon;
+  if (weapon.id === heldId) return;
+  heldId = weapon.id;
+
+  // Find a hand bone. The rig's names are not guaranteed, so fall back through
+  // the plausible ones and finally to the root.
+  const hand = findBone(marcus.root, [/^hand_R$/i, /right.?hand/i, /hand\.R/i, /_R_hand/i, /handR/i]);
+  const target = hand ?? marcus.root;
+  if (heldWeapon) {
+    heldWeapon.parent?.remove(heldWeapon);
+    heldWeapon = null;
+  }
+  heldWeapon = weaponRack.mount(weapon);
+  heldWeapon.scale.setScalar(0.62);
+  // The rig's hand space is centimetres (see loadMarcus), so the mount inherits
+  // that and only needs a small offset to sit in the palm.
+  heldWeapon.position.set(0, 0, 0);
+  target.add(heldWeapon);
+  if (muzzleFlash) {
+    muzzleFlash.group.position.set(0, 0, -0.22);
+    heldWeapon.add(muzzleFlash.group);
+  }
+  console.log(`[weapon] holding ${weapon.name} on ${target.name || "the root"}`);
+}
+
+function findBone(root, patterns) {
+  let found = null;
+  root.traverse((o) => {
+    if (found || !o.isBone) return;
+    for (const p of patterns) if (p.test(o.name)) { found = o; break; }
+  });
+  return found;
+}
+
+/** The trigger, called once per frame while the button is held. */
+function pullTrigger(dt) {
+  if (!arena || !combatEnabled) return;
+  const result = arena.fire(dt);
+  if (!result) return;
+  if (result.dry) {
+    state.banner = { title: "Empty", body: "R to reload.", ms: 900 };
+    state.bannerUntil = performance.now() + 900;
+    return;
+  }
+  if (result.hit?.hit && combatHud) {
+    combatHud.markHit(performance.now(), Boolean(result.killed));
+  }
+  if (muzzleFlash && result.weapon?.mode !== "melee") {
+    muzzleFlash.fire(arena.feel.muzzle.strength, 0.06);
+  }
+}
+
+let pendingOffer = null;
+
+/** --------------------------------------------------------------------- input
 const keys = new Set();
 let dragging = false;
 let dragMoved = 0;
@@ -418,8 +546,59 @@ window.addEventListener("keydown", (e) => {
   keys.add(e.code);
   if (e.code === "Escape") togglePause();
   if (e.code === "Enter" && !state.started) start();
+  if (handleCombatKey(e.code)) return;
   if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
 });
+
+/**
+ * Combat keys. Returns true when the key was consumed, so the movement layer
+ * does not also act on it. Every branch is a single press: firing holds the key,
+ * which is handled in the frame loop from `keys`, not here.
+ */
+function handleCombatKey(code) {
+  if (!arena || !state.started || state.paused) return false;
+  const run = arena.run;
+  if (code === KEY.reload[0]) { arena.reload(); return true; }
+  if (code === KEY.cycle[0]) { arena.cycle(1); refreshHeldWeapon(); return true; }
+  if (code === KEY.grenade[0]) {
+    // The frag is a weapon in the ladder, so "throw" is just "switch to it and
+    // fire once" rather than a parallel system.
+    if (run.loadout.has("grenade")) {
+      const prev = run.loadout.current;
+      run.loadout.select("grenade");
+      pullTrigger(1 / 60);
+      run.loadout.select(prev);
+      refreshHeldWeapon();
+    }
+    return true;
+  }
+  // Between waves, 1..3 take an offer. Outside that, they select a weapon.
+  if (/^Digit[1-6]$/.test(code)) {
+    const n = Number(code.slice(5)) - 1;
+    if (run.state === "between" && pendingOffer?.[n]) {
+      const choice = pendingOffer[n];
+      pendingOffer = null;
+      state.banner = null;
+      arena.advance(choice);
+      combatEnabled = true;
+      refreshHeldWeapon();
+      return true;
+    }
+    const owned = run.loadout.snapshot().owned;
+    const id = owned[n];
+    if (id) { arena.select(id); refreshHeldWeapon(); }
+    return true;
+  }
+  // A dead player gets up. Death costs the wave, not the run.
+  if (run.state === "dead" && code === "KeyR") {
+    pendingOffer = null;
+    arena.retry();
+    combatEnabled = true;
+    refreshHeldWeapon();
+    return true;
+  }
+  return false;
+}
 window.addEventListener("keyup", (e) => keys.delete(e.code));
 window.addEventListener("blur", () => keys.clear());
 
@@ -587,6 +766,12 @@ function start() {
   hud.visible = true;
   world.start();
   audio.start();
+  // The fight starts where the game says it starts: unarmed.
+  if (arena) {
+    combatEnabled = true;
+    arena.startWave();
+    refreshHeldWeapon();
+  }
   last = performance.now();
   if (canvas.requestPointerLock) canvas.requestPointerLock();
 }
@@ -687,6 +872,15 @@ function frame(now) {
     world.setInput(intent);
     world.update(FIXED);
     if (animator) animator.step(world, FIXED);
+
+    // The fight steps on the same fixed clock as the stealth simulation, so a
+    // punch lands at the same moment at 30 fps as at 144.
+    if (arena && combatEnabled) {
+      arena.combat.aiming = keys.has("ShiftRight");
+      if (keys.has("KeyF")) pullTrigger(FIXED);
+      arena.step(FIXED);
+    }
+    if (muzzleFlash) muzzleFlash.tick(FIXED);
     acc -= FIXED;
     steps++;
   }
@@ -702,6 +896,10 @@ function frame(now) {
   }
   view.syncCharacters(world);
   view.update(dtReal, world.time, world.hud());
+  if (combatHud && arena) {
+    combatHud.visible = combatEnabled;
+    combatHud.update(arena.hud(), now);
+  }
   cityView.update(dtReal, camera, weather, wetness.level);
   syncStreetActors(dtReal);
   syncErrandMarkers(now / 1000);
@@ -760,10 +958,14 @@ function render(elapsed, dt = 1 / 60) {
   // Flash frames are a single short lift in exposure, not a full white overlay.
   renderer.toneMappingExposure =
     (weather.blend.exposure || 1.02) * (weather.flash > 0.05 ? 1 + weather.flash * 0.9 : 1);
+  // Shake is applied to the camera after the world has placed it, never to the
+  // world's own camera state, so the shake cannot accumulate into drift.
+  if (arena && combatEnabled) arena.applyShake(world);
   const cam = world.camera;
   camera.position.set(cam.x, cam.y, cam.z);
   const focus = world.cameraFocus || { x: world.player.x, y: world.player.feetY + 1.3, z: world.player.z };
   camera.lookAt(focus.x, focus.y, focus.z);
+  if (world.cameraRoll) camera.rotateZ(world.cameraRoll);
   renderer.render(scene, camera);
   void elapsed;
 }
