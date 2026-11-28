@@ -222,7 +222,11 @@ export class Arena {
     this.feel.shake.add(0.3);
     this.feel.haptics.fire("pistol", 0.5);
     this.feel.decals.add({ kind: "blood", size: 0.12, life: 18 });
-    this.audio?.playEvent?.({ type: "hit", x: p.x, z: p.z, armoured: false }, p);
+    // Two sounds, not one: the incoming blow (so the player hears a hit coming)
+    // and the impact. A single sound after the fact is a punishment with no
+    // warning attached.
+    this.audio?.playEvent?.({ type: "enemy-attack", x: enemy.root.position.x, z: enemy.root.position.z, kind: attack.kind }, p);
+    this.audio?.playEvent?.({ type: "player-hit", x: p.x, z: p.z }, p);
     this.handlers.onHurt?.({ enemy, damage, health: this.run.health });
     if (this.run.health <= 0) {
       this.inWave = false;

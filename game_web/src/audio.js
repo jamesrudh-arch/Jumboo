@@ -67,6 +67,9 @@ const VOICES = {
   flame: { kind: "noise", dur: 0.3, gain: 0.16, filter: "bandpass", freq: 1500, q: 0.5 },
   energyZap: { kind: "tone", freq: 1400, toFreq: 240, dur: 0.18, gain: 0.24, wave: "square" },
   dryFire: { kind: "tone", freq: 220, toFreq: 190, dur: 0.06, gain: 0.1, wave: "square" },
+  // A body hitting the street: low, short, and the only confirmation a fight is
+  // actually over. Without it a kill is silent except for the shot that made it.
+  bodyFall: { kind: "noise", dur: 0.22, gain: 0.3, filter: "lowpass", freq: 320, q: 0.8 },
   reloadClick: { kind: "noise", dur: 0.07, gain: 0.14, filter: "bandpass", freq: 1800, q: 2.4 },
 };
 
@@ -89,6 +92,11 @@ export class CityAudio {
     this.lastStepIndex = null;
     this.stepToggle = false;
     this.stats = { voices: 0, dropped: 0 };
+    // Where the camera is pointing, in the same convention as the camera basis
+    // in src/world.js. Set once per frame from main.js; the mixer never guesses
+    // it from the player's facing, because a player can look over a shoulder.
+    this.listenerYaw = 0;
+    this.listener = null;
     if (this.enabled) this.build();
   }
 
@@ -285,6 +293,26 @@ export class CityAudio {
   }
 
   // ---------------------------------------------------------------- one-shots
+  /**
+   * Stereo position for a one-shot, from its world position and the camera yaw.
+   *
+   * Returns null when the sound has no position (a UI click, a reload in the
+   * player's own hands) so it stays centred rather than snapping to a side.
+   * The divisor is the distance at which panning saturates: a sound 18 m to the
+   * side is hard left, and everything nearer fades in toward the middle.
+   */
+  panFor(options = {}) {
+    const { x, z, yaw } = options;
+    const player = options.player ?? this.listener;
+    if (!player || x === undefined || z === undefined) return null;
+    if (!this.ctx?.createStereoPanner) return null;
+    const cameraYaw = yaw ?? player.yaw ?? 0;
+    const dx = x - player.x;
+    const dz = z - player.z;
+    const side = Math.cos(cameraYaw) * dx - Math.sin(cameraYaw) * dz;
+    return Math.max(-1, Math.min(1, side / 18));
+  }
+
   /** Play a named voice. Returns false when it could not be created. */
   play(name, options = {}) {
     if (!this.enabled || !this.ready) return false;
@@ -323,7 +351,21 @@ export class CityAudio {
     gain.gain.linearRampToValueAtTime(level, now + Math.min(0.02, spec.dur * 0.25));
     gain.gain.exponentialRampToValueAtTime(0.0001, now + spec.dur);
     if (spec.kind === "tone") source.connect(gain);
-    gain.connect(this.bus);
+
+    // Where did it come from? A gunshot to the player's right must arrive on the
+    // right. The tyre loop already panned; the one-shots did not, so every
+    // combat sound played dead centre and the player could not hear which side
+    // the street was closing from. Same camera convention as updateTyres:
+    // forward is (sin yaw, cos yaw), so right is (cos yaw, -sin yaw).
+    const pan = this.panFor(options);
+    if (pan) {
+      const panner = ctx.createStereoPanner();
+      panner.pan.value = pan;
+      gain.connect(panner);
+      panner.connect(this.bus);
+    } else {
+      gain.connect(this.bus);
+    }
 
     source.start(now);
     source.stop(tail + 0.02);
@@ -377,6 +419,9 @@ export class CityAudio {
     if (!event || !player) return false;
     const dist = event.x !== undefined ? Math.hypot(event.x - player.x, event.z - player.z) : 0;
     const near = clamp01(1 - dist / 40);
+    // Every branch below forwards the position and the camera yaw so the
+    // one-shot can be placed in the stereo field.
+    const at = { x: event.x, z: event.z, yaw: this.listenerYaw, player };
     switch (event.type) {
       case "honk":
         return this.play(near > 0.35 ? "honk" : "honkFar", { gain: 0.4 + near * 0.6 });
@@ -395,17 +440,26 @@ export class CityAudio {
       // Combat: played from the event stream, attenuated by distance so a shot
       // across the district is a distant pop and not a bang in the ear.
       case "shot":
-        return this.play(event.sound || "pistolShot", { gain: 0.45 + near * 0.55 });
+        return this.play(event.sound || "pistolShot", { gain: 0.45 + near * 0.55, ...at });
       case "dry-fire":
         return this.play("dryFire", { gain: 0.8 });
       case "reload":
         return this.play("reloadClick", { gain: 0.9 });
       case "swing":
-        return this.play(event.sound || "swing", { gain: 0.8 + near * 0.2 });
+        return this.play(event.sound || "swing", { gain: 0.8 + near * 0.2, ...at });
       case "hit":
-        return this.play(event.armoured ? "hitArmour" : "hitFlesh", { gain: 0.7 + near * 0.3 });
+        return this.play(event.armoured ? "hitArmour" : "hitFlesh", { gain: 0.7 + near * 0.3, ...at });
       case "explosion":
-        return this.play("explosion", { gain: 0.5 + near * 0.5 });
+        return this.play("explosion", { gain: 0.5 + near * 0.5, ...at });
+      // New combat events: a body falling is the confirmation that a fight is
+      // over, and an enemy's blow landing on the player needs its own sound or
+      // the player takes damage with no idea a hit was incoming.
+      case "death":
+        return this.play(event.armoured ? "hitArmour" : "bodyFall", { gain: 0.55 + near * 0.45, ...at });
+      case "enemy-attack":
+        return this.play(event.kind === "explosive" ? "launcherThump" : "swing", { gain: 0.7 + near * 0.3, ...at });
+      case "player-hit":
+        return this.play("hitFlesh", { gain: 1 });
       default:
         return false;
     }

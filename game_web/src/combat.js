@@ -210,6 +210,13 @@ export class Combat {
         });
 
         if (result.killed) {
+          // A body falling is the confirmation a fight is over. Silent deaths
+          // made kills feel like the enemy simply stopped existing.
+          this.emitAudio("death", {
+            x: target.root.position.x,
+            z: target.root.position.z,
+            armoured: (target.stats.armour ?? 0) > 0.4,
+          });
           const quiet = weapon.noise <= 4;
           this.run.registerKill({ quiet, archetype: target.stats.archetype });
           if (quiet) this.quietKills += 1;

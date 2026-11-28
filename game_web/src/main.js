@@ -911,6 +911,10 @@ function frame(now) {
 
 function updateAudio(dt) {
   if (!audio.enabled) return;
+  // The mixer needs the camera's heading to place a sound in the stereo field.
+  // Camera yaw, not player yaw: the player can look over a shoulder.
+  audio.listener = world.player;
+  audio.listenerYaw = world.cameraYaw;
   audio.update(dt, {
     weather,
     player: world.player,

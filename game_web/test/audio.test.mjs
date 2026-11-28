@@ -294,3 +294,59 @@ test("a context that throws while building is swallowed", () => {
   assert.match(audio.error, /locked/);
   assert.equal(audio.play("honk"), false);
 });
+
+test("a one-shot can be placed in the stereo field", () => {
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  // Facing +Z (yaw 0): forward is (sin 0, cos 0) = (0, 1), right is (1, 0).
+  audio.listener = { x: 0, z: 0, yaw: 0 };
+  audio.listenerYaw = 0;
+  const right = audio.panFor({ x: 12, z: 0, player: audio.listener, yaw: 0 });
+  const left = audio.panFor({ x: -12, z: 0, player: audio.listener, yaw: 0 });
+  const ahead = audio.panFor({ x: 0, z: 12, player: audio.listener, yaw: 0 });
+  assert.ok(right > 0.3, `a sound on the right pans right (${right})`);
+  assert.ok(left < -0.3, `a sound on the left pans left (${left})`);
+  assert.equal(Math.abs(ahead), 0, "a sound straight ahead stays centred");
+});
+
+test("panning saturates at 18 m and never exceeds the field", () => {
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  const listener = { x: 0, z: 0, yaw: 0 };
+  const far = audio.panFor({ x: 90, z: 0, player: listener, yaw: 0 });
+  assert.equal(far, 1, "clamped hard right, not 5.0");
+});
+
+test("panning follows the camera, not the player's facing", () => {
+  // Turning the camera 90 degrees swaps which world side is "right".
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  const listener = { x: 0, z: 0, yaw: 0 };
+  const at = { x: 12, z: 0, player: listener };
+  // Yaw 0: forward is +Z and screen-right is +X, so a body at +X is on the
+  // right. Yaw pi/2 turns the camera to face +X, so that same body is now dead
+  // ahead. Yaw pi puts it behind the camera, which is again to one side.
+  const facingZ = audio.panFor({ ...at, yaw: 0 });
+  const facingIt = audio.panFor({ ...at, yaw: Math.PI / 2 });
+  assert.ok(facingZ > 0.3, `facing +Z, the body pans right (${facingZ.toFixed(2)})`);
+  assert.ok(Math.abs(facingIt) < 0.05, `turned to face it, it is centred (${facingIt.toFixed(2)})`);
+  const behind = audio.panFor({ ...at, yaw: Math.PI });
+  assert.ok(behind < -0.3, `with it behind the camera it pans left (${behind.toFixed(2)})`);
+});
+
+test("a sound with no position stays centred", () => {
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  assert.equal(audio.panFor({}), null);
+  assert.equal(audio.panFor({ x: 1 }), null, "half a position is not a position");
+});
+
+test("a body falling has a voice", () => {
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  const player = { x: 0, z: 0, yaw: 0 };
+  audio.listener = player;
+  assert.ok(audio.playEvent({ type: "death", x: 2, z: 0 }, player));
+  assert.ok(audio.playEvent({ type: "enemy-attack", x: 1, z: 1, kind: "melee" }, player));
+  assert.ok(audio.playEvent({ type: "player-hit", x: 0, z: 0 }, player));
+});
