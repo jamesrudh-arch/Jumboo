@@ -483,6 +483,7 @@ export function rasterize(scene, camera, opts = {}) {
       stats.instances = (stats.instances || 0) + obj.count;
     }
     const skinMatTmp = new THREE.Matrix4();
+    const c0 = [0, 0, 0], c1 = [0, 0, 0], c2 = [0, 0, 0];
     const getVertFor = (instance, i, out) => {
       if (skinCache) return out.set(skinCache[i * 3], skinCache[i * 3 + 1], skinCache[i * 3 + 2]);
       out.fromBufferAttribute(pos, i);
@@ -503,6 +504,12 @@ export function rasterize(scene, camera, opts = {}) {
       if (!mat) continue;
       if (mat.transparent && (mat.opacity ?? 1) < 0.03) continue;
       const base = mat.color ? mat.color.clone() : new THREE.Color(1, 1, 1);
+      // Vertex colours (palette-authored kits) are sampled per pixel below, not
+      // averaged per face: a triangle that spans green foliage and brown trunk
+      // averages to grey, which is worse than not shading it at all.
+      const vcolAttr = mat.vertexColors && geo && geo.getAttribute
+        ? geo.getAttribute("color")
+        : null;
       const diffuseTex = materialTexture(mat);
       const emissive = mat.emissive
         ? new THREE.Color(mat.emissive).multiplyScalar(mat.emissiveIntensity ?? 1)
@@ -571,6 +578,7 @@ export function rasterize(scene, camera, opts = {}) {
         lit.g = Math.min(lit.g, 2.4);
         lit.b = Math.min(lit.b, 2.4);
         const out = new THREE.Color(base.r * lit.r, base.g * lit.g, base.b * lit.b);
+
         if (emissive && mode !== "flat" && mode !== "ids") out.add(emissive);
         if (mode === "albedo") out.set(base.r, base.g, base.b);
         if (mode === "ids") out.copy(idColor);
@@ -653,16 +661,32 @@ export function rasterize(scene, camera, opts = {}) {
         for (let i = 1; i + 1 < clipPts.length; i++) tris.push([clipPts[0], clipPts[i], clipPts[i + 1]]);
         stats.triangles++;
 
-        let rgb = [out.r, out.g, out.b];
-        if (diffuseTex) {
-          let u = 0, v = 0;
-          if (geo.attributes.uv) {
-            const uvAttr = geo.attributes.uv;
-            u = (uvAttr.getX(ia) + uvAttr.getX(ib) + uvAttr.getX(ic)) / 3;
-            v = (uvAttr.getY(ia) + uvAttr.getY(ib) + uvAttr.getY(ic)) / 3;
+        // Corner colours: shading is constant across a flat-shaded face, but the
+        // texture and any vertex colour are not. Sampling both per pixel is what
+        // turns a 1k atlas from smeared blocks into a readable facade.
+        const uvAttr = geo.attributes.uv;
+        const cornerColor = (i, outC) => {
+          let r = out.r, g = out.g, b = out.b;
+          if (vcolAttr) {
+            // glTF vertex colours are linear, like the lighting, so multiply.
+            r *= vcolAttr.getX(i);
+            g *= vcolAttr.getY(i);
+            b *= vcolAttr.getZ(i);
           }
-          const t = sampleTextureColor(diffuseTex, u, v);
-          rgb = [rgb[0] * t[0], rgb[1] * t[1], rgb[2] * t[2]];
+          if (diffuseTex) {
+            const t = uvAttr
+              ? sampleTextureColor(diffuseTex, uvAttr.getX(i), uvAttr.getY(i))
+              : [1, 1, 1];
+            r *= t[0]; g *= t[1]; b *= t[2];
+          }
+          outC[0] = r; outC[1] = g; outC[2] = b;
+        };
+        let rgb = [out.r, out.g, out.b];
+        if (diffuseTex || vcolAttr) {
+          cornerColor(ia, c0);
+          cornerColor(ib, c1);
+          cornerColor(ic, c2);
+          rgb = [c0, c1, c2];
         }
         const alpha = mat.transparent ? (mat.opacity ?? 1) : 1;
         for (const tri of tris) {
@@ -694,6 +718,7 @@ export function rasterize(scene, camera, opts = {}) {
 }
 
 function fillTri({ color, depth, W, H, fog }, p, rgb, objectBuf = null) {
+  const perCorner = Array.isArray(rgb[0]);
   if (!Number.isFinite(p[0].x + p[1].x + p[2].x + p[0].y + p[1].y + p[2].y)) return;
   const minX = Math.max(0, Math.floor(Math.min(p[0].x, p[1].x, p[2].x)));
   const maxX = Math.min(W - 1, Math.ceil(Math.max(p[0].x, p[1].x, p[2].x)));
@@ -713,15 +738,20 @@ function fillTri({ color, depth, W, H, fog }, p, rgb, objectBuf = null) {
       const w1 = ((p[2].x - px) * (p[0].y - py) - (p[0].x - px) * (p[2].y - py)) * inv;
       const w2 = 1 - w0 - w1;
       if (w0 < -1e-4 || w1 < -1e-4 || w2 < -1e-4) continue;
-      // Screen-space linear interpolation of NDC z, as the hardware does.
       const z = w0 * z0 + w1 * z1 + w2 * z2;
       const k = y * W + x;
       if (z >= depth[k]) continue;
       depth[k] = z;
       const c = k * 3;
-      let r = rgb[0], g = rgb[1], b = rgb[2];
+      let r, g, b;
+      if (perCorner) {
+        r = w0 * rgb[0][0] + w1 * rgb[1][0] + w2 * rgb[2][0];
+        g = w0 * rgb[0][1] + w1 * rgb[1][1] + w2 * rgb[2][1];
+        b = w0 * rgb[0][2] + w1 * rgb[1][2] + w2 * rgb[2][2];
+      } else {
+        r = rgb[0]; g = rgb[1]; b = rgb[2];
+      }
       if (fog) {
-        // Perspective-correct distance: 1/z_view interpolates linearly.
         const invD = w0 * i0 + w1 * i1 + w2 * i2;
         const dist = invD > 0 ? 1 / invD : fog.far;
         const t = (dist - fog.near) / (fog.far - fog.near);
@@ -741,6 +771,7 @@ function fillTri({ color, depth, W, H, fog }, p, rgb, objectBuf = null) {
 }
 
 function blendTri({ color, depth, W, H }, p, rgb, alpha) {
+  const perCorner = Array.isArray(rgb[0]);
   const a2 = Math.min(1, alpha);
   if (a2 <= 0) return;
   const minX = Math.max(0, Math.floor(Math.min(p[0].x, p[1].x, p[2].x)));
@@ -762,9 +793,17 @@ function blendTri({ color, depth, W, H }, p, rgb, alpha) {
       const k = y * W + x;
       if (z > depth[k] + 0.002) continue;
       const c = k * 3;
-      color[c] = color[c] * (1 - a2) + rgb[0] * a2;
-      color[c + 1] = color[c + 1] * (1 - a2) + rgb[1] * a2;
-      color[c + 2] = color[c + 2] * (1 - a2) + rgb[2] * a2;
+      let sr, sg, sb;
+      if (perCorner) {
+        sr = w0 * rgb[0][0] + w1 * rgb[1][0] + w2 * rgb[2][0];
+        sg = w0 * rgb[0][1] + w1 * rgb[1][1] + w2 * rgb[2][1];
+        sb = w0 * rgb[0][2] + w1 * rgb[1][2] + w2 * rgb[2][2];
+      } else {
+        sr = rgb[0]; sg = rgb[1]; sb = rgb[2];
+      }
+      color[c] = color[c] * (1 - a2) + sr * a2;
+      color[c + 1] = color[c + 1] * (1 - a2) + sg * a2;
+      color[c + 2] = color[c + 2] * (1 - a2) + sb * a2;
     }
   }
 }
