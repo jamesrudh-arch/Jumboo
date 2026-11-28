@@ -7,7 +7,12 @@
   "scripts": {
     "test": "node --test test/*.test.js test/*.test.mjs",
     "serve": "node serve.js",
-    "smoke": "node tools/smoke.mjs"
+    "smoke": "node tools/smoke.mjs",
+    "postinstall": "node tools/link-three.mjs",
+    "setup": "node tools/link-three.mjs"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "linkedom": "^0.18.15"
+  }
 }

@@ -120,73 +120,25 @@ test("the HUD formats and renders every readout", async () => {
   assert.equal(formatTime(65.2), "1:05", "a stopwatch floors the elapsed seconds");
   assert.equal(formatTime(-3), "0:00");
 
-  // A minimal DOM: the HUD only needs createElement, append and
-  // querySelectorAll("[data-field]").
-  const makeNode = (tag) => {
-    const node = {
-      tagName: tag,
-      children: [],
-      dataset: {},
-      style: { setProperty() {} },
-      append(...kids) {
-        node.children.push(...kids);
-      },
-      querySelectorAll() {
-        return node._fields || (node._fields = []);
-      },
-      textContent: "",
-      innerHTML: "",
-    };
-    return node;
-  };
-  const elements = [];
-  const body = makeNode("body");
+  // A real DOM rather than a hand-written stub. The stub had to be kept in sync
+  // with a hard-coded list of field names by hand, and that list is exactly the
+  // kind of thing that silently goes stale when the HUD grows a panel.
+  const { parseHTML } = await import("linkedom");
+  const { document: doc } = parseHTML("<html><head></head><body></body></html>");
   const original = globalThis.document;
-  globalThis.document = {
-    body,
-    head: makeNode("head"),
-    createElement: (tag) => {
-      const node = makeNode(tag);
-      elements.push(node);
-      return node;
-    },
-    querySelector: () => null,
-  };
+  globalThis.document = doc;
+  doc.body.innerHTML = "";
+  doc.head.innerHTML = "";
 
-  const rootNode = {
-    _fields: [],
-    hidden: false,
-    append() {},
-    querySelectorAll: () => rootNode._fields,
-  };
-  // Seeding happens in the document.createElement override used by Hud.
-  globalThis.document.createElement = (tag) => {
-    const node = makeNode(tag);
-    const names = [
-      "objectiveLabel", "distance", "bearing", "stamina", "noise", "stance",
-      "prompt", "promptText", "progress", "suspicion", "ring",
-      "suspicionText", "time", "banner", "bannerTitle", "bannerBody",
-      "weather", "chaos", "chaosList",
-      "errand", "errandLabel", "errandBar", "errandTally",
-    ];
-    node._fields = names.map((n) => {
-      const f = makeNode("span");
-      f.dataset.field = n;
-      return f;
-    });
-    elements.push(node);
-    return node;
-  };
-
-  const hud = new Hud(body);
-  const expectedFields = [
-    "objectiveLabel", "distance", "bearing", "stamina", "noise", "stance",
-    "prompt", "promptText", "progress", "suspicion", "ring",
-    "suspicionText", "time", "banner", "bannerTitle", "bannerBody",
-    "weather", "chaos", "chaosList",
-    "errand", "errandLabel", "errandBar", "errandTally",
-  ];
-  for (const n of expectedFields) assert.ok(hud.fields[n], `field ${n} wired`);
+  const hud = new Hud(doc.body);
+  // Assert against the markup the HUD actually ships: every [data-field] in the
+  // template must be wired, which is a stronger claim than a list in the test.
+  const declarative = [...doc.body.querySelectorAll("[data-field]")].map((n) => n.dataset.field);
+  assert.ok(declarative.length > 20, `${declarative.length} declared fields`);
+  for (const n of declarative) assert.ok(hud.fields[n], `field ${n} wired`);
+  for (const n of ["objectiveLabel", "distance", "time", "banner", "subtitle", "story", "line", "choices"]) {
+    assert.ok(hud.fields[n], `field ${n} wired`);
+  }
   globalThis.document = original;
 
   const sample = {
