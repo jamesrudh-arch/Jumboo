@@ -22,6 +22,7 @@ import { DamageMarks, bearingTo } from "./damagedir.js";
 import {
   HAZARD, blastTargets, chainFrom, fallsInWater, shove, usableHazards,
 } from "./hazards.js";
+import { BOSSES, phaseAt, phaseCrossed, tickBossAction, beginBossAction, telegraphSeconds } from "./bosses.js";
 import { resolveCircle } from "./collision.js";
 
 /**
@@ -63,6 +64,7 @@ export class Arena {
     // Every hazard in the district, and the fires currently burning.
     this.hazards = [];
     this.fires = [];
+    this.boss = null; // the acting boss, if this wave has one
     this.handlers = { onWaveStart: null, onWaveEnd: null, onDeath: null };
   }
 
@@ -122,7 +124,22 @@ export class Arena {
       // A stable flank slot per body: the formation spread is decided by the
       // wave, not by chance, so a wave is reproducible.
       e.flankSlot = i;
-      e.behaviour = BEHAVIOUR[e.stats.archetype] ?? BEHAVIOUR.runner;
+      // A boss carries its own behaviour; the archetype table does not know it.
+      if (e.stats.boss) {
+        const boss = BOSSES[e.stats.boss];
+        e.behaviour = {
+          approach: 1,
+          standoff: boss.attack.kind === "ranged" || boss.attack.kind === "explosive" ? 12 : 1.8,
+          attackRange: boss.attack.reach,
+        };
+        e.isBoss = true;
+        e.bossDef = boss;
+        e.bossClock = { state: "idle", t: 0 };
+        e.bossPhase = phaseAt(boss, 1);
+        e.phaseHealth = 1;
+        this.boss = e;
+      }
+      e.behaviour = e.behaviour ?? BEHAVIOUR[e.stats.archetype] ?? BEHAVIOUR.runner;
       e.cooldown = 0.6 + (i % 5) * 0.25;
       this.scene?.add(e.root);
     }
@@ -270,6 +287,8 @@ export class Arena {
       }
       e.tick(dt);
     }
+
+    this.tickBoss(dt);
 
     // Bodies do not intersect. Steering is a preference; this is the constraint.
     // Done after movement so the correction applies to where everyone ended up.
@@ -457,6 +476,99 @@ export class Arena {
     return { hazard, kills, chained: spent.size - 1 };
   }
 
+  /** What the HUD needs to draw a boss: name, bar, phase, and telegraph. */
+  bossState() {
+    const b = this.boss;
+    if (!b || b.dead || !b.bossDef) return null;
+    const def = b.bossDef;
+    const max = b.stats.maxHealth ?? def.health;
+    const clock = b.bossClock ?? { state: "idle", t: 0 };
+    const windup = def.attack.windup ?? 0.6;
+    return {
+      id: def.id,
+      name: def.name,
+      title: def.title,
+      health: Math.max(0, b.stats.health),
+      max,
+      fraction: Math.max(0, Math.min(1, b.stats.health / max)),
+      phase: b.bossPhase?.name ?? "",
+      phaseNote: b.bossPhase?.note ?? "",
+      // The telegraph is the point: how far through the wind-up the boss is, so
+      // the player can see the blow coming rather than react to it landing.
+      telegraph: clock.state === "windup" ? Math.min(1, clock.t / windup) : 0,
+      winding: clock.state === "windup",
+      recovering: clock.state === "recover",
+      ignoresTakedown: def.ignoresTakedown ?? false,
+    };
+  }
+
+  /**
+   * The boss, once a frame.
+   *
+   * A boss is the one body in the game whose attack has a clock the player can
+   * read: `windup` telegraphs, `strike` lands exactly once, `recover` is the
+   * window to punish. That structure is the whole reason a boss fight is a fight
+   * rather than a health bar, so it lives here rather than in the generic body
+   * attack path.
+   */
+  tickBoss(dt) {
+    const boss = this.boss;
+    if (!boss || boss.dead) {
+      if (boss?.dead) this.boss = null;
+      return;
+    }
+    const def = boss.bossDef;
+    const p = this.world.player;
+
+    // Phases. Announced on the frame they change, so the HUD can say so once.
+    // The ceiling comes from the body, not the definition: on a replay the wave
+    // scale raises a boss's health, and dividing by the base figure would make
+    // its phases arrive late. `currentScale` was never set anywhere, so the
+    // original division by `undefined` produced NaN and phase one never ended.
+    const ceiling = boss.stats.maxHealth ?? def.health;
+    const fraction = Math.max(0, boss.stats.health / ceiling);
+    const next = phaseAt(def, fraction);
+    if (next !== boss.bossPhase) {
+      boss.bossPhase = next;
+      this.feel.shake.add(0.25);
+      this.audio?.play?.("bossPhase", { gain: 0.7 });
+      this.onBossPhase?.({ boss, phase: next });
+    }
+
+    const dist = Math.hypot(p.x - boss.root.position.x, p.z - boss.root.position.z);
+    const attack = def.attack;
+
+    // Start an attack when in range and idle.
+    if (boss.bossClock.state === "idle" && dist <= attack.reach) {
+      boss.bossClock = beginBossAction();
+      boss.bossClock.t = 0;
+      boss.telegraph = telegraphSeconds(def);
+      return;
+    }
+    const out = tickBossAction(boss.bossClock, attack, dt);
+    if (out.hit) {
+      // The blow lands once, and only if the player is still there. A charge you
+      // can sidestep is a charge worth reading.
+      const stillThere = Math.hypot(p.x - boss.root.position.x, p.z - boss.root.position.z) <= attack.reach;
+      if (stillThere && this.playerHitCooldown <= 0) {
+        this.playerHitCooldown = 1 / Math.max(0.1, attack.rate ?? 1);
+        const scale = this.markscaleFor?.() ?? 1;
+        const damage = Math.max(1, Math.round(attack.power * 0.42 * scale));
+        this.damageMarks.add(bearingTo(p, boss.root.position, this.world.cameraYaw ?? p.yaw ?? 0), damage, { from: def.id });
+        this.run.takeDamage(damage);
+        this.feel.shake.add(0.8);
+        this.feel.haptics.fire("heavy", 1);
+        this.audio?.playEvent?.({ type: "hurt", x: boss.root.position.x, z: boss.root.position.z }, p);
+        this.handlers.onHurt?.({ enemy: boss, damage, health: this.run.health });
+        if (this.run.health <= 0) {
+          this.inWave = false;
+          this.handlers.onDeath?.({ wave: this.run.wave, run: this.run.snapshot() });
+        }
+      }
+    }
+    if (out.changed && out.state === "windup") boss.telegraph = telegraphSeconds(def);
+  }
+
   /**
    * Fire keeps working after the bang.
    *
@@ -594,6 +706,7 @@ export class Arena {
       takedowns: this.quietTakedowns ?? 0,
       damageMarks: this.damageMarks.render(),
       hazard: this.hazardOffer(),
+      boss: this.bossState(),
     };
   }
 
@@ -635,6 +748,7 @@ export class Arena {
   clear() {
     this.wave.clear();
     this.inWave = false;
+    this.boss = null;
   }
 
   /** Report for the console: what loaded, what fell back. */

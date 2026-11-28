@@ -32,6 +32,11 @@ const TEMPLATE = `
 <div class="cb-crosshair" data-field="crosshair" hidden><i></i><b></b></div>
 <div class="cb-hitmark" data-field="hitmark" hidden>x</div>
 <div class="cb-damage" data-field="damage" hidden></div>
+<div class="cb-boss" data-field="boss" hidden>
+  <div class="cb-boss-name" data-field="bossName"></div>
+  <div class="cb-boss-bar"><i data-field="bossFill"></i><b data-field="bossTell"></b></div>
+  <div class="cb-boss-phase" data-field="bossPhase"></div>
+</div>
 <div class="cb-hazard" data-field="hazard" hidden></div>
 <div class="cb-takedown" data-field="takedown" hidden>
   <span class="cb-key">E</span><span data-field="takedownText">Take down</span>
@@ -98,6 +103,24 @@ const STYLE = `
   border-top: 3px solid var(--signal, #E88771); border-radius: 26px 26px 0 0;
   transform-origin: 26px 128px; display: block; }
 .cb-damage i[data-behind="1"] { border-top-color: var(--amber, #E0B77E); }
+
+/* The boss. A bar at the top of the frame, a phase line, and a telegraph that
+   fills left to right across the bar itself — the wind-up is the one number in a
+   boss fight the player has to read, so it lives in the most prominent place
+   rather than being a separate widget. */
+.cb-boss { position: absolute; left: 50%; top: 22px; transform: translateX(-50%);
+  width: min(46vw, 520px); text-align: center; }
+.cb-boss-name { font: 600 12px/1.6 var(--mono, monospace); letter-spacing: 0.22em;
+  text-transform: uppercase; color: #f0e2d0; text-shadow: 0 1px 6px #000; }
+.cb-boss-bar { position: relative; height: 7px; margin-top: 4px; overflow: hidden;
+  background: rgba(10, 8, 7, 0.72); border: 1px solid rgba(240, 226, 208, 0.28); border-radius: 2px; }
+.cb-boss-bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #a83a2a, #d8643f);
+  transition: width 90ms linear; }
+.cb-boss-bar b { position: absolute; inset: 0 auto 0 0; background: rgba(255, 238, 200, 0.55);
+  width: 0; transition: width 40ms linear; }
+.cb-boss[data-winding="1"] .cb-boss-bar b { background: rgba(255, 226, 150, 0.85); }
+.cb-boss-phase { margin-top: 3px; font: 600 9px/1.4 var(--mono, monospace); letter-spacing: 0.2em;
+  text-transform: uppercase; color: rgba(240, 226, 208, 0.62); }
 
 /* The hazard prompt sits above the takedown prompt, and is deliberately a
    different colour: using the street is a bigger decision than a knife. */
@@ -216,6 +239,27 @@ export class CombatHud {
           item.append(strong, note);
           f.offerList.appendChild(item);
         });
+      }
+    }
+
+    // The boss. Shown for as long as one is alive, and taken down the moment it
+    // is not — a stale boss bar is worse than none.
+    const boss = state.boss;
+    if (boss !== this.lastBoss) {
+      this.lastBoss = boss;
+      f.boss.hidden = !boss;
+    }
+    if (boss) {
+      f.bossName.textContent = `${boss.title} · ${boss.name}`;
+      f.bossFill.style.width = `${Math.round(boss.fraction * 100)}%`;
+      f.bossTell.style.width = `${Math.round(boss.telegraph * 100)}%`;
+      f.boss.dataset.winding = boss.winding ? "1" : "0";
+      // Only rewrite the phase line when the phase itself changes, so the bar
+      // does not thrash layout sixty times a second.
+      const phaseText = `${boss.phase} — ${boss.phaseNote}`;
+      if (phaseText !== this.lastPhaseText) {
+        this.lastPhaseText = phaseText;
+        f.bossPhase.textContent = phaseText;
       }
     }
 

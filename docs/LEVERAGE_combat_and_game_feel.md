@@ -181,13 +181,49 @@ Being honest about the gap that remains, in order:
 2. **Camera-relative aim**, per 7a.1 — a judgement call that needs hands on it.
 3. **Body-versus-body collision.** Steering separates bodies, but they can still
    pass through each other when pushed. Real capsule collision is the fix.
-4. **A boss per act.** `Stan`, `Mike` and `George` are vendored, rigged, six and
-   a half metres tall, and unused.
+4. ~~**A boss per act.**~~ **Done** — see 7b. The names previously written here
+   (`Stan`, `Mike`, `George`) were never in this repository; nothing by those
+   names exists in `assets/`. The bosses were built from the `Enemy_Large` rigs
+   that do exist.
 5. **Environmental kills.** The street is full of props and traffic and none of
    it can be turned into a weapon, which is odd for a game about leverage.
 6. **Footstep surfaces.** There is one step sound with a wet variant, in a city
    with tarmac, grating, puddles and gravel.
 7. **Per-archetype death behaviour** and a **practise range**.
+
+## 7b. Bosses
+
+The build now has three, on waves 10, 20 and 30, one per act.
+
+The design rule they all obey: **every boss attack is survivable if you
+understood it, and is telegraphed before it lands.** An attack that resolves in
+one frame is a coin flip. So each one runs through an explicit clock —
+`windup` (telegraph), `strike` (lands exactly once), `recover` (the punish
+window) — and the HUD fills a bar across the health bar during the wind-up,
+because the wind-up is the one number a player has to read.
+
+| Boss | Act | Rule the player has to learn |
+|---|---|---|
+| The Enforcer | I | Charges. The wind-up costs it its footing, so the punish window is a mistake it made rather than a random opening. |
+| The Marksman | II | Relocates after every shot. Learnable, not unfair: it moves *after* firing, so the shot is committed before the movement. |
+| The Warden | III | Shells from range, calls the street in at 65%, then fights at contact. Everything learned, tested at once. |
+
+Each has three phases and each phase changes one thing. A boss that behaves the
+same at 10% and 100% is a wall with a number on it.
+
+Three bugs, all of which would have shipped silently:
+
+- `phaseAt` compared thresholds in the wrong direction and picked a phase one
+  step too deep a third of the time.
+- Two of the three bosses had **no `recover` at all** — a telegraph with no punish
+  window, which breaks the rule stated at the top of the file.
+- The phase check divided by `this.currentScale`, which was never set anywhere,
+  so the fraction was `NaN` and phase one could never end.
+
+The last one is the pattern worth naming: a property that does not exist reads
+as `undefined`, and `undefined` in arithmetic is `NaN`, and `NaN` in a comparison
+is always false. Nothing throws. A test that asserted "the second phase is
+announced" caught it; nothing else would have.
 
 ## 8. What to do next, in order
 
@@ -201,7 +237,9 @@ Ordered by how much each raises the game per unit of risk. The first two are the
 
 ### 8.2 Raising the ceiling
 
-4. **Authored boss per act.** `Stan`, `Mike` and `George` are 6.5 m rigged bosses with 18–20 clips each already vendored and unused. One boss at wave 10 and one at wave 20 would give the endless ladder a shape and a memory.
+4. ~~**Authored boss per act.**~~ **Done.** Bosses are at waves 10, 20 and 30, built from the vendored `cyberpunk_pack__Enemy_Large*` and
+   `Enemy_2Legs_Gun` rigs. The earlier claim that `Stan`/`Mike`/`George` were
+   vendored with 18–20 clips each was wrong: no such assets exist in this repo.
 5. **Weapon upgrade path, not just a ladder.** Each weapon should have one mod that changes its role: a scope on the pistol (range), a drum on the machine pistol (magazine), a choke on the shotgun (spread). Three mods is enough. This is where *progression* becomes *expression*.
 6. **Environmental kills.** `assets/kenney` already carries crates, barrels and street furniture, and the city already has traffic. A body pushed into a car, a lamp dropped on a brute, a launcher round into a fuel drum: the fiction is about using the street, so the street should be a weapon.
 7. **Downed and revived, not dead.** On zero health, go down and bleed out over eight seconds; a wave clear revives. It keeps a bad wave from wiping twenty minutes of run, and it is more tense than a restart.

@@ -10,6 +10,7 @@
 
 import { Loadout, weaponById, unlockedAt, WEAPONS } from "./arsenal.js";
 import { offerMods } from "./mods.js";
+import { bossForWave, bossStats } from "./bosses.js";
 import { WAVES, waveAt, statLine, waveEnemies, waveThreat, ARCHETYPE } from "./enemies.js";
 
 /**
@@ -136,7 +137,20 @@ export class Run {
       const stats = statLine(e.archetype, wave.scale ?? 1);
       return { ...stats, slot: i };
     });
-    return { wave, enemies, threat: waveThreat(wave) };
+    // Boss waves. A boss replaces the ordinary mix rather than joining it: a
+    // boss plus a crowd is a difficulty spike, and a spike is not a fight you
+    // remember, it is a fight you lose and do not understand.
+    const boss = bossForWave(this.wave);
+    if (boss) {
+      enemies.length = 0;
+      const stats = bossStats(boss, wave.scale ?? 1);
+      // The bar needs to know its own ceiling: health is scaled by the wave, so
+      // the definition's health is not it on a replay.
+      enemies.push({ ...stats, maxHealth: stats.health, slot: 0 });
+      wave.boss = boss.id;
+      wave.name = boss.name;
+    }
+    return { wave, enemies, threat: waveThreat(wave), boss };
   }
 
   /** A kill. Quiet kills pay more, because they cost more nerve. */
