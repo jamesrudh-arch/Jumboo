@@ -48,6 +48,26 @@ const VOICES = {
   ping: { kind: "tone", freq: 880, toFreq: 660, dur: 0.2, gain: 0.18, wave: "triangle" },
   denimRustle: { kind: "noise", dur: 0.12, gain: 0.06, filter: "highpass", freq: 3200, q: 0.6 },
   lampPop: { kind: "noise", dur: 0.18, gain: 0.25, filter: "bandpass", freq: 2600, q: 3 },
+
+  // ---------------------------------------------------------------- arsenal
+  // Each weapon gets a voice that says what it is without seeing it: a pistol
+  // is a crack, a shotgun is a boom with a tail, a rifle is a whip that snaps
+  // back, and a silenced shot is mostly mechanism. All synthesised, no files.
+  swing: { kind: "noise", dur: 0.14, gain: 0.12, filter: "bandpass", freq: 700, q: 1.2 },
+  blade: { kind: "noise", dur: 0.1, gain: 0.14, filter: "highpass", freq: 3400, q: 0.8 },
+  hitFlesh: { kind: "tone", freq: 160, toFreq: 70, dur: 0.16, gain: 0.3, wave: "triangle" },
+  hitArmour: { kind: "noise", dur: 0.12, gain: 0.26, filter: "bandpass", freq: 2900, q: 4 },
+  pistolShot: { kind: "noise", dur: 0.16, gain: 0.36, filter: "lowpass", freq: 2400, q: 0.7 },
+  silencedShot: { kind: "noise", dur: 0.09, gain: 0.12, filter: "lowpass", freq: 900, q: 0.9 },
+  autoShot: { kind: "noise", dur: 0.08, gain: 0.24, filter: "lowpass", freq: 1900, q: 0.6 },
+  shotgunBlast: { kind: "noise", dur: 0.34, gain: 0.5, filter: "lowpass", freq: 1200, q: 0.5 },
+  rifleCrack: { kind: "noise", dur: 0.42, gain: 0.55, filter: "lowpass", freq: 3000, q: 0.4 },
+  launcherThump: { kind: "tone", freq: 90, toFreq: 34, dur: 0.5, gain: 0.5, wave: "sine" },
+  explosion: { kind: "noise", dur: 1.1, gain: 0.6, filter: "lowpass", freq: 700, q: 0.4 },
+  flame: { kind: "noise", dur: 0.3, gain: 0.16, filter: "bandpass", freq: 1500, q: 0.5 },
+  energyZap: { kind: "tone", freq: 1400, toFreq: 240, dur: 0.18, gain: 0.24, wave: "square" },
+  dryFire: { kind: "tone", freq: 220, toFreq: 190, dur: 0.06, gain: 0.1, wave: "square" },
+  reloadClick: { kind: "noise", dur: 0.07, gain: 0.14, filter: "bandpass", freq: 1800, q: 2.4 },
 };
 
 export class CityAudio {
@@ -372,6 +392,20 @@ export class CityAudio {
         return this.play("thud", { gain: 0.5 });
       case "chaos":
         return event.kind === "power" ? this.play("lampPop", { gain: 0.6 + near }) : false;
+      // Combat: played from the event stream, attenuated by distance so a shot
+      // across the district is a distant pop and not a bang in the ear.
+      case "shot":
+        return this.play(event.sound || "pistolShot", { gain: 0.45 + near * 0.55 });
+      case "dry-fire":
+        return this.play("dryFire", { gain: 0.8 });
+      case "reload":
+        return this.play("reloadClick", { gain: 0.9 });
+      case "swing":
+        return this.play(event.sound || "swing", { gain: 0.8 + near * 0.2 });
+      case "hit":
+        return this.play(event.armoured ? "hitArmour" : "hitFlesh", { gain: 0.7 + near * 0.3 });
+      case "explosion":
+        return this.play("explosion", { gain: 0.5 + near * 0.5 });
       default:
         return false;
     }

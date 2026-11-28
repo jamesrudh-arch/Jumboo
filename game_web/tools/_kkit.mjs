@@ -12,9 +12,13 @@ function readGlb(file) {
   const NC = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 };
   const TY = { 5120: Int8Array, 5121: Uint8Array, 5122: Int16Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array };
   function read(i) {
-    const a = acc[i], v = views[a.bufferView];
-    const off = (v.byteOffset || 0) + (a.byteOffset || 0);
+    const a = acc[i];
     const n = NC[a.type], A = TY[a.componentType];
+    // An accessor with no bufferView is all zeros by the spec (used for
+    // attributes that are declared but share a default, which rigged models do).
+    if (a.bufferView === undefined) return new A(a.count * n);
+    const v = views[a.bufferView];
+    const off = (v.byteOffset || 0) + (a.byteOffset || 0);
     const stride = v.byteStride || A.BYTES_PER_ELEMENT * n;
     const out = new A(a.count * n);
     for (let k = 0; k < a.count; k++) for (let c = 0; c < n; c++) {
@@ -56,8 +60,8 @@ const PACKS = {
   modular: "modular-buildings", retro: "retro-urban", furniture: "furniture",
 };
 
-export function makeKenneyKit(packKey, names) {
-  const dir = `./assets/kenney/${PACKS[packKey]}`;
+export function makeKenneyKit(packKey, names, absDir = null) {
+  const dir = absDir || `./assets/kenney/${PACKS[packKey]}`;
   let texture = null;
   const atlasFile = `${dir}/Textures/colormap.png`;
   if (fs.existsSync(atlasFile)) {
