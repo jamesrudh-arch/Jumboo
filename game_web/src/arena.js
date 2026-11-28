@@ -146,6 +146,24 @@ export class Arena {
     this.waveTimer += dt;
     const p = this.world.player;
     this.playerHitCooldown = Math.max(0, this.playerHitCooldown - dt);
+
+    // The bleed-out. Down is not dead: the player is on the ground, the wave is
+    // still coming, and a cleared wave is what gets them up.
+    if (this.run.state === "down") {
+      const alive = this.run.tickDown(dt);
+      this.feel.shake.add(dt * 0.6);
+      if (!alive) {
+        this.inWave = false;
+        this.handlers.onDeath?.({ wave: this.run.wave, run: this.run.snapshot() });
+        return;
+      }
+      for (const e of this.wave.live) e.tick(dt);
+      // Keep checking whether the street has emptied: killing the last body is
+      // exactly what is supposed to bring a downed player back, so this check has
+      // to run while down rather than being skipped by an early return.
+      if (this.wave.alive === 0) this.finishWave();
+      return;
+    }
     const sim = this.feel.tick(dt);
 
     for (const e of this.wave.live) {
@@ -246,14 +264,25 @@ export class Arena {
     // body that dies is still in the list while it falls: waiting for the list
     // to empty delays the end of the fight until the corpse has sunk, which
     // feels like the game has forgotten the wave.
-    if (this.wave.alive === 0 && !this.waveEnding) {
-      this.waveEnding = true;
-      this.inWave = false;
-      const cleared = this.run.wave;
-      const offer = this.run.endWave();
-      this.handlers.onWaveEnd?.({ wave: cleared, offer, run: this.run.snapshot() });
-    }
+    if (this.wave.alive === 0) this.finishWave();
     void sim;
+  }
+
+  /**
+   * The street is empty. Called from both the normal path and the downed path,
+   * because a player bleeding out on the ground needs the wave to end too.
+   */
+  finishWave() {
+    if (this.waveEnding) return;
+    this.waveEnding = true;
+    this.inWave = false;
+    const cleared = this.run.wave;
+    // A downed player who survives to see the wave cleared gets up with a third
+    // of their health. That is the tension the downed state buys: hold on, the
+    // street is nearly clear.
+    if (this.run.state === "down") this.run.revive();
+    const offer = this.run.endWave();
+    this.handlers.onWaveEnd?.({ wave: cleared, offer, run: this.run.snapshot() });
   }
 
   /** An enemy connects. Telegraphed by the attack animation, so it is dodgeable. */
@@ -284,7 +313,7 @@ export class Arena {
     this.audio?.playEvent?.({ type: "enemy-attack", x: enemy.root.position.x, z: enemy.root.position.z, kind: attack.kind }, p);
     this.audio?.playEvent?.({ type: "player-hit", x: p.x, z: p.z }, p);
     this.handlers.onHurt?.({ enemy, damage, health: this.run.health });
-    if (this.run.health <= 0) {
+    if (this.run.health <= 0 && this.run.state === "dead") {
       this.inWave = false;
       // Death ends the wave but does not erase the run: the street resets, the
       // score stays, and the player gets the same wave again. In the browser
@@ -369,6 +398,8 @@ export class Arena {
       accuracy: this.combat?.hud().accuracy ?? null,
       damageTaken: this.stats.damageTaken,
       takedown: this.takedownOffer(),
+      downTimer: this.run.downTimer ?? 0,
+      revivesLeft: this.run.deathsAllowed,
       takedowns: this.quietTakedowns ?? 0,
     };
   }

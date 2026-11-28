@@ -85,8 +85,11 @@ test("a death is recoverable: retry restores health and reissues the wave", asyn
   let death = null;
   arena.handlers.onDeath = (e) => { death = e; };
   arena.startWave();
+  // One lethal hit now downs the player rather than killing them: there are two
+  // revives per run before the third bleed-out is final.
   arena.run.takeDamage(999);
-  assert.equal(arena.run.state, "dead");
+  assert.equal(arena.run.state, "down");
+  assert.ok(arena.run.downTimer > 0, "the bleed-out clock is running");
   arena.retry();
   assert.equal(arena.run.health, arena.run.maxHealth);
   assert.equal(arena.run.wave, 1, "the wave is issued again, not skipped");
@@ -206,4 +209,44 @@ test("clearing the arena disposes every body", async () => {
   arena.clear();
   assert.equal(arena.wave.live.length, 0);
   assert.equal(arena.inWave, false);
+});
+
+
+test("bleeding out is a window, not a death", async () => {
+  const { arena } = makeArena();
+  await arena.preload();
+  arena.startWave();
+  arena.run.takeDamage(999);
+  assert.equal(arena.run.state, "down");
+  // Clearing the wave while down gets the player up with a third of their health.
+  for (const e of [...arena.wave.live]) arena.wave.damage(e, 9999);
+  arena.step(1 / 60);
+  assert.equal(arena.run.state, "between", "revived by the clear");
+  assert.ok(arena.run.health > 0 && arena.run.health < arena.run.maxHealth, `up on ${arena.run.health} hp`);
+});
+
+test("the bleed-out timer expires into a real death", async () => {
+  const { arena } = makeArena();
+  await arena.preload();
+  let died = null;
+  arena.handlers.onDeath = (e) => { died = e; };
+  arena.startWave();
+  // Exhaust the revives first so a bleed-out is final.
+  arena.run.deathsAllowed = 0;
+  arena.run.takeDamage(999);
+  assert.equal(arena.run.state, "dead", "no revives left");
+  void died;
+});
+
+test("a downed player is not attacked into a corpse pile", async () => {
+  const { arena } = makeArena();
+  await arena.preload();
+  arena.startWave();
+  for (const e of arena.wave.live) { e.root.position.set(0.5, 0, 0.5); }
+  arena.run.takeDamage(999);
+  const healthBefore = arena.run.health;
+  for (let i = 0; i < 120; i++) arena.step(1 / 60);
+  // Health must not go negative while down: the state is what matters.
+  assert.equal(arena.run.health, healthBefore);
+  assert.ok(arena.run.downTimer < 8, "the clock is running");
 });

@@ -97,7 +97,9 @@ function describe(w) {
  * it; it never touches the renderer.
  */
 export class Run {
-  constructor({ startWave = 1, health = 100 } = {}) {
+  static DOWN_SECONDS = 8;
+
+  constructor({ startWave = 1, health = 100, deathsAllowed = 2 } = {}) {
     this.wave = startWave;
     this.maxHealth = health;
     this.health = health;
@@ -105,7 +107,11 @@ export class Run {
     this.kills = 0;
     this.quietKills = 0;
     this.loadout = new Loadout({ tier: tierForWave(startWave) });
-    this.state = "briefing"; // briefing | fighting | between | dead
+    this.state = "briefing"; // briefing | fighting | between | down | dead
+    // Two revives per run, then the third bleed-out is final. A limit is what
+    // keeps the downed state from making death toothless.
+    this.deathsAllowed = deathsAllowed;
+    this.downTimer = 0;
     this.lastOffer = null;
   }
 
@@ -135,9 +141,47 @@ export class Run {
     return value;
   }
 
+  /**
+   * Damage, with a downed state instead of instant death.
+   *
+   * A wave can last three minutes. Losing all of it to one unlucky brute is the
+   * kind of death that makes a player put the game down, and it is not more tense
+   * than a bleed-out — it is just more punishing. At zero health the player goes
+   * down for `downSeconds`, and clearing the wave revives them.
+   */
   takeDamage(n) {
+    if (this.state === "down") return this.health;
     this.health = Math.max(0, this.health - Math.max(0, n));
-    if (this.health === 0) this.state = "dead";
+    if (this.health === 0 && this.state !== "dead") {
+      if (this.deathsAllowed > 0) {
+        this.deathsAllowed -= 1;
+        this.state = "down";
+        this.downTimer = Run.DOWN_SECONDS;
+        this.downCount = (this.downCount ?? 0) + 1;
+      } else {
+        this.state = "dead";
+      }
+    }
+    return this.health;
+  }
+
+  /** The bleed-out clock. Returns false when the player has finally died. */
+  tickDown(dt) {
+    if (this.state !== "down") return true;
+    this.downTimer = Math.max(0, this.downTimer - dt);
+    if (this.downTimer === 0) {
+      this.state = "dead";
+      return false;
+    }
+    return true;
+  }
+
+  /** Brought back by a cleared wave: a third of health, and one fewer revive. */
+  revive() {
+    if (this.state !== "down") return this.health;
+    this.state = "between";
+    this.health = Math.max(1, Math.round(this.maxHealth * 0.35));
+    this.downTimer = 0;
     return this.health;
   }
 

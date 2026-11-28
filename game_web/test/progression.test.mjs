@@ -91,13 +91,57 @@ test("a bigger enemy is worth more", () => {
   assert.ok(brute > pack * 3);
 });
 
-test("health floors at zero and that is death", () => {
+test("health floors at zero and the player goes down", () => {
   const run = new Run();
   run.takeDamage(40);
   assert.equal(run.health, 60);
   run.takeDamage(500);
   assert.equal(run.health, 0);
+  // Down, not dead: there is a bleed-out window and two revives.
+  assert.equal(run.state, "down");
+  assert.ok(run.downTimer > 0);
+});
+
+test("a run with no revives left dies at zero", () => {
+  const run = new Run({ deathsAllowed: 0 });
+  run.takeDamage(500);
   assert.equal(run.state, "dead");
+});
+
+test("bleeding out runs the clock down to a real death", () => {
+  const run = new Run({ deathsAllowed: 1 });
+  run.takeDamage(500);
+  assert.equal(run.state, "down");
+  run.tickDown(1);
+  assert.equal(run.state, "down", "still holding on");
+  run.tickDown(20);
+  assert.equal(run.state, "dead", "the clock ran out");
+});
+
+test("a cleared wave revives a downed player on a third of their health", () => {
+  const run = new Run({ deathsAllowed: 1 });
+  run.takeDamage(500);
+  run.revive();
+  assert.equal(run.state, "between");
+  assert.equal(run.health, 35);
+  assert.equal(run.downTimer, 0);
+});
+
+test("revives are limited, so being downed is not toothless", () => {
+  const run = new Run({ deathsAllowed: 2 });
+  run.takeDamage(500); run.revive();
+  run.takeDamage(500); run.revive();
+  assert.equal(run.deathsAllowed, 0);
+  run.takeDamage(500);
+  assert.equal(run.state, "dead", "the third down is final");
+});
+
+test("a downed player cannot be damaged further", () => {
+  const run = new Run();
+  run.takeDamage(500);
+  const hp = run.health;
+  run.takeDamage(500);
+  assert.equal(run.health, hp, "the bleed-out clock is the only thing running");
 });
 
 test("healing never passes the maximum", () => {
