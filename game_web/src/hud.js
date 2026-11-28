@@ -25,6 +25,8 @@ const TEMPLATE = `
   </div>
 </div>
 <div class="lv-stance" data-field="stance">Standing</div>
+<div class="lv-weather" data-field="weather">Drizzle</div>
+<div class="lv-chaos" data-field="chaos" hidden><span class="lv-label">Chaos</span><span data-field="chaosList"></span></div>
 <div class="lv-prompt" data-field="prompt" hidden><span class="lv-key">E</span><span data-field="promptText"></span><i data-field="progress"></i></div>
 <div class="lv-suspicion" data-field="suspicion" hidden>
   <div class="lv-suspicion-ring" data-field="ring"></div>
@@ -66,6 +68,11 @@ const STYLE = `
 .lv-noise-pips b[data-on="1"][data-loud="1"] { background: var(--signal); }
 .lv-stance { position: absolute; right: 44px; bottom: 44px; font-size: 11px;
   letter-spacing: .16em; text-transform: uppercase; color: var(--steel); }
+.lv-weather { position: absolute; right: 44px; bottom: 62px; font-size: 10px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--tidal); }
+.lv-chaos { position: absolute; right: 44px; bottom: 84px; display: flex; gap: 8px;
+  align-items: baseline; font-size: 10px; letter-spacing: .12em; color: var(--amber); }
+.lv-chaos[hidden] { display: none; }
 .lv-prompt { position: absolute; left: 50%; bottom: 132px; transform: translateX(-50%);
   display: flex; align-items: center; gap: 9px; padding: 9px 15px;
   background: color-mix(in srgb, var(--ink) 82%, transparent);
@@ -141,6 +148,13 @@ export class Hud {
     });
     f.stance.textContent = hud.crouch > 1.5 ? "Crouched" : hud.running ? "Running" : "Standing";
     f.time.textContent = formatTime(hud.time);
+    if (extra.weather) {
+      const wetPct = Math.round((extra.wet ?? 0) * 100);
+      f.weather.textContent = `${extra.weather} · street ${wetPct}% wet`;
+    }
+    const chaosCount = extra.chaos ?? 0;
+    f.chaos.hidden = chaosCount <= 0;
+    if (chaosCount > 0) f.chaosList.textContent = `${chaosCount} unresolved`;
 
     const seen = hud.suspicion > 0.02;
     f.suspicion.hidden = !seen;

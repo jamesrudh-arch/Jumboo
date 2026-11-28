@@ -394,6 +394,8 @@ export function rasterize(scene, camera, opts = {}) {
   const tmp = new THREE.Vector3();
 
   scene.traverse((obj) => {
+    // Instanced meshes are as important as plain meshes in this build: the whole
+    // city's windows, trees and railings are instanced.
     if (!obj.isMesh) return;
     let visible = obj.visible;
     for (let p = obj.parent; p; p = p.parent) if (!p.visible) visible = false;
@@ -458,13 +460,32 @@ export function rasterize(scene, camera, opts = {}) {
       stats.skinnedVerts += pos.count;
     }
 
-    const getVert = (i, out) => {
+    // Instanced meshes: a matrix per instance, applied on top of matrixWorld.
+    const isInstanced = !!obj.isInstancedMesh;
+    const instanceMatrices = isInstanced ? obj.instanceMatrix.array : null;
+    let instanceMatrix = null;
+    if (isInstanced) {
+      instanceMatrix = new THREE.Matrix4();
+      instanceMatrix.elements = obj.instanceMatrix.array;
+      stats.instances = (stats.instances || 0) + obj.count;
+    }
+    const skinMatTmp = new THREE.Matrix4();
+    const getVertFor = (instance, i, out) => {
       if (skinCache) return out.set(skinCache[i * 3], skinCache[i * 3 + 1], skinCache[i * 3 + 2]);
-      return out.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld);
+      out.fromBufferAttribute(pos, i);
+      if (isInstanced) {
+        skinMatTmp.fromArray(instanceMatrices, instance * 16);
+        skinMatTmp.premultiply(obj.matrixWorld);
+        return out.applyMatrix4(skinMatTmp);
+      }
+      return out.applyMatrix4(obj.matrixWorld);
     };
+    const getVert = (i, out) => getVertFor(0, i, out);
 
+    const instanceCount = isInstanced ? obj.count : 1;
     let objWritten = 0;
-    for (const g of groups) {
+    for (let instance = 0; instance < instanceCount; instance++) {
+      for (const g of groups) {
       const mat = mats[g.materialIndex || 0] || mats[0];
       if (!mat) continue;
       if (mat.transparent && (mat.opacity ?? 1) < 0.03) continue;
@@ -481,9 +502,9 @@ export function rasterize(scene, camera, opts = {}) {
         const ia = idx ? idx.getX(g.start + i) : g.start + i;
         const ib = idx ? idx.getX(g.start + i + 1) : g.start + i + 1;
         const ic = idx ? idx.getX(g.start + i + 2) : g.start + i + 2;
-        getVert(ia, v0);
-        getVert(ib, v1);
-        getVert(ic, v2);
+        getVertFor(instance, ia, v0);
+        getVertFor(instance, ib, v1);
+        getVertFor(instance, ic, v2);
 
         // Face normal (skinned meshes: derive from posed vertices).
         nrm.copy(v1).sub(v0).cross(tmp.copy(v2).sub(v0));
@@ -639,6 +660,7 @@ export function rasterize(scene, camera, opts = {}) {
             fillTri({ color, depth, W, H, fog }, tri, rgb, scratch);
           }
         }
+      }
       }
     }
     if (scratch) {

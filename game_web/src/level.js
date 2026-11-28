@@ -105,9 +105,10 @@ export function buildLevel() {
   const props = [];
   const decals = [];
 
-  const solid = (x1, z1, x2, z2, y0, y1, tag) => {
-    const b = box(x1, z1, x2, z2, y0, y1, tag);
-    boxes.push(b);
+  // A wall with openings comes back as a list; everything else as one box.
+  const solid = (x1, z1, x2, z2, y0, y1, tag, opts = null) => {
+    const b = box(x1, z1, x2, z2, y0, y1, tag, opts);
+    for (const one of Array.isArray(b) ? b : [b]) boxes.push(one);
     return b;
   };
 
@@ -124,7 +125,9 @@ export function buildLevel() {
 
   // -------------------------------------------------------- left shopfronts
   // Facade line at x = -7 with three recessed shop windows and awnings.
-  solid(-13.4, -52, -7.0, 12, 0, 14, "wall");
+  // The facade is broken where the west alley meets the lane, so the approved
+  // lane opens onto the district instead of being a closed box.
+  solid(-13.4, -52, -7.0, 12, 0, 14, "wall", { skip: [{ z1: -28, z2: -22 }] });
   props.push({ kind: "facade", x: -7.02, z: -4, w: 0.14, d: 60, h: 14, mat: "brick" });
   for (const z of [3.4, -6.5, -16.5]) {
     props.push({ kind: "window", x: -6.9, z, w: 0.08, d: 3.2, h: 2.0, mat: "glassWarm", y: 1.15 });
@@ -143,8 +146,9 @@ export function buildLevel() {
 
   // ------------------------------------------------------- right-hand wall
   // Solid industrial wall with a recessed loading bay from z = -34 to -45.
-  solid(7.0, -52, 13.4, -45.0, 0, 13, "wall");
-  solid(7.0, -34.0, 13.4, 12, 0, 13, "wall");
+  solid(7.0, -52, 13.4, -40.0, 0, 13, "wall");
+  // A gap where the east alley meets the lane, so the street has a second way out.
+  solid(7.0, -33.0, 13.4, 12, 0, 13, "wall", { skip: [{ z1: -32, z2: -25 }] });
   solid(12.6, -45.0, 13.4, -34.0, 0, 13, "backWall");
   props.push({ kind: "facade", x: 7.02, z: -16, w: 0.14, d: 56, h: 13, mat: "concrete" });
   props.push({ kind: "facade", x: 12.55, z: -39.5, w: 0.14, d: 11, h: 13, mat: "concrete" });
@@ -162,7 +166,10 @@ export function buildLevel() {
 
   // ------------------------------------------------------------- far end
   // Market gate: the lane opens onto the market, but the slice ends here.
-  solid(-7.2, -52.0, 13.4, -47.6, 0, 13, "wall");
+  // The market gate has a doorway at x 2..7 so the lane is not a sealed box:
+  // step through it at the far end and the district opens up.
+  solid(-7.2, -52.0, 2.0, -47.6, 0, 13, "wall");
+  solid(7.0, -47.6, 13.4, -45.0, 0, 13, "wall");
   props.push({ kind: "marketGlow", x: 2.0, z: -47.4, w: 12.0, h: 4.6 });
 
   // ------------------------------------------------------------- cover

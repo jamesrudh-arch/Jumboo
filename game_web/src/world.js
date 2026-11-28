@@ -21,6 +21,8 @@ import {
   resolveCircle,
   supportHeightAt,
 } from "./collision.js";
+import { Traffic, Crowd } from "./traffic.js";
+import { waterAt, CITY, mulberry32 } from "./city.js";
 
 export const PHASE = {
   BRIEFING: "briefing",
@@ -57,7 +59,17 @@ export const TUNING = {
   spottedPenalty: 200,
   baseScore: 1600,
   timePenaltyPerSecond: 5,
+  // Hazards and the chaos director.
+  drownTime: 0.85, // seconds under the surface before the water spits you out
+  carKnockback: 9, // m/s imparted by a car strike
+  carDownTime: 1.25, // seconds on the ground after being hit
+  chaosInterval: [11, 22], // seconds between unpredictable events
+  chaosMax: 6,
 };
+
+function insetRect(r, pad) {
+  return { x1: r.x1 + pad, x2: r.x2 - pad, z1: r.z1 + pad, z2: r.z2 - pad };
+}
 
 export class World {
   constructor(level, built = { boxes: [], platforms: [] }, options = {}) {
@@ -66,7 +78,25 @@ export class World {
     this.events = [];
     this.openBoxes = built.boxes || [];
     this.platforms = built.platforms || [];
+    // The district is optional: without it this is exactly the old lane-only
+    // build, which keeps the approved-beat tests valid.
+    this.city = options.city || null;
+    this.tier = options.tier || null;
+    // With a district the player can walk the whole map; without one the lane
+    // keeps its own small bounds, which is what the approved-beat tests expect.
+    this.bounds = this.city ? insetRect(this.city.bounds, 2) : level.bounds;
+    this.traffic = this.city ? new Traffic(this.city, this.tier || { traffic: 8 }, { aggression: options.aggression }) : null;
+    this.crowd = this.city ? new Crowd(this.city, (this.tier && this.tier.crowd) || 12, options.seed || 4242) : null;
+    // Which box list the collision solver uses: district if present.
+    if (this.city && Array.isArray(options.cityBoxes)) this.openBoxes = options.cityBoxes.concat(this.openBoxes);
+    this.chaosRng = mulberry32(options.seed || 20261127);
     this.reset();
+  }
+
+  /** True when the player is standing over open water. */
+  waterUnderfoot(x = this.player.x, z = this.player.z) {
+    if (!this.city) return null;
+    return waterAt(this.city, x, z);
   }
 
   get boxes() {
@@ -136,6 +166,16 @@ export class World {
     this.agents = this.patrolDefs.map((def, index) => this.makeAgent(def, index));
     this.hunters = 0;
     this.suspicion = 0;
+    // Hazard / chaos state.
+    this.wetTimer = 0;
+    this.knockdown = 0;
+    this.knockX = 0;
+    this.knockZ = 0;
+    this.chaosTimer = this.chaosRng ? 6 + this.chaosRng() * 6 : Infinity;
+    this.chaosEvents = [];
+    this.hitsTaken = 0;
+    this.drownings = 0;
+    this.honks = 0;
   }
 
   makeAgent(def, index) {
@@ -204,11 +244,187 @@ export class World {
     }
     this.time += dt;
     this.updatePlayer(dt);
+    this.updateStreet(dt);
     this.updateAgents(dt, false);
     this.updateDetection(dt);
     this.updateObjective(dt);
+    this.updateChaos(dt);
     this.updateCamera(dt);
     this.checkOutcome();
+  }
+
+  /**
+   * Traffic, crowds and the hazards they create. Every event here is emitted so
+   * the HUD, audio and the chaos director can react to it.
+   */
+  updateStreet(dt) {
+    const p = this.player;
+
+    // Traffic.
+    if (this.traffic) {
+      const carEvents = this.traffic.update(dt, p, this.agents);
+      for (const e of carEvents) {
+        if (e.type === "hit-by-car") {
+          // Knock the player down and shove them clear of the wheels.
+          this.knockdown = TUNING.carDownTime;
+          this.knockX = (e.pushX || 0) * TUNING.carKnockback;
+          this.knockZ = (e.pushZ || 0) * TUNING.carKnockback;
+          this.hitsTaken += 1;
+          p.stamina = Math.max(0, p.stamina - 22);
+          // Being flattened is loud: the collectors notice.
+          this.emit("hit-by-car", { x: e.x, z: e.z, kind: e.kind });
+          this.startHuntNearest(e.x, e.z);
+        } else if (e.type === "honk") {
+          this.honks += 1;
+          this.emit("honk", { x: e.x, z: e.z });
+          this.hearSound(e.x, e.z, 18);
+        }
+      }
+    }
+
+    // Crowds.
+    if (this.crowd) {
+      const pedEvents = this.crowd.update(dt, this.traffic ? this.traffic.vehicles : []);
+      for (const e of pedEvents) {
+        if (e.type === "ped-panic") this.emit("panic", { x: e.x, z: e.z });
+      }
+    }
+
+    // Water: the district's canal, harbour and pond are holes in the ground.
+    const water = this.waterUnderfoot();
+    // Any part of the body in the channel counts: walking off the wharf drops
+    // you in even though the surface sits below street level.
+    if (water && p.feetY < water.surfaceY + 1.6) {
+      this.wetTimer += dt;
+      // Swimming is not authored: being in the water costs you and spits you
+      // back to the bank. This is documented in the README as a study limit.
+      if (this.wetTimer > TUNING.drownTime) {
+        this.drownings += 1;
+        this.wetTimer = 0;
+        this.emit("drowned", { x: p.x, z: p.z, kind: water.kind });
+        this.respawn();
+        return;
+      }
+    } else {
+      this.wetTimer = Math.max(0, this.wetTimer - dt * 2);
+    }
+
+    // Knockdown recovery.
+    if (this.knockdown > 0) {
+      this.knockdown = Math.max(0, this.knockdown - dt);
+      p.x += this.knockX * dt;
+      p.z += this.knockZ * dt;
+      this.knockX *= 1 - Math.min(1, dt * 6);
+      this.knockZ *= 1 - Math.min(1, dt * 6);
+      resolveCircle(p, this.level.player.radius, this.boxes, p.feetY, p.feetY + 1.8);
+    }
+  }
+
+  /** Nearest collector reacts to a loud event at (x, z). */
+  startHuntNearest(x, z) {
+    let best = null;
+    let bestD = Infinity;
+    for (const a of this.agents) {
+      if (a.state === "hunt") continue;
+      const d = dist2D(a.x, a.z, x, z);
+      if (d < bestD) {
+        bestD = d;
+        best = a;
+      }
+    }
+    if (best && bestD < 34) {
+      best.target = { x, z };
+      this.startHunt(best);
+    }
+  }
+
+  /** A sound at a point: collectors within reach investigate it. */
+  hearSound(x, z, radius) {
+    for (const a of this.agents) {
+      if (a.state === "hunt") continue;
+      const d = dist2D(a.x, a.z, x, z);
+      if (d < Math.min(radius, a.def.hearing * 1.8)) {
+        a.state = "investigate";
+        a.target = { x, z };
+        a.investigateTimer = 0;
+        this.emit("heard", { id: a.id });
+      }
+    }
+  }
+
+  // ------------------------------------------------------------ chaos
+  /**
+   * The chaos director. On a jittered timer it rolls one of a handful of
+   * unpredictable street events. Every event is auditable in `chaosEvents` so a
+   * chaotic run can still be explained after the fact.
+   */
+  updateChaos(dt) {
+    if (!this.city) return;
+    this.chaosTimer -= dt;
+    if (this.chaosTimer > 0) return;
+    const [minGap, maxGap] = TUNING.chaosInterval;
+    this.chaosTimer = minGap + this.chaosRng() * (maxGap - minGap);
+
+    const roll = this.chaosRng();
+    const p = this.player;
+    let event = null;
+    if (roll < 0.24) event = this.chaosJam();
+    else if (roll < 0.46) event = this.chaosSweep();
+    else if (roll < 0.66) event = this.chaosPowerCut();
+    else if (roll < 0.84) event = this.chaosDetour();
+    else event = this.chaosCrowd();
+
+    if (event) {
+      this.chaosEvents.push({ ...event, time: this.time });
+      if (this.chaosEvents.length > TUNING.chaosMax) this.chaosEvents.shift();
+      this.emit("chaos", event);
+      void p;
+    }
+  }
+
+  chaosJam() {
+    if (!this.traffic || !this.traffic.vehicles.length) return null;
+    const v = this.traffic.vehicles[Math.floor(this.chaosRng() * this.traffic.vehicles.length)];
+    v.speed = 0;
+    v.stuckFor = 1.5;
+    return { kind: "jam", label: "Traffic jam", x: v.x, z: v.z };
+  }
+
+  chaosSweep() {
+    if (!this.traffic) return null;
+    // A car cuts across the avenue: give one a temporary aggressive speed and
+    // a short horn so the player has to move.
+    const v = this.traffic.vehicles[Math.floor(this.chaosRng() * this.traffic.vehicles.length)];
+    if (!v) return null;
+    v.speed = Math.min(v.spec.maxSpeed * 1.25, v.speed + 5);
+    v.honk = 1.6;
+    this.hearSound(v.x, v.z, 26);
+    return { kind: "sweep", label: "A car cuts across", x: v.x, z: v.z };
+  }
+
+  chaosPowerCut() {
+    if (!this.level.lights || !this.level.lights.length) return null;
+    const idx = Math.floor(this.chaosRng() * this.level.lights.length);
+    const light = this.level.lights[idx];
+    light.flicker = 1.4 + this.chaosRng() * 2;
+    return { kind: "power", label: "The lights stutter", x: light.x, z: light.z };
+  }
+
+  chaosDetour() {
+    // Send one collector off its route for a while.
+    const a = this.agents[Math.floor(this.chaosRng() * this.agents.length)];
+    if (!a) return null;
+    a.waypoint = Math.floor(this.chaosRng() * a.def.points.length);
+    a.pause = 0.2;
+    return { kind: "detour", label: "A patrol changes up", x: a.x, z: a.z };
+  }
+
+  chaosCrowd() {
+    if (!this.crowd || !this.crowd.people.length) return null;
+    const person = this.crowd.people[Math.floor(this.chaosRng() * this.crowd.people.length)];
+    person.panic = 1;
+    person.yaw = this.chaosRng() * Math.PI * 2;
+    return { kind: "panic", label: "Someone runs", x: person.x, z: person.z };
   }
 
   // ---------------------------------------------------------------- player
@@ -300,12 +516,16 @@ export class World {
           tryMove(p.x, p.z + stepZ);
         }
       }
-      p.x = clamp(p.x, L.bounds.x1 + 1, L.bounds.x2 - 1);
-      p.z = clamp(p.z, L.bounds.z1 + 1, L.bounds.z2 - 1);
+      p.x = clamp(p.x, this.bounds.x1, this.bounds.x2);
+      p.z = clamp(p.z, this.bounds.z1, this.bounds.z2);
     }
 
-    // Vertical: platforms and the dock lip.
-    const support = supportHeightAt(p.x, p.z, this.platforms, p.feetY, L.stepUp);
+    // Vertical: platforms and the dock lip. Open water has no ground, so the
+    // support there is the bed: walking off the wharf drops you in.
+    const water = this.waterUnderfoot();
+    const support = water
+      ? water.bedY
+      : supportHeightAt(p.x, p.z, this.platforms, p.feetY, L.stepUp);
     if (p.feetY > support + 0.02) {
       p.falling = true;
       p.velocityY = (p.velocityY ?? 0) - TUNING.gravity * dt;
@@ -677,7 +897,7 @@ export class World {
     if (this.phase === PHASE.CAUGHT) return;
     const p = this.player;
     // Falling off the world would be a level bug; recover to the checkpoint.
-    if (p.feetY < -4) this.respawn();
+    if (p.feetY < -14) this.respawn();
   }
 
   /** Rebuild the run from the last checkpoint after being caught. */

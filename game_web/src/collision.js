@@ -3,9 +3,16 @@
 // the vertical axis is handled separately by the player's support test, which
 // keeps the maths cheap enough for phones and exact enough to unit test.
 
-/** Normalise a box so x1 <= x2 and z1 <= z2. */
-export function box(x1, z1, x2, z2, y0 = 0, y1 = 2.4, tag = "") {
-  return {
+/**
+ * Normalise a box so x1 <= x2 and z1 <= z2.
+ *
+ * `opts.skip` punches openings in a long wall: each entry is a z-range (for a
+ * wall running along x) or an x-range (for one running along z). A wall with a
+ * gap is returned as several boxes, so callers must use `boxList()` when they
+ * pass skip ranges.
+ */
+export function box(x1, z1, x2, z2, y0 = 0, y1 = 2.4, tag = "", opts = null) {
+  const b = {
     x1: Math.min(x1, x2),
     z1: Math.min(z1, z2),
     x2: Math.max(x1, x2),
@@ -14,6 +21,37 @@ export function box(x1, z1, x2, z2, y0 = 0, y1 = 2.4, tag = "") {
     y1,
     tag,
   };
+  if (opts && opts.skip) return boxList(b, opts.skip);
+  return b;
+}
+
+/** Split a box into segments, omitting each {z1,z2} or {x1,x2} opening. */
+function boxList(b, gaps) {
+  // Openings are cut along the wall's long axis. A wall that is long in Z takes
+  // z-ranges ({ z1, z2 }); one that is long in X takes x-ranges ({ x1, x2 }).
+  // A caller may pass either shape: the defined pair is the pair that is used.
+  const longAxisIsZ = b.z2 - b.z1 >= b.x2 - b.x1;
+  const spans = gaps
+    .map((g) => {
+      const pair = longAxisIsZ ? [g.z1, g.z2] : [g.x1, g.x2];
+      const fallback = [g.x1, g.x2];
+      const value = pair[0] !== undefined ? pair : fallback;
+      return { a: Math.min(value[0], value[1]), b: Math.max(value[0], value[1]) };
+    })
+    .filter((g) => Number.isFinite(g.a) && Number.isFinite(g.b))
+    .sort((p, q) => p.a - q.a);
+
+  const out = [];
+  let cursor = longAxisIsZ ? b.z1 : b.x1;
+  const end = longAxisIsZ ? b.z2 : b.x2;
+  for (const g of spans) {
+    if (g.a > cursor) {
+      out.push(longAxisIsZ ? { ...b, z1: cursor, z2: Math.min(g.a, end) } : { ...b, x1: cursor, x2: Math.min(g.a, end) });
+    }
+    cursor = Math.max(cursor, g.b);
+  }
+  if (cursor < end) out.push(longAxisIsZ ? { ...b, z1: cursor } : { ...b, x1: cursor });
+  return out;
 }
 
 /**

@@ -8,8 +8,12 @@ geometry and study rules built to exercise the approved story beat, not
 established story facts. No part of this build is "finished", "production
 ready" or rated.
 
-What it is: a playable 3D third-person stealth slice of the M01 "Last Call"
-loading lane — reach Sade, take the lane, stay off the collectors' sightlines.
+What it is: a playable **3D third-person** stealth slice of the M01 "Last Call"
+loading lane, standing in the middle of a walkable night district — Cinder City's
+Hearthline. Reach Sade, take the lane, stay off the collectors' sightlines,
+and survive the street: traffic that brakes, honks and knocks you down, crowds
+that scatter, a canal and a harbour that will drown you, and a weather system
+that changes how far you can see.
 
 ## Run it
 
@@ -18,7 +22,7 @@ cd game_web
 npm run serve          # http://localhost:8080
 ```
 
-Requires a browser with WebGL2. `npm test` runs the 42 headless checks. A real
+Requires a browser with WebGL2. `npm test` runs the 44 headless checks. A real
 browser check is available separately:
 
 ```bash
@@ -39,6 +43,8 @@ npm run smoke          # drives the page, presses keys, checks the frame
 | E / Space | Talk, interact |
 | Esc | Pause |
 | Gamepad | Either stick, triggers, A |
+| Mouse wheel | Camera distance |
+| Touch (phone) | Left stick moves, right half looks, tap buttons for run / crouch / interact |
 
 ## What the slice contains
 
@@ -50,8 +56,29 @@ npm run smoke          # drives the page, presses keys, checks the frame
   shadow-casting moon, procedural canvas textures. All study geometry.
 - **Player** (`src/anim.js`, `src/scene.js`): the approved Marcus asset with
   walk/run cross-fade, stride time-scaling and a composed crouch pose.
+- **District** (`src/city.js`, `src/cityview.js`): a walkable 300 × 250 m night
+  district around the lane — 104 buildings at the desktop tier (58 on a phone,
+  thinned evenly so no district disappears), 4 landmark towers up to 79 m,
+  100 trees, 84 street lamps, ~20 parked cars, container stacks, cranes and the
+  harbour. Roads, pavements, kerbs, road paint, a canal with three bridges, a
+  harbour basin and a park pond are all generated from the same plain data the
+  tests use. 26 of the checks cover it.
+- **Street life** (`src/traffic.js`): 4–14 vehicles on closed routes that keep to
+  the road network, brake for the player, each other and pedestrians, honk when
+  stuck, and knock the player down on contact; 8–16 pedestrians who keep to the
+  pavement, flee fast cars, and can be scattered by the chaos director.
+- **Weather** (`src/weather.js`): five presets (drizzle, downpour, squall,
+  breaking cloud, harbour fog) that blend over ~18 s and change every 55–125 s.
+  Sky, fog distance, rain density, wind slant, ambient fill and exposure all come
+  from one blend; wetness builds during rain and drains slowly afterwards.
+  Lightning is disabled on the phone tier and under `prefers-reduced-motion`.
+- **Chaos** (`src/world.js` `updateChaos`): every 11–22 s the district does
+  something — a car jam, a horn sweep, a power cut on the practicals, a detour,
+  or a panic. Events are logged with position and kind, and the HUD counts the
+  unresolved ones.
 - **HUD** (`src/hud.js`): objective, compass, stamina, noise, stance, suspicion,
-  prompt, timer, banners. Copy stays inside M01 / EV-01..EV-06.
+  prompt, timer, banners, plus weather and wet-street readout, and the chaos
+  counter. Copy stays inside M01 / EV-01..EV-06.
 - **Banners**: briefing states the beat, "Sade talked." opens the lane,
   "Spotted." / "Heard something." / "Taken." / "Lane reached." close it out.
 
@@ -81,6 +108,14 @@ npm run smoke          # drives the page, presses keys, checks the frame
    a pause screen.
 7. **Balance is untuned by a human.** The numbers are tuned by simulation tests
    (a full run can be completed; a catch is recoverable), not by play feel.
+8. **The district is study geometry, not canon.** It is a labelled study
+   environment: no story fact, route or character lives there. The block names
+   are plain data ids, not place names in the narrative.
+9. **Water is a hole, not a swimming volume.** Wading in costs you the run and
+   spits you back to the checkpoint; there is no swim animation or state.
+10. **The map is 2.5D.** Buildings are solid volumes you cannot enter, and there
+    is no interior beyond the approved lane. Roofs are viewable from outside
+    only. Cars and pedestrians have no ragdoll or per-limb animation.
 
 ## Assets and provenance
 
@@ -108,8 +143,9 @@ The shipping renderer cannot run in this environment (no GPU, no headless
 browser), so the visuals were checked on the CPU:
 
 ```bash
-node tools/render.mjs ../docs/previews/game 800 450   # 8 framed shots
-node tools/look.mjs ../docs/previews/game/diag light  # A-G contact sheet
+node tools/render.mjs ../docs/previews/game 800 450      # 8 framed lane shots
+node tools/city-shots.mjs ../docs/previews/city 800 450 # 11 district survey shots
+node tools/look.mjs ../docs/previews/game/diag light     # A-G contact sheet
 ```
 
 `tools/software-raster.mjs` is a small CPU rasteriser (perspective-correct
@@ -117,6 +153,10 @@ attributes, screen-linear NDC depth, real CPU shadow map, per-pixel fog,
 ACES/sRGB tonemap) used only for these checks. It is a diagnostic, not a
 renderer. Its projection is verified against the standard frustum formula in
 `test/character.test.mjs`.
+
+`tools/city-shots.mjs` refuses to record a camera that is inside a building, in
+water or underground, and prints `CAMERA ...` next to the shot instead — two
+rounds of district previews were blank before that check existed.
 
 Fixed while building the slice, each with a regression test where possible:
 
@@ -127,7 +167,16 @@ Fixed while building the slice, each with a regression test where possible:
 - `ctx.drawImage` missing, which made every tinted material black;
 - materials carrying both a tinted map *and* the same hex in `color`, squaring
   albedo to near-black;
-- `TUNING.resetDelay` defined but never used, so being caught stranded the run.
+- `TUNING.resetDelay` defined but never used, so being caught stranded the run;
+- `boxList()` cutting wall openings along the wrong axis, which silently deleted
+  every gapped wall from collision (no error, no collider);
+- a hard building cap applied block-by-block, which exhausted itself in the
+  north and left the whole southern district empty on the phone tier;
+- pedestrians that "fled" by advancing a walk animation but never moving;
+- pedestrians pulling cars to a full stop, jamming every route permanently;
+- water with no gravity and no wet test above its surface, so the canal could
+  be walked across;
+- the market-end wall sealing the lane from the district it was built inside.
 
 ## Layout
 
@@ -140,8 +189,12 @@ game_web/
   src/hud.js        DOM HUD
   src/world.js      simulation (approved-tuned numbers)
   src/level.js      level definition + collision build
+  src/city.js       district data + generator (roads, water, blocks, props)
+  src/cityview.js   district renderer (merged/instanced, water, rain)
+  src/traffic.js    vehicles + pedestrian crowds
+  src/weather.js    weather presets, mood blend, wetness
   src/scene.js      level view, Marcus loading, crouch pose
-  test/             world (25), character (7), integration (7), raster (3)
+  test/             world (25), city (26), character (7), integration (9), raster (3)
   tools/            CPU diagnostics + browser smoke test
   assets/marcus.glb approved character (provenance above)
 ```

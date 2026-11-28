@@ -13,6 +13,10 @@ import { CharacterAnimator } from "./anim.js";
 import { Hud } from "./hud.js";
 import { World, PHASE } from "./world.js";
 import { LEVEL, buildLevel } from "./level.js";
+import { CITY, buildCity } from "./city.js";
+import { CityView, makeVehicleMesh, makePedestrianMesh } from "./cityview.js";
+import { detectTierFromWindow } from "./config.js";
+import { Weather, Wetness } from "./weather.js";
 
 const KEY = {
   forward: ["KeyW", "ArrowUp"],
@@ -39,10 +43,13 @@ const state = {
 };
 
 // ------------------------------------------------------------------ renderer
+// Everything expensive is gated by the hardware tier, so the same build runs on
+// a phone and on a desktop without a second code path.
+const tier = detectTierFromWindow(window);
 const canvas = document.getElementById("view");
 let renderer;
 try {
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: tier.antialias, powerPreference: "high-performance" });
 } catch (err) {
   // Say so on the page instead of leaving a black rectangle: this slice is
   // opened by reviewers on unknown hardware.
@@ -53,18 +60,35 @@ try {
   document.getElementById("start").textContent = "WebGL unavailable";
   throw err;
 }
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, tier.pixelRatio));
+renderer.shadowMap.enabled = tier.shadows;
+renderer.shadowMap.type = tier.name === "phone" ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.02;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x10171d);
-scene.fog = new THREE.Fog(0x16232b, 18, 68);
+scene.background = new THREE.Color(0x0d141a);
+scene.fog = new THREE.Fog(0x17242c, tier.fogNear, tier.fogFar);
 
-const camera = new THREE.PerspectiveCamera(58, 16 / 9, 0.1, 260);
+// Weather drifts on its own clock: sky, fog, rain rate, wind and exposure all
+// come from one blend, so the district never looks the same twice.
+const weather = new Weather({
+  start: "drizzle",
+  allowLightning: tier.name !== "phone" && !matchMedia("(prefers-reduced-motion: reduce)").matches,
+  onEvent: (e) => {
+    if (e.type === "weather-change") {
+      state.banner = { title: "The weather turns.", body: `${e.label}. The street gets harder to read.`, ms: 2600 };
+      state.bannerUntil = performance.now() + 2600;
+    }
+    if (e.type === "lightning") {
+      state.flashUntil = performance.now() + 320;
+    }
+  },
+});
+const wetness = new Wetness();
+
+const camera = new THREE.PerspectiveCamera(58, 16 / 9, 0.1, tier.drawDistance * 1.6);
 
 const button = document.getElementById("start");
 const status = document.getElementById("status");
@@ -80,17 +104,31 @@ function setStatus(text, isError = false) {
 // --------------------------------------------------------------------- world
 const built = buildLevel();
 const view = new LevelView(scene, built).build();
-const world = new World(LEVEL, built);
+
+// The district wraps around the approved lane. It is study environment: a
+// procedural city that gives the beat somewhere to breathe.
+const cityBuilt = buildCity(CITY, tier);
+const cityView = new CityView(scene, CITY, cityBuilt, tier).build();
+
+const world = new World(LEVEL, { ...built, boxes: cityBuilt.boxes }, {
+  city: CITY,
+  cityBoxes: cityBuilt.boxes,
+  tier: { ...tier, ...built },
+  seed: 20261127,
+  aggression: 0.5,
+});
+// The lane's own cover still has to collide.
+world.openBoxes = cityBuilt.boxes.concat(built.boxes);
 
 // The kit's light rig is replaced by the level's own practicals plus one
 // shadow-casting sun, which reads better in a night lane than a neutral probe.
 if (view.sun) {
-  view.sun.castShadow = true;
-  view.sun.shadow.mapSize.set(2048, 2048);
-  view.sun.shadow.camera.left = -26;
-  view.sun.shadow.camera.right = 26;
-  view.sun.shadow.camera.top = 26;
-  view.sun.shadow.camera.bottom = -26;
+  view.sun.castShadow = tier.shadows;
+  view.sun.shadow.mapSize.set(tier.shadowMapSize, tier.shadowMapSize);
+  view.sun.shadow.camera.left = -30;
+  view.sun.shadow.camera.right = 30;
+  view.sun.shadow.camera.top = 30;
+  view.sun.shadow.camera.bottom = -30;
   view.sun.shadow.camera.near = 1;
   view.sun.shadow.camera.far = 120;
   view.sun.shadow.bias = -0.0009;
@@ -101,21 +139,69 @@ if (view.sun) {
 // Mirror the level's practicals into the render graph with cheap, unshadowed
 // point lights. They are the lighting the lane is designed around.
 const practicals = [];
-for (const L of LEVEL.lights) {
+const laneLightBudget = tier.name === "phone" ? 2 : tier.name === "laptop" ? 4 : LEVEL.lights.length;
+LEVEL.lights.slice(0, laneLightBudget).forEach((L) => {
   const light = new THREE.PointLight(L.color, L.intensity * 0.06, L.distance, 2);
   light.position.set(L.x, L.y, L.z);
   scene.add(light);
-  practicals.push(light);
-}
+  practicals.push({ light, spec: L, base: light.intensity });
+});
+// The district's own street lamps already brought their budgeted lights with
+// them in CityView; this list is only the approved lane's practicals.
 
 // A faint environment probe gives the metal and glass something to reflect.
-const pmrem = new THREE.PMREMGenerator(renderer);
-scene.environment = pmrem.fromScene(new RoomEnvironment({ intensity: 0.25 }), 0.04).texture;
-scene.environmentIntensity = 0.35;
+// Skipped on phones, where the PMREM pass is not worth the memory.
+if (tier.name !== "phone") {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment({ intensity: 0.25 }), 0.04).texture;
+  scene.environmentIntensity = 0.35;
+}
 
 // ------------------------------------------------------------------ character
 let marcus = null;
 let animator = null;
+let trafficViews = [];
+let pedViews = [];
+
+/** Meshes for the live traffic and the crowd (built once, then moved). */
+function buildStreetActors() {
+  if (!world.traffic) return;
+  for (const v of world.traffic.vehicles) {
+    const mesh = makeVehicleMesh(v.kind);
+    mesh.userData.vehicle = v;
+    scene.add(mesh);
+    trafficViews.push(mesh);
+  }
+  if (world.crowd) {
+    for (const person of world.crowd.people) {
+      const mesh = makePedestrianMesh(person.tone);
+      mesh.userData.person = person;
+      scene.add(mesh);
+      pedViews.push(mesh);
+    }
+  }
+}
+
+/** Copy simulation state onto the street actors. */
+function syncStreetActors(dt) {
+  for (const mesh of trafficViews) {
+    const v = mesh.userData.vehicle;
+    mesh.position.set(v.x, 0, v.z);
+    mesh.rotation.y = v.yaw;
+  }
+  for (const mesh of pedViews) {
+    const p = mesh.userData.person;
+    mesh.position.set(p.x, 0, p.z);
+    mesh.rotation.y = p.yaw;
+    const legs = mesh.userData.legs;
+    if (legs) {
+      const swing = Math.sin(p.walkPhase) * (p.panic > 0.2 ? 0.75 : 0.42);
+      legs[0].rotation.x = swing;
+      legs[1].rotation.x = -swing;
+    }
+    void dt;
+  }
+}
 
 async function boot() {
   setStatus("Loading Marcus…");
@@ -135,6 +221,7 @@ async function boot() {
     console.error(err);
     setStatus("Could not load the character asset. The lane is playable without it.", true);
   }
+  buildStreetActors();
   button.hidden = false;
   button.disabled = false;
   button.textContent = "Begin";
@@ -335,8 +422,31 @@ function bannerFor(event) {
         ms: 6000,
       };
     }
+    case "hit-by-car":
+      return { title: "Hit.", body: "The street does not stop for you. Get clear.", ms: 1800 };
+    case "drowned":
+      return { title: "In the water.", body: "Back to the last solid ground.", ms: 2000 };
+    case "chaos":
+      return chaosBanner(event);
     case "checkpoint":
       return null;
+    default:
+      return null;
+  }
+}
+
+/** Only events the player can perceive get a banner; the rest stay in the log. */
+function chaosBanner(event) {
+  const near = (px, pz) => Math.hypot(px - world.player.x, pz - world.player.z) < 30;
+  switch (event.kind) {
+    case "jam":
+      return near(event.x, event.z) ? { title: "Traffic stops.", body: "Something ahead has jammed the lane.", ms: 2200 } : null;
+    case "sweep":
+      return near(event.x, event.z) ? { title: "Watch the road.", body: "A car is not slowing down.", ms: 1800 } : null;
+    case "power":
+      return { title: "The lights stutter.", body: "Stay off the pavement until they settle.", ms: 2000 };
+    case "panic":
+      return near(event.x, event.z) ? { title: "Someone runs.", body: "People are moving. So are the collectors.", ms: 1800 } : null;
     default:
       return null;
   }
@@ -355,10 +465,15 @@ function frame(now) {
   last = now;
 
   if (!state.started || state.paused) {
+    weather.update(dtReal);
+    wetness.update(dtReal, weather.rainRate);
     if (animator) animator.update(dtReal);
-    render(now / 1000);
+    cityView.update(dtReal, camera, weather);
+    render(now / 1000, dtReal);
     return;
   }
+  weather.update(dtReal);
+  wetness.update(dtReal, weather.rainRate);
 
   // Fixed-step simulation keeps movement, detection and stealth deterministic
   // and matches the tuned numbers in World.
@@ -384,12 +499,40 @@ function frame(now) {
   }
   view.syncCharacters(world);
   view.update(dtReal, world.time, world.hud());
+  cityView.update(dtReal, camera, weather);
+  syncStreetActors(dtReal);
 
-  render(now / 1000);
+  render(now / 1000, dtReal);
   updateHud(now);
 }
 
-function render(elapsed) {
+function updateFlicker(elapsed) {
+  // Practicals stutter when the chaos director cuts power, and one lamp in the
+  // lane fails on its own as before.
+  for (const p of practicals) {
+    const spec = p.spec;
+    if (spec.flicker > 0) spec.flicker -= 0.016;
+    const base = p.base;
+    if (spec.flicker > 0) {
+      const n = Math.sin(elapsed * 47.3) * Math.sin(elapsed * 13.1);
+      p.light.intensity = base * (n > 0.1 ? 0.15 : 1.1);
+    } else {
+      p.light.intensity = base;
+    }
+  }
+}
+
+function render(elapsed, dt = 1 / 60) {
+  updateFlicker(elapsed);
+  weather.apply(scene, tier);
+  // Ambient fill follows the weather so a downpour is dim but never black.
+  const hemiTarget = (weather.blend.ambient ?? 0.5) * 1.15;
+  if (view.hemi) view.hemi.intensity += (hemiTarget - view.hemi.intensity) * Math.min(1, dt * 1.5);
+  if (view.moon) view.moon.intensity = 0.55 + (weather.blend.ambient ?? 0.5) * 0.7;
+
+  // Flash frames are a single short lift in exposure, not a full white overlay.
+  renderer.toneMappingExposure =
+    (weather.blend.exposure || 1.02) * (weather.flash > 0.05 ? 1 + weather.flash * 0.9 : 1);
   const cam = world.camera;
   camera.position.set(cam.x, cam.y, cam.z);
   const focus = world.cameraFocus || { x: world.player.x, y: world.player.feetY + 1.3, z: world.player.z };
@@ -417,11 +560,11 @@ function updateHud(now) {
   const prompt = h.inWitnessZone && !world.talkedToWitness
     ? { text: "Talk to Sade", progress: h.interactProgress }
     : null;
-  hud.update(h, { prompt, banner });
+  hud.update(h, { prompt, banner, weather: weather.blend.label, wet: wetness.level, chaos: world.chaosEvents.length });
 }
 
 boot();
 requestAnimationFrame(frame);
 
 // Expose a small handle for the smoke test and for tuning in the console.
-window.LEVERAGE = { THREE, scene, camera, world, view, hud, state, config };
+window.LEVERAGE = { THREE, scene, camera, world, view, cityView, cityBuilt, hud, state, config, tier, weather, wetness };

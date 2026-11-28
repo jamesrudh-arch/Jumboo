@@ -166,6 +166,7 @@ test("the HUD formats and renders every readout", async () => {
       "objectiveLabel", "distance", "bearing", "stamina", "noise", "stance",
       "prompt", "promptText", "progress", "suspicion", "ring",
       "suspicionText", "time", "banner", "bannerTitle", "bannerBody",
+      "weather", "chaos", "chaosList",
     ];
     node._fields = names.map((n) => {
       const f = makeNode("span");
@@ -181,6 +182,7 @@ test("the HUD formats and renders every readout", async () => {
     "objectiveLabel", "distance", "bearing", "stamina", "noise", "stance",
     "prompt", "promptText", "progress", "suspicion", "ring",
     "suspicionText", "time", "banner", "bannerTitle", "bannerBody",
+    "weather", "chaos", "chaosList",
   ];
   for (const n of expectedFields) assert.ok(hud.fields[n], `field ${n} wired`);
   globalThis.document = original;
