@@ -150,6 +150,7 @@ export function modsFor(weapon) {
   return MODS.filter((m) => {
     // A blade has no spread to tighten and no magazine: only mods that change
     // reach or cadence make sense, and grip tape would be a pure downgrade.
+    if (weapon.id === "fists") return false;
     if (melee) return m.id === "matchTrigger" || m.id === "hairTrigger" || m.id === "longBarrel";
     if (m.kind === "magazine" && !Number.isFinite(weapon.ammo)) return false;
     if (m.id === "choke" && !weapon.pellets) return false;

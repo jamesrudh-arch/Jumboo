@@ -20,6 +20,8 @@
 // threat in a 12 m street, and 24 m is a whole city block.
 
 /** How a weapon is used, which decides what the animation and the input do. */
+import { applyMods, modById, modsFor } from "./mods.js";
+
 export const MODE = {
   MELEE: "melee", // a swing with a short arc; silent
   THROWN: "thrown", // one use, silent-ish, then gone
@@ -326,10 +328,42 @@ export class Loadout {
     this.reserve = new Map(WEAPONS.map((w) => [w.id, w.reserve ?? 0]));
     this.cooldown = 0;
     this.swinging = 0;
+    // Mods fitted per weapon, so a build is a property of the gun rather than of
+    // the run. Empty until the player is offered one.
+    this.mods = new Map();
   }
 
+  /**
+   * The weapon as it actually is: base stats with any fitted mods applied.
+   *
+   * Everything downstream reads this, so fitting a suppressor changes what the
+   * combat loop sees rather than being a number on a sheet.
+   */
   get weapon() {
-    return weaponById(this.current);
+    const base = weaponById(this.current);
+    const fitted = this.mods.get(base.id);
+    if (!fitted || !fitted.length) return base;
+    return applyMods(base, fitted);
+  }
+
+  /** Fit a mod to a weapon, replacing whatever is in that slot. */
+  fitMod(weaponId, modId) {
+    const mod = modById(modId);
+    if (!mod) return false;
+    const base = weaponById(weaponId);
+    if (!base || !modsFor(base).some((m) => m.id === modId)) return false;
+    // Mods compete by `kind`, which is the slot. Reading `.slot` here compared
+    // undefined to undefined and let every mod stack, which silently turned a
+    // choice into a shopping list.
+    const fitted = (this.mods.get(weaponId) ?? []).filter((id) => modById(id)?.kind !== mod.kind);
+    fitted.push(modId);
+    this.mods.set(weaponId, fitted);
+    return true;
+  }
+
+  /** Which mods are on a weapon. */
+  modsOn(weaponId) {
+    return [...(this.mods.get(weaponId) ?? [])];
   }
 
   /** Unlock everything up to a tier, without touching ammo already spent. */

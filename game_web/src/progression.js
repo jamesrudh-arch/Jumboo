@@ -9,6 +9,7 @@
 // world owns the bodies, this owns the rules.
 
 import { Loadout, weaponById, unlockedAt, WEAPONS } from "./arsenal.js";
+import { offerMods } from "./mods.js";
 import { WAVES, waveAt, statLine, waveEnemies, waveThreat, ARCHETYPE } from "./enemies.js";
 
 /**
@@ -79,6 +80,13 @@ export function offerFor({ waveNumber, loadout }) {
     options.push({ kind: "ammo", id: held.id, label: `Ammo for the ${held.name.toLowerCase()}`, note: `+${held.ammo * 2} rounds` });
   }
   options.push({ kind: "health", id: "health", label: "Field patch", note: "restore 25" });
+  // A mod for the held weapon, every third wave. Not every wave: a build that
+  // completes by wave ten is a build nobody had to choose.
+  if (waveNumber % 3 === 0) {
+    const fitted = loadout.modsOn ? loadout.modsOn(held.id) : [];
+    const mod = offerMods(held, fitted)[0];
+    if (mod) options.push({ kind: "mod", id: mod.id, weapon: held.id, label: mod.label, note: mod.note });
+  }
   return options;
 }
 
@@ -210,6 +218,9 @@ export class Run {
       return true;
     }
     if (option.kind === "health") return this.heal(25) > 0;
+    // Fit it to the weapon the offer named, not to whatever is held now: the
+    // player can change weapons between seeing the offer and taking it.
+    if (option.kind === "mod") return this.loadout.fitMod(option.weapon ?? this.loadout.weapon.id, option.id);
     return false;
   }
 
