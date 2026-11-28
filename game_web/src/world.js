@@ -52,7 +52,14 @@ export const TUNING = {
   suspicionAt: 0.34,
   huntLoseTime: 2.2,
   huntGiveUpDistance: 10.0,
-  huntSpeedScale: 2.05,
+  // A collector runs at 1.55x their patrol walk (~1.62 m/s) and the player
+  // sprints at 3.4 m/s. Before this, pursuit was 2.05x walk (2.15 m/s) with a
+  // hunt that never expired while the player was 10 m away, so once the alarm
+  // went up the only ending was "caught". Now breaking line of sight and
+  // running actually works, and standing still does not.
+  huntSpeedScale: 1.55,
+  huntGiveUpTime: 7.5,
+  huntSearchScale: 1.15, // jogging to the last known position
   catchRadius: 1.2,
   interactTime: 1.15,
   resetDelay: 2.4,
@@ -88,7 +95,13 @@ export class World {
     // The district is optional: without it this is exactly the old lane-only
     // build, which keeps the approved-beat tests valid.
     this.city = options.city || null;
+    // The district's layout (and therefore its bounds) can live on either the
+    // layout object or the built result; accept both so a headless run does not
+    // have to guess.
     this.cityBuilt = options.cityBuilt || null;
+    if (this.city && !this.city.bounds && this.cityBuilt && this.cityBuilt.bounds) {
+      this.city = { ...this.city, bounds: this.cityBuilt.bounds };
+    }
     this.tier = options.tier || null;
     // With a district the player can walk the whole map; without one the lane
     // keeps its own small bounds, which is what the approved-beat tests expect.
@@ -369,7 +382,7 @@ export class World {
       p.z += this.knockZ * dt;
       this.knockX *= 1 - Math.min(1, dt * 6);
       this.knockZ *= 1 - Math.min(1, dt * 6);
-      resolveCircle(p, this.level.player.radius, this.boxes, p.feetY, p.feetY + 1.8);
+      resolveCircle(p, this.level.player.radius, this.boxes, p.feetY, p.feetY + 1.8, 3, this.level.stepUp);
     }
   }
 
@@ -573,7 +586,7 @@ export class World {
       const headY = p.feetY + lerp(P.height, P.crouchHeight, p.crouch);
       const tryMove = (nx, nz) => {
         const candidate = { x: nx, z: nz };
-        resolveCircle(candidate, P.radius, this.boxes, p.feetY, headY);
+        resolveCircle(candidate, P.radius, this.boxes, p.feetY, headY, 3, L.stepUp);
         const support = supportHeightAt(
           candidate.x,
           candidate.z,
@@ -741,15 +754,21 @@ export class World {
       const yaw = Math.atan2(goal.x - a.x, goal.z - a.z);
       a.yaw = dampAngle(a.yaw, yaw, 7, dt);
       a.baseYaw = a.yaw;
-      this.moveAgent(a, yaw, a.speed * TUNING.huntSpeedScale, dt);
+      // Closing on a visible player is a sprint; searching the last known spot
+      // is a jog. That gap is what lets a player who breaks line of sight and
+      // keeps moving actually get away.
+      const chase = a.seeing ? TUNING.huntSpeedScale : TUNING.huntSearchScale;
+      this.moveAgent(a, yaw, a.speed * chase, dt);
     } else {
       a.yaw += dt * 1.9;
     }
     const lost =
       a.lostTimer > TUNING.huntLoseTime &&
       dist2D(a.x, a.z, p.x, p.z) > TUNING.huntGiveUpDistance;
+    // A chase is a chase, not a life sentence: a collector who has not seen
+    // the player for a while gives up and goes back to the patrol.
     const blocked =
-      a.lostTimer > TUNING.huntLoseTime + 3.2; // never chase forever
+      a.lostTimer > TUNING.huntLoseTime + TUNING.huntGiveUpTime; // never chase forever
     if (lost || blocked) {
       a.state = "returning";
       a.awareness = 0;
@@ -823,13 +842,17 @@ export class World {
   updateDetection(dt) {
     const p = this.player;
     const P = this.level.player;
-    // Noise: collectors react to loud movement and to the player's position.
+    // Noise: loud movement carries. A crouch (1.5) is quieter than a collector
+    // can hear at any distance, a walk (4.4) carries a few metres, and a sprint
+    // (9.0) is heard right across the lane. Previously every footstep beat
+    // `hearing` (7 m), so walking anywhere near a collector pulled them onto
+    // the player no matter what cover was used.
     for (const a of this.agents) {
       if (a.state === "hunt") continue;
       if (p.noise > 0.2) {
-        const hearRange = Math.max(a.def.hearing, p.noise);
+        const hearRange = a.def.hearing * (a.state === "investigate" ? 0.7 : 1);
         const d = dist2D(a.x, a.z, p.x, p.z);
-        if (d < hearRange && a.state !== "investigate") {
+        if (d < hearRange && d < p.noise * 1.15 && a.state !== "investigate") {
           a.state = "investigate";
           a.target = { x: p.x, z: p.z };
           a.investigateTimer = 0;

@@ -488,3 +488,83 @@ test("vehicle specs stay within the street and play well", () => {
     assert.ok(spec.height > 1.2 && spec.height < 3.4);
   }
 });
+
+// ---------------------------------------------------------------- reachability
+// The district is only open if a body can actually walk it. This floods the map
+// on a 1 m grid using the same boxes and water the player collides with, then
+// checks that every objective is inside the component the player spawns in.
+// It catches the class of bug that is invisible in a screenshot: a kerb, a
+// fence or a shed that silently seals off a whole district.
+test("every objective on the map is walkable from the spawn", () => {
+  const built = buildCity(CITY, TIERS.desktop);
+  const level = buildLevel();
+  const boxes = built.boxes.concat(level.boxes);
+  const R = 0.42;
+  const step = 1;
+  const B = CITY.bounds;
+  const W = Math.ceil((B.x2 - B.x1) / step) + 1;
+  const H = Math.ceil((B.z2 - B.z1) / step) + 1;
+  const open = new Uint8Array(W * H);
+  for (let i = 0; i < W; i++) {
+    for (let j = 0; j < H; j++) {
+      const x = B.x1 + i * step;
+      const z = B.z1 + j * step;
+      let v = waterAt(CITY, x, z) ? 0 : 1;
+      if (v) {
+        for (const b of boxes) {
+          if (b.y1 <= 0.45 || b.y0 >= 1.5) continue;
+          if (x > b.x1 - R && x < b.x2 + R && z > b.z1 - R && z < b.z2 + R) {
+            v = 0;
+            break;
+          }
+        }
+      }
+      open[i * H + j] = v;
+    }
+  }
+  const gx = (x) => Math.round((x - B.x1) / step);
+  const gz = (z) => Math.round((z - B.z1) / step);
+  const seen = new Uint8Array(W * H);
+  const start = [gx(LEVEL.spawn.x), gz(LEVEL.spawn.z)];
+  const stack = [start];
+  seen[start[0] * H + start[1]] = 1;
+  let reached = 0;
+  while (stack.length) {
+    const [i, j] = stack.pop();
+    reached += 1;
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const a = i + di;
+      const b = j + dj;
+      if (a < 0 || a >= W || b < 0 || b >= H) continue;
+      const id = a * H + b;
+      if (seen[id] || !open[id]) continue;
+      seen[id] = 1;
+      stack.push([a, b]);
+    }
+  }
+  // The spawn component must be most of the walkable city, not a pocket.
+  const walkable = open.reduce((n, v) => n + v, 0);
+  assert.ok(reached > walkable * 0.9, `only ${((reached / walkable) * 100).toFixed(1)}% of the map is reachable`);
+
+  const targets = [
+    ["Sade", LEVEL.witness],
+    ["the lane", LEVEL.goal],
+    ...TUNING.errands.map((e) => [e.id, e]),
+  ];
+  for (const [name, t] of targets) {
+    const i = gx(t.x);
+    const j = gz(t.z);
+    let hit = false;
+    for (let r = 0; r <= 6 && !hit; r++) {
+      for (let di = -r; di <= r && !hit; di++) {
+        for (let dj = -r; dj <= r && !hit; dj++) {
+          const a = i + di;
+          const b = j + dj;
+          if (a < 0 || a >= W || b < 0 || b >= H) continue;
+          if (seen[a * H + b]) hit = true;
+        }
+      }
+    }
+    assert.ok(hit, `${name} at ${t.x},${t.z} cannot be walked to from the spawn`);
+  }
+});

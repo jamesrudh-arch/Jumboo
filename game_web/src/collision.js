@@ -82,20 +82,27 @@ export function circleBoxPenetration(px, pz, radius, b) {
   return { x: 0, z: far + radius };
 }
 
-/** True when the box is relevant to a body occupying [feetY, headY]. */
-function blocksBody(b, feetY, headY) {
-  return b.y1 > feetY + 0.05 && b.y0 < headY;
+/**
+ * True when the box is relevant to a body occupying [feetY, headY].
+ *
+ * Boxes whose top is within `stepUp` of the feet are steps, not walls: a kerb
+ * is 22 cm high and the player has always been authored to walk over it. Only
+ * counting boxes above the step allowance keeps kerbs and quay lips walkable
+ * while crates, walls and cars still stop the body.
+ */
+function blocksBody(b, feetY, headY, stepUp = 0.05) {
+  return b.y1 > feetY + stepUp && b.y0 < headY;
 }
 
 /**
  * Resolve a circle against every box, iterating so corners settle.
  * Mutates and returns `pos` ({x, z}).
  */
-export function resolveCircle(pos, radius, boxes, feetY = 0, headY = 1.8, iterations = 3) {
+export function resolveCircle(pos, radius, boxes, feetY = 0, headY = 1.8, iterations = 3, stepUp = 0.4) {
   for (let it = 0; it < iterations; it++) {
     let moved = false;
     for (const b of boxes) {
-      if (!blocksBody(b, feetY, headY)) continue;
+      if (!blocksBody(b, feetY, headY, stepUp)) continue;
       const pen = circleBoxPenetration(pos.x, pos.z, radius, b);
       if (pen) {
         pos.x += pen.x;

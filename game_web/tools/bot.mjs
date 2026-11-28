@@ -1,0 +1,430 @@
+// A scripted playthrough of the slice, run headlessly against the real world
+// simulation and the real district geometry. It answers one question with
+// evidence rather than opinion: with the numbers as tuned, can a player who
+// knows where they are going finish the beat, and what stops them if not?
+//
+//   node tools/bot.mjs [runs] [--no-errands] [--trace]
+//
+// The bot is a stand-in for a competent player, not a learning agent: it plans
+// on a walkable grid (the same collision boxes the player collides with), walks
+// or sprints depending on whether a collector is close, and holds crouch when
+// it is inside a collector's sight cone. Difficulty is read from how often it
+// is spotted and caught, and how long a clean run takes.
+
+import { buildLevel, LEVEL } from "../src/level.js";
+import { buildCity, CITY, waterAt } from "../src/city.js";
+import { World, PHASE } from "../src/world.js";
+
+const args = process.argv.slice(2);
+const runs = Number(args.find((a) => /^\d+$/.test(a)) || 5);
+const doErrands = !args.includes("--no-errands");
+const trace = args.includes("--trace");
+// `--ghosts` removes the collectors: it isolates navigation (can the bot walk
+// the route and finish every objective?) from detection (can it do that
+// without being seen?). Both questions need separate answers.
+const ghosts = args.includes("--ghosts");
+
+const built = buildLevel();
+const city = buildCity(CITY, { buildings: 104, treeCount: 100, crowd: 14, traffic: 14 });
+// The same box list the player collides with, in the same order the game builds
+// it: the district first, then the lane's own cover.
+const boxes = city.boxes.concat(built.boxes);
+
+// ------------------------------------------------------------------- grid
+// 1 m cells over the district. A cell is walkable when the player's body fits
+// at waist height and it is not open water: the same rules the movement solver
+// applies, sampled ahead of time.
+const STEP = 1;
+const B = { x1: -148, x2: 148, z1: -158, z2: 88 };
+const W = Math.ceil((B.x2 - B.x1) / STEP) + 1;
+const H = Math.ceil((B.z2 - B.z1) / STEP) + 1;
+const walkable = new Uint8Array(W * H);
+const R = 0.42;
+for (let gx = 0; gx < W; gx++) {
+  for (let gz = 0; gz < H; gz++) {
+    const x = B.x1 + gx * STEP;
+    const z = B.z1 + gz * STEP;
+    let ok = 1;
+    if (waterAt(city, x, z)) ok = 0;
+    if (ok) {
+      for (const b of boxes) {
+        if (b.y1 <= 0.45 || b.y0 >= 1.5) continue; // kerbs the player steps over
+        if (x > b.x1 - R && x < b.x2 + R && z > b.z1 - R && z < b.z2 + R) {
+          ok = 0;
+          break;
+        }
+      }
+    }
+    walkable[gx * H + gz] = ok;
+  }
+}
+const idx = (gx, gz) => gx * H + gz;
+const toGrid = (x, z) => ({
+  gx: Math.round((x - B.x1) / STEP),
+  gz: Math.round((z - B.z1) / STEP),
+});
+const toWorld = (gx, gz) => ({ x: B.x1 + gx * STEP, z: B.z1 + gz * STEP });
+
+/** Nearest walkable cell, searched outward in rings. */
+function snap(gx, gz, maxR = 40) {
+  if (gx >= 0 && gx < W && gz >= 0 && gz < H && walkable[idx(gx, gz)]) return { gx, gz };
+  for (let r = 1; r <= maxR; r++) {
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dz = -r; dz <= r; dz++) {
+        if (Math.abs(dx) !== r && Math.abs(dz) !== r) continue;
+        const nx = gx + dx;
+        const nz = gz + dz;
+        if (nx < 0 || nx >= W || nz < 0 || nz >= H) continue;
+        if (walkable[idx(nx, nz)]) return { gx: nx, gz: nz };
+      }
+    }
+  }
+  return null;
+}
+
+/** A* over the grid with 8-way movement and no corner cutting. */
+function findPath(from, to) {
+  const a = snap(...Object.values(toGrid(from.x, from.z)));
+  const b = snap(...Object.values(toGrid(to.x, to.z)));
+  if (!a || !b) return null;
+  const start = idx(a.gx, a.gz);
+  const goal = idx(b.gx, b.gz);
+  const open = [start];
+  const gScore = new Float32Array(W * H).fill(Infinity);
+  const fScore = new Float32Array(W * H).fill(Infinity);
+  const prev = new Int32Array(W * H).fill(-1);
+  const inOpen = new Uint8Array(W * H);
+  gScore[start] = 0;
+  const h = (i) => {
+    const gx = Math.floor(i / H);
+    const gz = i % H;
+    return Math.hypot(gx - b.gx, gz - b.gz);
+  };
+  fScore[start] = h(start);
+  inOpen[start] = 1;
+  const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  let guard = 0;
+  while (open.length && guard++ < 400000) {
+    let best = 0;
+    for (let i = 1; i < open.length; i++) if (fScore[open[i]] < fScore[open[best]]) best = i;
+    const cur = open.splice(best, 1)[0];
+    inOpen[cur] = 0;
+    if (cur === goal) break;
+    const cx = Math.floor(cur / H);
+    const cz = cur % H;
+    for (const [dx, dz] of dirs) {
+      const nx = cx + dx;
+      const nz = cz + dz;
+      if (nx < 0 || nx >= W || nz < 0 || nz >= H) continue;
+      const ni = idx(nx, nz);
+      if (!walkable[ni]) continue;
+      if (dx && dz && (!walkable[idx(cx + dx, cz)] || !walkable[idx(cx, cz + dz)])) continue;
+      const cost = gScore[cur] + (dx && dz ? 1.4142 : 1);
+      if (cost < gScore[ni]) {
+        gScore[ni] = cost;
+        fScore[ni] = cost + h(ni);
+        prev[ni] = cur;
+        if (!inOpen[ni]) {
+          open.push(ni);
+          inOpen[ni] = 1;
+        }
+      }
+    }
+  }
+  if (prev[goal] < 0 && goal !== start) return null;
+  const out = [];
+  for (let i = goal; i !== -1; i = prev[i]) {
+    out.push(toWorld(Math.floor(i / H), i % H));
+    if (i === start) break;
+  }
+  out.reverse();
+  // Drop intermediate points that are in a straight line: fewer, longer legs.
+  const slim = [out[0]];
+  for (let i = 1; i < out.length - 1; i++) {
+    const a1 = slim[slim.length - 1];
+    const b1 = out[i];
+    const c1 = out[i + 1];
+    const cross = (b1.x - a1.x) * (c1.z - a1.z) - (b1.z - a1.z) * (c1.x - a1.x);
+    const dot = (b1.x - a1.x) * (c1.x - b1.x) + (b1.z - a1.z) * (c1.z - b1.z);
+    if (Math.abs(cross) > 0.4 || dot <= 0) slim.push(b1);
+  }
+  slim.push(out[out.length - 1]);
+  return slim;
+}
+
+/** Prefer cells a little further from the immediate wall we are hugging. */
+function stepBonus(cell) {
+  let n = 0;
+  for (let dx = -2; dx <= 2; dx++) {
+    for (let dz = -2; dz <= 2; dz++) {
+      const gx = cell.gx + dx;
+      const gz = cell.gz + dz;
+      if (gx >= 0 && gx < W && gz >= 0 && gz < H && walkable[idx(gx, gz)]) n++;
+    }
+  }
+  return n / 25;
+}
+
+/** Random walkable points for a scenario run without objectives. */
+function makeWorld(seed) {
+  const world = new World(LEVEL, { ...built, boxes: city.boxes }, {
+    city: { ...CITY, ...city },
+    cityBoxes: city.boxes,
+    cityBuilt: city,
+    tier: { crowd: 14, traffic: 14 },
+    aggression: 0.5,
+    seed,
+  });
+  world.openBoxes = boxes;
+  world.start();
+  if (ghosts) {
+    world.agents.length = 0;
+    world.traffic.vehicles.length = 0;
+  }
+  return world;
+}
+
+function runOnce(seed, opts = {}) {
+  const world = makeWorld(seed);
+  const dt = 1 / 60;
+  let t = 0;
+  const log = { seed, spotted: 0, caught: 0, errands: 0, drownings: 0, hits: 0, notes: [] };
+
+  const waypoints = [];
+  if (opts.errands) {
+    for (const e of world.errands) waypoints.push({ id: e.id, x: e.x, z: e.z });
+  }
+  waypoints.push({ id: "sade", x: LEVEL.witness.x, z: LEVEL.witness.z, radius: LEVEL.witness.radius });
+  waypoints.push({ id: "lane", x: LEVEL.goal.x, z: LEVEL.goal.z });
+
+  // Objectives in a nearest-neighbour tour, so a run is one sensible sweep of
+  // the map rather than a zig-zag across it.
+  const order = [];
+  let here = { x: world.player.x, z: world.player.z };
+  const pool = waypoints.slice();
+  while (pool.length) {
+    let bi = 0;
+    let bd = Infinity;
+    pool.forEach((w, i) => {
+      const d = Math.hypot(w.x - here.x, w.z - here.z);
+      if (d < bd) {
+        bd = d;
+        bi = i;
+      }
+    });
+    const w = pool.splice(bi, 1)[0];
+    order.push(w);
+    here = w;
+  }
+  // Sade must come before the lane.
+  const laneIdx = order.findIndex((w) => w.id === "lane");
+  if (laneIdx >= 0) {
+    const lane = order.splice(laneIdx, 1)[0];
+    order.push(lane);
+  }
+
+  let wi = 0;
+  let sub = null; // path from here to the current objective
+  let replanIn = 0;
+  let stuckTimer = 0;
+  let fleeTime = 0;
+  let lastPos = { x: world.player.x, z: world.player.z };
+
+  let nextTrace = 0;
+  while (t < 900 && wi < order.length) {
+    const p = world.player;
+    const wp = order[wi];
+
+    // Objectives that are already satisfied are skipped.
+    const er = wp.id === "sade" || wp.id === "lane" ? null : world.errands.find((e) => e.id === wp.id);
+    if (er && er.done) {
+      wi++;
+      sub = null;
+      continue;
+    }
+    if (wp.id === "sade" && world.talkedToWitness) {
+      wi++;
+      sub = null;
+      continue;
+    }
+
+    const dGoal = Math.hypot(wp.x - p.x, wp.z - p.z);
+
+    // Standing on a street errand: hold interact until it finishes.
+    if (er && dGoal < er.radius * 0.8) {
+      world.setInput({ moveX: 0, moveZ: 0, interact: true });
+      world.update(dt);
+      t += dt;
+      if (er.done) {
+        wi++;
+        sub = null;
+      }
+      continue;
+    }
+    // At Sade: hold interact until she has been spoken to. The talk only
+    // completes inside her zone, so the bot has to stand on the marker, not
+    // beside it.
+    if (wp.id === "sade" && dGoal < 1.3) {
+      world.setInput({ moveX: 0, moveZ: 0, interact: true });
+      world.update(dt);
+      t += dt;
+      if (world.talkedToWitness) {
+        wi++;
+        sub = null;
+      }
+      continue;
+    }
+
+    // Re-plan on a short cycle: a path computed once goes stale as soon as the
+    // player is pushed off it, and following stale waypoints is how a bot
+    // oscillates instead of walking.
+    replanIn -= dt;
+    if (!sub || replanIn <= 0) {
+      sub = findPath(p, wp);
+      replanIn = 0.6;
+      if (!sub) {
+        log.notes.push(`no path to ${wp.id}`);
+        break;
+      }
+    }
+
+    // Aim at the furthest point on the path that is still in clear view: that
+    // is what a person does, and it keeps the walk from hugging grid cells.
+    let aim = sub[sub.length - 1];
+    for (let i = sub.length - 1; i >= 0; i--) {
+      if (Math.hypot(sub[i].x - p.x, sub[i].z - p.z) < 3.5) {
+        aim = sub[Math.min(sub.length - 1, i + 2)];
+        break;
+      }
+    }
+
+    let nearest = Infinity;
+    let nearestAgent = null;
+    let watched = false;
+    for (const a of world.agents) {
+      const dist = Math.hypot(a.x - p.x, a.z - p.z);
+      if (dist < nearest) {
+        nearest = dist;
+        nearestAgent = a;
+      }
+      if (dist < 15 && a.state !== "returning") {
+        const toP = Math.atan2(p.x - a.x, p.z - a.z);
+        const facing = Math.atan2(Math.sin(toP - a.yaw), Math.cos(toP - a.yaw));
+        if (Math.abs(facing) < 0.85) watched = true;
+      }
+    }
+
+    let yaw;
+    let run;
+    let crouch;
+    if (world.phase === PHASE.HUNT && nearestAgent) {
+      // Flee along open ground, away from the hunter.
+      const away = Math.atan2(p.x - nearestAgent.x, p.z - nearestAgent.z);
+      let best = away;
+      let bestScore = -Infinity;
+      for (let k = -6; k <= 6; k++) {
+        const test = away + k * 0.24;
+        let open = 0;
+        for (let step = 1; step <= 4; step++) {
+          const c = toGrid(p.x + Math.sin(test) * step * 0.9, p.z + Math.cos(test) * step * 0.9);
+          if (c.gx < 0 || c.gx >= W || c.gz < 0 || c.gz >= H || !walkable[idx(c.gx, c.gz)]) break;
+          open = step;
+        }
+        const score = open * 2 + Math.cos(test - away) * 1.4;
+        if (score > bestScore) {
+          bestScore = score;
+          best = test;
+        }
+      }
+      yaw = best;
+      run = true;
+      crouch = false;
+    } else if (watched && nearest < 5) {
+      yaw = Math.atan2(p.x - nearestAgent.x, p.z - nearestAgent.z);
+      run = true;
+      crouch = false;
+    } else {
+      yaw = Math.atan2(aim.x - p.x, aim.z - p.z);
+      // Sprint on open ground; crouch when a cone is on us at range, which is
+      // slower but silent, and silence is what stops the alarm.
+      crouch = watched && nearest < 13;
+      run = !crouch && nearest > 12;
+    }
+
+    world.cameraYaw = yaw;
+    world.setInput({ moveX: 0, moveZ: 1, run, crouch, interact: false });
+    world.update(dt);
+    t += dt;
+
+    if (world.phase === PHASE.HUNT) fleeTime += dt;
+    else fleeTime = 0;
+    if (fleeTime > 12) {
+      fleeTime = 0;
+      sub = null;
+    }
+
+    // Stuck detection: pushed into a corner or a wall we cannot path around.
+    if (Math.hypot(p.x - lastPos.x, p.z - lastPos.z) < 0.02) {
+      stuckTimer += dt;
+      if (stuckTimer > 2) {
+        stuckTimer = 0;
+        sub = null;
+        if (findPath(p, wp) === null) {
+          log.notes.push(`stuck before ${wp.id}`);
+          break;
+        }
+      }
+    } else {
+      stuckTimer = 0;
+    }
+    lastPos = { x: p.x, z: p.z };
+
+    if (trace && t > nextTrace) {
+      nextTrace = t + 10;
+      console.log(`  ${t.toFixed(0)}s -> ${wp.id} d=${dGoal.toFixed(1)} at ${p.x.toFixed(0)},${p.z.toFixed(0)} spd ${p.speed.toFixed(1)} aim ${aim.x.toFixed(0)},${aim.z.toFixed(0)} len ${sub.length}`);
+    }
+    if (false) {
+      console.log(t.toFixed(0), "going to", wp.id, "d", dGoal.toFixed(0), "at", p.x.toFixed(0), p.z.toFixed(0));
+    }
+
+    for (const e of world.drainEvents()) {
+      if (e.type === "spotted") log.spotted++;
+      if (e.type === "caught") {
+        log.caught++;
+        log.notes.push(`caught at ${t.toFixed(1)}s`);
+      }
+      if (e.type === "errand") log.errands++;
+      if (e.type === "drowned") log.drownings++;
+      if (e.type === "carHit") log.hits++;
+      if (e.type === "won") log.notes.push(`won at ${t.toFixed(1)}s`);
+    }
+    if (world.phase === PHASE.WON || world.phase === PHASE.CAUGHT) break;
+  }
+
+  log.at = wi < order.length ? order[wi].id : "done";
+  log.time = +t.toFixed(2);
+  log.score = Math.round(world.score);
+  log.rank = world.rank || "-";
+  log.won = world.phase === PHASE.WON;
+  log.chaos = world.chaosEvents.length;
+  log.dist = Math.round(Math.hypot(world.player.x - LEVEL.goal.x, world.player.z - LEVEL.goal.z));
+  return log;
+}
+
+const results = [];
+for (let i = 0; i < runs; i++) results.push(runOnce(9000 + i, { errands: doErrands }));
+
+for (const r of results) {
+  console.log(
+    `${r.won ? "WON " : "FAIL"} seed=${r.seed} ${r.time}s score=${r.score} rank=${r.rank} ` +
+      `spotted=${r.spotted} caught=${r.caught} errands=${r.errands} chaos=${r.chaos} ` +
+      `at=${r.at} d=${r.dist}` +
+      (r.notes.length ? ` [${r.notes.join(", ")}]` : ""),
+  );
+}
+const times = results.filter((r) => r.won).map((r) => r.time).sort((a, b) => a - b);
+console.log(
+  `\n${results.length - results.filter((r) => !r.won).length}/${results.length} completed` +
+    (times.length ? `, median ${times[Math.floor(times.length / 2)].toFixed(1)}s` : "") +
+    `, spotted ${results.reduce((n, r) => n + r.spotted, 0)}, caught ${results.reduce((n, r) => n + r.caught, 0)}`,
+);

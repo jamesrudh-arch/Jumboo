@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { World, PHASE, STANCE } from "../src/world.js";
+import { World, PHASE, STANCE, TUNING } from "../src/world.js";
 import { LEVEL, buildLevel } from "../src/level.js";
 import { supportHeightAt, resolveCircle, hasLineOfSight } from "../src/collision.js";
 import { dampAngle, wrapAngle, formatTime, mulberry32 } from "../src/geom.js";
@@ -463,4 +463,110 @@ test("patrols stay inside the lane over a long unattended run", () => {
     assert.ok(a.x > -13 && a.x < 13, `${a.id} x=${a.x}`);
     assert.ok(a.z > -52 && a.z < 12, `${a.id} z=${a.z}`);
   }
+});
+
+// --------------------------------------------------------------- fairness
+// The street has to be survivable: a collector who has stopped to watch must
+// not be able to hear a crouched player, and a player who runs must be able to
+// break a chase. Both of these were impossible before the tuning pass — every
+// footstep beat the hearing radius and pursuit outran the sprint forever.
+test("a crouched player is silent to a watching collector, a sprinter is not", () => {
+  for (const [label, input, expectHeard] of [
+    ["crouch", { moveZ: 1, crouch: true }, false],
+    ["sprint", { moveZ: 1, run: true }, true],
+  ]) {
+    const world = makeWorld();
+    world.start();
+    world.agents.length = 1;
+    const a = world.agents[0];
+    a.state = "patrol";
+    a.awareness = 0;
+    a.x = 0;
+    a.z = -20;
+    let heard = false;
+    for (let i = 0; i < 240; i++) {
+      // Pin the collector: this test is about hearing, not pathing.
+      a.x = 0;
+      a.z = -20;
+      world.player.x = 0;
+      world.player.z = -14;
+      world.player.feetY = 0;
+      world.cameraYaw = Math.PI;
+      world.setInput(input);
+      world.update(1 / 60);
+      for (const e of world.drainEvents()) if (e.type === "heard") heard = true;
+    }
+    assert.equal(heard, expectHeard, `${label} ${expectHeard ? "should" : "should not"} be heard`);
+  }
+});
+
+test("a sprinting player opens a gap on a hunting collector", () => {
+  const world = makeWorld();
+  world.start();
+  world.agents.length = 1;
+  const a = world.agents[0];
+  a.state = "hunt";
+  a.x = 0;
+  a.z = 8;
+  a.yaw = Math.PI;
+  a.lostTimer = 0;
+  a.lastSeen = { x: 0, z: 8 };
+  world.phase = PHASE.HUNT;
+  world.player.x = 0;
+  world.player.z = 0;
+  world.player.feetY = 0;
+  world.cameraYaw = Math.PI;
+  let caught = false;
+  let maxGap = 0;
+  // Four seconds is the sprint window before stamina forces a walk.
+  for (let i = 0; i < 60 * 4; i++) {
+    world.setInput({ moveX: 0, moveZ: 1, run: true });
+    world.update(1 / 60);
+    maxGap = Math.max(maxGap, Math.hypot(a.x - world.player.x, a.z - world.player.z));
+    for (const e of world.drainEvents()) if (e.type === "caught") caught = true;
+  }
+  assert.equal(caught, false, "a sprinting player was run down in four seconds");
+  assert.ok(maxGap > 7, `the gap never opened (max ${maxGap.toFixed(1)} m)`);
+});
+
+test("a hunt gives up once the player is out of sight for long enough", () => {
+  const world = makeWorld();
+  world.start();
+  world.agents.length = 1;
+  const a = world.agents[0];
+  world.startHunt(a);
+  // Out of sight and far away: nowhere near the catch radius, no line of sight.
+  a.x = 3;
+  a.z = -4;
+  world.player.x = 0;
+  world.player.z = -40;
+  world.player.feetY = 0;
+  world.setInput({ moveX: 0, moveZ: 0 });
+  let ended = false;
+  const limit = (TUNING.huntLoseTime + TUNING.huntGiveUpTime) * 60 + 120;
+  for (let i = 0; i < limit; i++) {
+    world.update(1 / 60);
+    if (world.phase !== PHASE.HUNT) {
+      ended = true;
+      break;
+    }
+  }
+  assert.ok(ended, "the hunt never gave up");
+  assert.notEqual(a.state, "hunt");
+});
+
+test("kerbs are steps, not walls", () => {
+  // The lane mouth is bounded by 22 cm kerbs. The collision solver counts any
+  // box above the step allowance as a wall, so a kerb used to be impassable:
+  // the player could not leave the lane through its own mouth.
+  const kerb = { x1: -27, z1: -9.2, x2: -7, z2: -8.4, y0: 0, y1: 0.22, tag: "kerb" };
+  const pos = { x: -14, z: -8.1 };
+  resolveCircle(pos, 0.32, [kerb], 0, 1.8, 3, LEVEL.stepUp);
+  assert.ok(Math.abs(pos.z - -8.1) < 1e-6, `a kerb pushed the player ${Math.abs(pos.z - -8.1).toFixed(2)} m`);
+  // A crate of the same footprint but taller than a step still blocks.
+  const crate = { ...kerb, y1: 0.9 };
+  // Start just inside the footprint so the push out is unambiguous.
+  const blocked = { x: -14, z: -8.6 };
+  resolveCircle(blocked, 0.32, [crate], 0, 1.8, 3, LEVEL.stepUp);
+  assert.ok(Math.abs(blocked.z - -8.6) > 0.1, "a crate taller than a step should still block");
 });

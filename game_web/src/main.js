@@ -17,6 +17,7 @@ import { CITY, buildCity } from "./city.js";
 import { CityView, makeVehicleMesh, makePedestrianMesh } from "./cityview.js";
 import { detectTierFromWindow } from "./config.js";
 import { Weather, Wetness } from "./weather.js";
+import { createAudio } from "./audio.js";
 
 const KEY = {
   forward: ["KeyW", "ArrowUp"],
@@ -87,6 +88,8 @@ const weather = new Weather({
   },
 });
 const wetness = new Wetness();
+// Synthesised city audio: no files, so nothing to license and nothing to load.
+const audio = createAudio(window);
 
 const camera = new THREE.PerspectiveCamera(58, 16 / 9, 0.1, tier.drawDistance * 1.6);
 
@@ -170,6 +173,7 @@ function buildStreetActors() {
   if (!world.traffic) return;
   for (const v of world.traffic.vehicles) {
     const mesh = makeVehicleMesh(v.kind);
+    mesh.userData.tailLights = mesh.children.filter((c) => c.name === "tail-light");
     mesh.userData.vehicle = v;
     scene.add(mesh);
     trafficViews.push(mesh);
@@ -232,6 +236,15 @@ function syncStreetActors(dt) {
     const v = mesh.userData.vehicle;
     mesh.position.set(v.x, 0, v.z);
     mesh.rotation.y = v.yaw;
+    // Braking cars flare their tail lights and dim the road wash, so a car
+    // stopping ahead of you is readable from behind.
+    const tail = mesh.userData.tailLights;
+    if (tail) {
+      const flare = v.braking ? 3.1 : 1.4;
+      for (const t of tail) t.material.emissiveIntensity = flare;
+    }
+    const wash = mesh.userData.headlight;
+    if (wash) wash.material.opacity = v.braking ? 0.05 : v.speed > 0.5 ? 0.12 : 0.03;
   }
   for (const mesh of pedViews) {
     const p = mesh.userData.person;
@@ -471,6 +484,7 @@ function start() {
   pauseEl.hidden = true;
   hud.visible = true;
   world.start();
+  audio.start();
   last = performance.now();
   if (canvas.requestPointerLock) canvas.requestPointerLock();
 }
@@ -589,9 +603,32 @@ function frame(now) {
   cityView.update(dtReal, camera, weather);
   syncStreetActors(dtReal);
   syncErrandMarkers(now / 1000);
+  updateAudio(dtReal);
 
   render(now / 1000, dtReal);
   updateHud(now);
+}
+
+function updateAudio(dt) {
+  if (!audio.enabled) return;
+  audio.update(dt, {
+    weather,
+    player: world.player,
+    cameraYaw: world.cameraYaw,
+    vehicles: world.traffic ? world.traffic.vehicles : [],
+    phase: world.phase,
+  });
+  // Footsteps follow the animation phase, so they land on the foot, not on a
+  // timer: the phase crosses 0.5 once per stride.
+  if (animator) {
+    audio.footsteps(animator.phase % 1, {
+      running: world.player.running,
+      crouch: world.player.crouch > 0.5,
+      wet: wetness.level > 0.45,
+      moving: world.player.moving && !world.player.falling,
+    });
+  }
+  if (weather.rumble > 2.25) audio.play("thunder", { gain: 0.5 });
 }
 
 function updateFlicker(elapsed) {

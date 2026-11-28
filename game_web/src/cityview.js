@@ -139,8 +139,14 @@ export class CityView {
       plaster: mat(C.plaster, { roughness: 0.92 }),
       timber: mat(C.timber, { roughness: 0.9 }),
       concrete: mat(C.concrete, { roughness: 0.9 }),
+      baseStone: mat(0x343a3f, { roughness: 0.95 }),
       corrugated: mat(C.corrugated, { roughness: 0.75, metalness: 0.25 }),
       glass: mat(C.glassCold, { roughness: 0.25, metalness: 0.35 }),
+      glassLitCool: mat(0x232730, {
+        roughness: 0.4,
+        emissive: 0xbfd0dd,
+        emissiveIntensity: 1.05,
+      }),
       glassLit: mat(0x2a2620, {
         roughness: 0.4,
         emissive: C.glassWarm,
@@ -363,7 +369,11 @@ export class CityView {
   // ---------------------------------------------------------- buildings
   buildBuildings() {
     const bin = new MergeBin();
-    const windowLit = [];
+    // Lit windows come in two tones. One emissive colour across the whole city
+    // makes every tower glow the same; warm and cool batches cost one extra
+    // draw call and break the grid up at night.
+    const windowWarm = [];
+    const windowCool = [];
     const windowDark = [];
     const M = this.materials;
 
@@ -375,20 +385,68 @@ export class CityView {
       const body = M[b.mat] || M.concrete;
       bin.box(body, cx, b.h / 2, cz, w, b.h, d);
 
-      // Roof: a parapet lip plus machinery.
+      // Roof: a parapet lip plus a rooftop kit. Roofs are what the player
+      // actually sees from the street and from the bridge cameras, so they get
+      // the same treatment as the facades rather than being flat lids.
       bin.box(M.concrete, cx, b.h + 0.25, cz, w + 0.2, 0.5, d + 0.2);
       if (b.roof === "tank") {
+        // A water tank on legs: the silhouette that says "city" from a distance.
+        const tx = cx + w * 0.16;
+        const tz = cz - d * 0.1;
+        for (const [ox, oz] of [[-0.8, -0.8], [0.8, -0.8], [-0.8, 0.8], [0.8, 0.8]]) {
+          bin.box(M.metal, tx + ox, b.h + 0.9, tz + oz, 0.14, 1.8, 0.14);
+        }
         const tank = new THREE.Matrix4().compose(
-          new THREE.Vector3(cx + w * 0.16, b.h + 1.5, cz - d * 0.1),
+          new THREE.Vector3(tx, b.h + 2.9, tz),
           new THREE.Quaternion(),
-          new THREE.Vector3(1.6, 2.2, 1.6),
+          new THREE.Vector3(1.7, 2.4, 1.7),
         );
         bin.add(M.metal, SHARED.cylinder, tank);
+        bin.box(M.rust, tx, b.h + 4.15, tz, 1.8, 0.12, 1.8);
       } else if (b.roof === "ac") {
         for (let i = 0; i < 3; i++) {
           bin.box(M.metal, cx - w * 0.24 + i * (w * 0.22), b.h + 0.75, cz + d * 0.18, 1.3, 0.8, 1.1);
         }
+      } else if (b.roof === "antenna" || b.h > 40) {
+        // Landmarks get a mast with a red aircraft light on top.
+        bin.box(M.metal, cx, b.h + 4, cz, 0.22, 8, 0.22);
+        bin.box(M.metal, cx - 1.4, b.h + 6.4, cz, 2.8, 0.12, 0.12);
+        bin.box(M.markAmber, cx, b.h + 8.1, cz, 0.42, 0.42, 0.42);
       }
+      // Rooftop clutter on every building: vents, boxes, a parapet door.
+      if (w > 6 && d > 6) {
+        const vents = 1 + (b.seed % 3);
+        for (let i = 0; i < vents; i++) {
+          const vx = b.x1 + 1.6 + ((b.seed * (i + 3)) % 7) * (w - 3.2) / 7;
+          const vz = b.z1 + 1.6 + ((b.seed * (i + 5)) % 5) * (d - 3.2) / 5;
+          bin.box(M.metal, vx, b.h + 0.9, vz, 0.7, 0.8, 0.7);
+        }
+        bin.box(M.timber, cx - w * 0.3, b.h + 1.2, cz + d * 0.3, 0.9, 1.6, 0.9);
+      }
+      // A lit rooftop sign on some corner lots: the amber that gives the
+      // Hearthline its colour at night.
+      if (b.seed % 4 === 0 && b.h > 12) {
+        bin.box(M.amber, cx, b.h + 1.8, b.z1 + 0.4, Math.min(w * 0.6, 4.2), 1.1, 0.18);
+      }
+
+      // Facade relief. A single extruded box reads as a slab from the street;
+      // a plinth, string courses every few floors and corner pilasters give the
+      // wall something for the moonlight to catch.
+      bin.box(M.baseStone, cx, 0.55, cz, w + 0.12, 1.1, d + 0.12);
+      if (b.h > 14) {
+        const courses = Math.min(5, Math.floor(b.h / 16));
+        for (let i = 1; i <= courses; i++) {
+          const y = i * (b.h / (courses + 1));
+          bin.box(M.concrete, cx, y, cz, w + 0.34, 0.22, d + 0.34);
+        }
+        const px = w / 2 - 0.18;
+        const pz = d / 2 - 0.18;
+        for (const [ox, oz] of [[-px, -pz], [px, -pz], [-px, pz], [px, pz]]) {
+          bin.box(M.concrete, cx + ox, b.h / 2, cz + oz, 0.5, b.h, 0.5);
+        }
+      }
+      // Ground floor: a darker recessed shopfront band with a lit sill.
+      bin.box(M.baseStone, cx, 2.1, cz, w + 0.06, 3.0, d + 0.06);
 
       // Windows on the two street-facing sides (cheapest big win for detail).
       const instanced = this.tier.name === "phone" ? 0 : 1;
@@ -402,15 +460,19 @@ export class CityView {
           if (y + 0.6 > b.h) break;
           for (let c = 0; c < colsX; c++) {
             const x = b.x1 + step * (c + 0.5);
+            const warm = (b.seed * 3 + r * 17 + c * 29) % 100 < 62;
             const litPick = (b.seed + r * 7 + c * 13) % 100 < (b.lit ? 58 : 26);
-            (litPick ? windowLit : windowDark).push({ x, y, z: b.z1 - 0.02, rotY: 0, sx: 1.05, sy: 1.5 });
-            (litPick ? windowLit : windowDark).push({ x, y, z: b.z2 + 0.02, rotY: Math.PI, sx: 1.05, sy: 1.5 });
+            const bucketX = litPick ? (warm ? windowWarm : windowCool) : windowDark;
+            bucketX.push({ x, y, z: b.z1 - 0.02, rotY: 0, sx: 1.05, sy: 1.5 });
+            bucketX.push({ x, y, z: b.z2 + 0.02, rotY: Math.PI, sx: 1.05, sy: 1.5 });
           }
           for (let c = 0; c < colsZ; c++) {
             const z = b.z1 + step * (c + 0.5);
+            const warm = (b.seed * 5 + r * 19 + c * 31) % 100 < 55;
             const litPick = (b.seed + r * 11 + c * 5) % 100 < (b.lit ? 52 : 22);
-            (litPick ? windowLit : windowDark).push({ x: b.x1 - 0.02, y, z, rotY: -Math.PI / 2, sx: 1.05, sy: 1.5 });
-            (litPick ? windowLit : windowDark).push({ x: b.x2 + 0.02, y, z, rotY: Math.PI / 2, sx: 1.05, sy: 1.5 });
+            const bucketZ = litPick ? (warm ? windowWarm : windowCool) : windowDark;
+            bucketZ.push({ x: b.x1 - 0.02, y, z, rotY: -Math.PI / 2, sx: 1.05, sy: 1.5 });
+            bucketZ.push({ x: b.x2 + 0.02, y, z, rotY: Math.PI / 2, sx: 1.05, sy: 1.5 });
           }
         }
       }
@@ -433,7 +495,8 @@ export class CityView {
     // Instanced windows: two draw calls for the whole city.
     this.windowMeshes = [];
     for (const [list, material, name] of [
-      [windowLit, M.glassLit, "windows-lit"],
+      [windowWarm, M.glassLit, "windows-lit-warm"],
+      [windowCool, M.glassLitCool, "windows-lit-cool"],
       [windowDark, M.glass, "windows-dark"],
     ]) {
       if (!list.length) continue;
@@ -546,6 +609,46 @@ export class CityView {
     build(canopies.filter((t) => t.tone > 0.45), canopyGeo, M.leafLight, "canopy-light", true);
     build(canopies.filter((t) => t.tone <= 0.45), canopyGeo, M.leafDark, "canopy-dark", true);
     build(narrow, cypressGeo, M.leafDark, "cypress", false);
+
+    // Second, smaller blob per broadleaf crown. One sphere per tree reads as a
+    // lollipop; an offset clump turns the silhouette lumpy and makes the
+    // street canopy overlap the way real plane trees do.
+    const clumpGeo = () => {
+      const g = new THREE.IcosahedronGeometry(1, 1);
+      g.scale(1.05, 0.85, 1.05);
+      return g;
+    };
+    const hash = (n) => {
+      const x = Math.sin(n * 12.9898) * 43758.5453;
+      return x - Math.floor(x);
+    };
+    const buildClumps = (list, material, name) => {
+      if (!list.length) return;
+      const inst = new THREE.InstancedMesh(clumpGeo(), material, list.length);
+      inst.name = name;
+      const m = new THREE.Matrix4();
+      const color = new THREE.Color();
+      list.forEach((t, i) => {
+        const a = hash(t.x * 1.7 + t.z * 3.1) * Math.PI * 2;
+        const r = t.scale * 0.62;
+        m.compose(
+          new THREE.Vector3(t.x + Math.cos(a) * r, t.trunkH + t.scale * 1.5, t.z + Math.sin(a) * r),
+          new THREE.Quaternion().setFromEuler(new THREE.Euler(0, a, 0)),
+          new THREE.Vector3(t.scale * 0.72, t.scale * 0.6, t.scale * 0.72),
+        );
+        inst.setMatrixAt(i, m);
+        // Per-tree tint keeps a row of street trees from looking stamped.
+        const k = 0.78 + hash(t.x * 0.7 - t.z * 1.3) * 0.44;
+        inst.setColorAt(i, color.setRGB(k, k * (0.94 + hash(i) * 0.12), k * 0.92));
+      });
+      inst.instanceMatrix.needsUpdate = true;
+      if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
+      inst.castShadow = !!this.tier.propShadowCasters;
+      this.root.add(inst);
+      this.stats.instances += list.length;
+    };
+    buildClumps(canopies.filter((t) => t.tone > 0.45), M.leafLight, "canopy-clump-light");
+    buildClumps(canopies.filter((t) => t.tone <= 0.45), M.leafDark, "canopy-clump-dark");
   }
 
   // -------------------------------------------------------------- lamps
@@ -921,6 +1024,7 @@ export function makeVehicleMesh(kind) {
       new THREE.MeshStandardMaterial({ color: srgb(0x531f1a), emissive: srgb(0xe88771), emissiveIntensity: 1.4 }),
     );
     tail.position.set(side * w * 0.33, h * 0.66, -len / 2);
+    tail.name = "tail-light";
     g.add(tail);
   }
   for (const side of [-1, 1]) {
@@ -934,7 +1038,29 @@ export function makeVehicleMesh(kind) {
       g.add(tyre);
     }
   }
+  // Headlight wash on the road. A real SpotLight per car is far too expensive on
+  // a phone, and the CPU rasteriser has no spot path either, so this is a flat
+  // additive wedge that the car drags along with it: cheap, and it reads as
+  // "light is coming from that car" in a dark frame.
+  const wash = new THREE.Mesh(
+    new THREE.PlaneGeometry(w * 1.5, 9),
+    new THREE.MeshBasicMaterial({
+      color: 0xffd9a0,
+      transparent: true,
+      opacity: 0.1,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
+  wash.rotation.x = -Math.PI / 2;
+  wash.position.set(0, 0.045, len / 2 + 4.2);
+  wash.name = "headlight-wash";
+  wash.renderOrder = 2;
+  g.add(wash);
+
   g.name = `traffic-${kind}`;
+  g.userData.kind = kind;
+  g.userData.headlight = wash;
   return g;
 }
 
