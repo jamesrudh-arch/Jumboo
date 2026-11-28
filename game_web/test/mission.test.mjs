@@ -76,7 +76,9 @@ test("a clear beat waits for every body, not the first", () => {
   m.tick(1 / 60, { bodies });
   assert.equal(m.index, 2, "one alive is not clear");
   bodies[0].dead = true;
-  m.tick(1 / 60, { bodies });
+  // The grace window exists so the beat cannot complete before its spawner has
+  // filled the street; run past it before expecting the clear to register.
+  for (let i = 0; i < 40; i++) m.tick(1 / 60, { bodies });
   assert.equal(m.state, MISSION.COMPLETE);
 });
 
