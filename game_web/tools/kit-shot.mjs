@@ -7,6 +7,7 @@ import { decodePNG } from "./png.mjs";
 import { rasterize, encodePNG } from "./software-raster.mjs";
 import { buildCity, CITY } from "../src/city.js";
 import { CityView, makeVehicleMesh } from "../src/cityview.js";
+import { makeCityKit } from "./_citykit.mjs";
 import { TIERS } from "../src/config.js";
 
 const DIR = "./assets/kit/models";
@@ -51,6 +52,8 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1d24);
 const view = new CityView(scene, CITY, built, tier).build();
 view.applyKit(kit);
+const cityKit = makeCityKit(["araucaria","buriti","ipe_amarelo","arbustos","pedras","parque","parque_linear","ecoparque","telhado_verde","parede_verde","banco_praca","lixeira","hidrante","ponto_onibus","quiosque","parquinho","semaforo","poste_luz","vaso_planta","cerca_madeira"]);
+view.applyCityKit(cityKit);
 
 // cars: put one of every kit model along the avenue, at driving size
 const CAR = ["car_sedan", "car_hatchback", "car_taxi", "car_police", "car_stationwagon"];
@@ -94,3 +97,5 @@ function shoot(cam, out, w = 900, h = 450) {
 
 shoot({ pos: [-26, 3.2, -46], look: [0, 2, -62] }, "/tmp/kit_street.png");
 shoot({ pos: [-2, 9, -34], look: [-6, 1, -62] }, "/tmp/kit_avenue.png");
+shoot({ pos: [-30, 7, 30], look: [-20, 2, 74] }, "/tmp/kit_park.png");
+shoot({ pos: [10, 4, 40], look: [-6, 3, 70] }, "/tmp/kit_park2.png");

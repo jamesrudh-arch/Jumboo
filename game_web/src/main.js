@@ -19,7 +19,7 @@ import { detectTierFromWindow } from "./config.js";
 import { Weather, Wetness } from "./weather.js";
 import { createAudio } from "./audio.js";
 import { applyGamepad, firstConnectedPad } from "./input.js";
-import { loadKit } from "./kit.js";
+import { loadKit, loadCityKit } from "./kit.js";
 
 const KEY = {
   forward: ["KeyW", "ArrowUp"],
@@ -336,6 +336,15 @@ async function boot() {
     console.warn("[kit] street kit unavailable, using generated actors", err);
     kit = null;
   }
+  setStatus("Loading trees and parks…");
+  let cityKit = null;
+  try {
+    cityKit = await loadCityKit(renderer, {
+      onProgress: (p) => setStatus(`Loading trees and parks… ${Math.round(p * 100)}%`),
+    });
+  } catch (err) {
+    console.warn("[kit] city kit unavailable, using generated trees", err);
+  }
   setStatus("");
   // Swap the generated street furniture for the kit's where the kit has a match.
   if (kit) {
@@ -343,6 +352,14 @@ async function boot() {
       cityView.applyKit(kit);
     } catch (err) {
       console.warn("[kit] street furniture swap failed", err);
+    }
+  }
+  // Then the trees and parks, which the street kit does not cover.
+  if (cityKit) {
+    try {
+      cityView.applyCityKit(cityKit);
+    } catch (err) {
+      console.warn("[kit] tree and park swap failed", err);
     }
   }
   buildStreetActors();

@@ -176,3 +176,113 @@ export async function loadKit(renderer, { onProgress } = {}) {
     },
   };
 }
+
+// ---------------------------------------------------------------- city kit
+// A second CC0 kit for what the first one does not have: trees and park
+// landscaping (KayKit is a city street kit; it has a bush, not a tree). These
+// models are untextured but carry a palette: five to fifteen materials each,
+// no UVs. that merges into a handful of draw calls rather than one per model,
+// which is why they can be used at city scale.
+//
+// Source: Low Poly City Kit by kkyqr (github.com/kayquer/kit-cidade-lowpoly),
+// CC0 1.0. Licence vendored alongside the models.
+export const CITY_MODELS = {
+  trees: ["araucaria", "buriti", "ipe_amarelo"],
+  shrubs: ["arbustos", "vaso_planta"],
+  park: ["parque", "parque_linear", "ecoparque", "telhado_verde", "parede_verde"],
+  furniture: ["banco_praca", "lixeira", "hidrante", "ponto_onibus", "quiosque", "parquinho", "semaforo", "poste_luz", "cerca_madeira"],
+  rocks: ["pedras"],
+};
+
+const CITY_DIR = "./assets/city/models/";
+
+/**
+ * Load the city kit. Each .glb is parsed once, its parts kept grouped by
+ * material, so a caller can instance a whole tree as a handful of parts that
+ * share the same materials across every copy.
+ */
+export async function loadCityKit(renderer, { onProgress } = {}) {
+  const names = Object.values(CITY_MODELS).flat();
+  const models = new Map();
+  let done = 0;
+  for (const name of names) {
+    try {
+      const url = `${CITY_DIR}${name}.glb`;
+      const buffer = await fetch(url).then((r) => r.arrayBuffer());
+      const gltf = await new Promise((resolve, reject) => {
+        new GLTFLoader().parse(buffer, "", resolve, reject);
+      });
+      gltf.scene.updateMatrixWorld(true);
+      const parts = [];
+      const usedMaterials = []; // index into parts, one material each
+      gltf.scene.traverse((o) => {
+        if (!o.isMesh) return;
+        const geo = o.geometry.clone();
+        geo.applyMatrix4(o.matrixWorld);
+        for (const key of Object.keys(geo.attributes)) {
+          if (!["position", "normal"].includes(key)) geo.deleteAttribute(key);
+        }
+        const src = o.material;
+        const color = src?.color ? src.color.clone() : new THREE.Color(0xffffff);
+        // The palette is authored in sRGB; keep it that way so the merged
+        // batches look the same as the authored model.
+        parts.push({
+          geometry: geo,
+          color: src?.colorSpace === THREE.SRGBColorSpace ? color : color,
+          name: o.name,
+        });
+      });
+      const box = new THREE.Box3();
+      for (const part of parts) {
+        part.geometry.computeBoundingBox();
+        box.union(part.geometry.boundingBox);
+      }
+      models.set(name, {
+        parts,
+        bounds: box,
+        size: box.getSize(new THREE.Vector3()),
+        triangles: parts.reduce((n, p) => n + p.geometry.index.count / 3, 0),
+      });
+    } catch (err) {
+      console.warn(`[city kit] failed to load ${name}`, err);
+    }
+    done++;
+    onProgress?.(done / names.length, name);
+  }
+
+  // One material per distinct authored colour, shared by every model: the whole
+  // kit uses a palette of a few dozen colours, not hundreds of materials.
+  const materialFor = new Map();
+  const material = (color) => {
+    const key = color.getHexString();
+    if (!materialFor.has(key)) {
+      const m = new THREE.MeshStandardMaterial({ color: color.clone(), roughness: 0.85, metalness: 0.02 });
+      m.name = `palette-${key}`;
+      materialFor.set(key, m);
+    }
+    return materialFor.get(key);
+  };
+
+  return {
+    models,
+    material,
+    has: (name) => models.has(name),
+    size: (name) => models.get(name)?.size?.clone() || new THREE.Vector3(1, 1, 1),
+    triangles: (name) => models.get(name)?.triangles || 0,
+    /** Clone one model as a Group, with its palette materials resolved. */
+    make(name) {
+      const src = models.get(name);
+      if (!src) return null;
+      const group = new THREE.Group();
+      for (const part of src.parts) {
+        group.add(new THREE.Mesh(part.geometry, material(part.color)));
+      }
+      group.userData.size = src.size.clone();
+      return group;
+    },
+    /** Every part of a model, for callers that merge or instance them. */
+    parts(name) {
+      return models.get(name)?.parts || [];
+    },
+  };
+}

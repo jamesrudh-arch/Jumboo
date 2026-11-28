@@ -331,6 +331,97 @@ export class CityView {
     return this;
   }
 
+  /**
+   * Replace the generated trees with the city kit's trees, and dress the parks
+   * with its landscaping. Trees are the single biggest thing missing from the
+   * street's silhouette: a cone on a stick is a place holder next to a modelled
+   * araucaria, and the kit's trees are 500-600 triangles each.
+   */
+  applyCityKit(cityKit) {
+    const TREES = ["araucaria", "buriti", "ipe_amarelo"].filter((n) => cityKit.has(n));
+    if (!TREES.length || !this.built.trees?.length) return this;
+
+    // Hide the generated trees: trunks, canopies and any narrow canopies.
+    for (const o of this.root.children) {
+      if (o.name && /^tree-/.test(o.name)) o.visible = false;
+    }
+
+    // One merged, coloured batch per tree species, so a hundred trees cost a few
+    // dozen draw calls total instead of a hundred groups.
+    const bySpecies = new Map(TREES.map((n) => [n, []]));
+    this.built.trees.forEach((t, i) => {
+      // Cypresses keep the generated narrow silhouette; the kit's three species
+      // are broad, and a park row of them reads better varied than uniform.
+      const species = TREES[i % TREES.length];
+      bySpecies.get(species).push(t);
+    });
+
+    for (const [species, list] of bySpecies) {
+      if (!list.length) continue;
+      const parts = cityKit.parts(species);
+      if (!parts.length) continue;
+      // Group the species' parts by palette material and instance each group.
+      const byMaterial = new Map();
+      for (const part of parts) {
+        const mat = cityKit.material(part.color);
+        if (!byMaterial.has(mat)) byMaterial.set(mat, []);
+        byMaterial.get(mat).push(part.geometry);
+      }
+      const size = cityKit.size(species);
+      for (const [mat, geos] of byMaterial) {
+        const merged = geos.length === 1 ? geos[0] : mergeGeometries(geos, false);
+        if (!merged) continue;
+        const inst = new THREE.InstancedMesh(merged, mat, list.length);
+        inst.name = `kit-tree-${species}`;
+        const m = new THREE.Matrix4();
+        list.forEach((t, i) => {
+          // Real trees: height from the authored model, scaled to the tree's own
+          // height so a small street tree stays small.
+          const height = (t.trunkH || 2.4) * 1.9 * (t.scale || 1);
+          const scale = height / Math.max(size.y, 0.01);
+          m.compose(
+            new THREE.Vector3(t.x, 0, t.z),
+            new THREE.Quaternion().setFromEuler(new THREE.Euler(0, t.yaw, 0)),
+            new THREE.Vector3(scale, scale, scale),
+          );
+          inst.setMatrixAt(i, m);
+        });
+        inst.instanceMatrix.needsUpdate = true;
+        inst.castShadow = !!this.tier.propShadowCasters;
+        this.root.add(inst);
+        this.stats.instances += list.length;
+      }
+    }
+
+    // Park dressing: one piece of kit furniture per park, placed at its centre so
+    // a green rectangle becomes a place with a bench, a shelter and planting.
+    const DRESS = ["quiosque", "parquinho", "banco_praca", "ecoparque"].filter((n) => cityKit.has(n));
+    for (const park of this.city.parks || []) {
+      const w = park.x2 - park.x1;
+      const d = park.z2 - park.z1;
+      DRESS.forEach((name, i) => {
+        const model = cityKit.make(name);
+        if (!model) return;
+        const size = cityKit.size(name);
+        // Each piece gets a share of the lawn, so a park reads as a place with
+        // things in it rather than one object in an empty field.
+        const spread = (i + 0.5) / DRESS.length;
+        const scale = Math.min(3.2 / Math.max(size.x, 0.01), 3.2 / Math.max(size.z, 0.01));
+        model.scale.setScalar(scale);
+        model.position.set(
+          park.x1 + w * (0.18 + spread * 0.64),
+          0,
+          park.z1 + d * (0.25 + (i % 2) * 0.5),
+        );
+        model.rotation.y = i * 1.31;
+        this.root.add(model);
+      });
+    }
+
+    this.stats.meshes = this.countMeshes();
+    return this;
+  }
+
   countMeshes() {
     let n = 0;
     this.root.traverse((o) => {
