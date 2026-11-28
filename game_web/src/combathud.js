@@ -31,6 +31,7 @@ const TEMPLATE = `
 </div>
 <div class="cb-crosshair" data-field="crosshair" hidden><i></i><b></b></div>
 <div class="cb-hitmark" data-field="hitmark" hidden>x</div>
+<div class="cb-damage" data-field="damage" hidden></div>
 <div class="cb-takedown" data-field="takedown" hidden>
   <span class="cb-key">E</span><span data-field="takedownText">Take down</span>
 </div>
@@ -88,6 +89,14 @@ const STYLE = `
 .cb-hitmark { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   color: var(--amber, #E0B77E); font-size: 16px; font-weight: 700; }
 .cb-hitmark[data-kill="1"] { color: var(--signal, #E88771); font-size: 20px; }
+
+/* Directional damage: an arc segment around the player, at a fixed radius.
+   Rotation is the bearing, so a hit from the right draws on the right. */
+.cb-damage { position: absolute; left: 50%; top: 50%; width: 1px; height: 1px; }
+.cb-damage i { position: absolute; left: -26px; top: -128px; width: 52px; height: 10px;
+  border-top: 3px solid var(--signal, #E88771); border-radius: 26px 26px 0 0;
+  transform-origin: 26px 128px; display: block; }
+.cb-damage i[data-behind="1"] { border-top-color: var(--amber, #E0B77E); }
 
 /* The takedown prompt sits just below the crosshair: it is about a body in front
    of the player, so it belongs where they are already looking. */
@@ -200,6 +209,23 @@ export class CombatHud {
         });
       }
     }
+
+    // Directional damage. Rebuilt only when the set of marks changes, so a
+    // firefight does not thrash the DOM every frame.
+    const marks = state.damageMarks ?? [];
+    const sig = marks.map((m) => `${m.bearing.toFixed(2)}:${m.alpha.toFixed(1)}`).join("|");
+    if (sig !== this.lastDamageSig) {
+      this.lastDamageSig = sig;
+      f.damage.innerHTML = "";
+      for (const m of marks) {
+        const arc = document.createElement("i");
+        arc.style.transform = `rotate(${(m.bearing * 180) / Math.PI}deg)`;
+        arc.style.opacity = String(m.alpha);
+        arc.dataset.behind = m.behind ? "1" : "0";
+        f.damage.appendChild(arc);
+      }
+    }
+    f.damage.hidden = marks.length === 0;
 
     // The takedown prompt. Shown whenever a body is in reach, including when the
     // reason it is refused is something the player can fix ("Behind them" is

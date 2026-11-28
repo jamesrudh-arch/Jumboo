@@ -18,6 +18,7 @@ import { Run, tierForWave } from "./progression.js";
 import { ARCHETYPES, statLine } from "./enemies.js";
 import { steer } from "./navigation.js";
 import { findTakedownTarget, performTakedown, promptFor, TAKEDOWN } from "./takedown.js";
+import { DamageMarks, bearingTo } from "./damagedir.js";
 import { resolveCircle } from "./collision.js";
 
 /**
@@ -53,6 +54,9 @@ export class Arena {
     this.waveTimer = 0;
     this.playerHitCooldown = 0;
     this.stats = { shots: 0, hits: 0, kills: 0, damageTaken: 0 };
+    // Where the last hits came from, so the HUD can show a bearing. A hit from
+    // off-screen with no indicator is a coin flip, not a fight.
+    this.damageMarks = new DamageMarks();
     this.handlers = { onWaveStart: null, onWaveEnd: null, onDeath: null };
   }
 
@@ -165,6 +169,7 @@ export class Arena {
       return;
     }
     const sim = this.feel.tick(dt);
+    this.damageMarks.tick(dt);
 
     for (const e of this.wave.live) {
       if (e.dead) continue;
@@ -303,6 +308,9 @@ export class Arena {
     damage = Math.max(1, Math.round(damage * falloff));
     this.playerHitCooldown = attack.kind === "melee" ? 0.45 : 0.3;
     this.stats.damageTaken += damage;
+    // Bearing from the player to the source, relative to where they are looking.
+    const bearing = bearingTo(p, enemy.root.position, this.world.cameraYaw ?? p.yaw ?? 0);
+    this.damageMarks.add(bearing, damage, { from: enemy.stats?.archetype });
     this.run.takeDamage(damage);
     this.feel.shake.add(0.3);
     this.feel.haptics.fire("pistol", 0.5);
@@ -401,6 +409,7 @@ export class Arena {
       downTimer: this.run.downTimer ?? 0,
       revivesLeft: this.run.deathsAllowed,
       takedowns: this.quietTakedowns ?? 0,
+      damageMarks: this.damageMarks.render(),
     };
   }
 

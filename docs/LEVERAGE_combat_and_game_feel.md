@@ -140,6 +140,55 @@ The models are the real thing, and the pipeline around them is tested against th
 
 **The honest gap:** this machine has no browser and no GPU. The browser path is verified by resolving the whole module graph (31 modules, every named import checked against its target) and by running the boot sequence against a DOM shim up to the point where three.js requires a real GL context. The simulation is proven headless; the *rendering* is not, and needs one session on a real device before anyone calls it finished.
 
+## 7a. The advanced layer, now built
+
+The section above described the first pass. Everything in "what to do next" that
+did not need a physical device has since been built and tested. This is what
+changed, and what each change is worth.
+
+| Added | File | Why it matters |
+|---|---|---|
+| Aim while standing still | `src/world.js` | **A bug, not a feature.** `p.yaw` only updated while moving, so a stationary player fired along the heading of their last footstep: a body behind them was hittable and a body in front was not. |
+| Enemy navigation | `src/navigation.js` | Bodies walked through walls and arrived as one overlapping blob. Context steering instead of a navmesh: 80% of the read for 1% of the cost. |
+| The takedown | `src/takedown.js` | The verb the fiction was asking for. Close, behind, unseen, slow — silent, and worth 2.4× a loud kill. |
+| Weapon mods | `src/mods.js` | Progression becomes a build rather than a queue. Ten mods, four slots, every one a real trade. |
+| Downed state | `src/progression.js` | Zero health is eight seconds on the ground, not a lost run. Two revives, then it is final. |
+| Directional damage | `src/damagedir.js` | A sniper hits for 55 from off-screen. Without a bearing that is a coin flip, not a fight. |
+| Stereo panning | `src/audio.js` | Every combat sound played dead centre. A shot to your right now arrives on your right. |
+| Reverb | `src/audio.js` | A generated impulse on a send, per-voice. The single biggest remaining audio improvement, and it is done. |
+
+### 7a.1 Two bugs worth naming, because both shipped silently
+
+**Aim was bound to movement.** The steer-and-shoot loop could not work: a player
+standing still could not turn to face anything. No test caught it because the
+combat tests placed the player facing the target rather than turning to it. It
+is now covered by two tests that assert both halves of the rule — face the
+camera when still, face the direction of travel when moving.
+
+**The camera is slower than the aim.** Measured against the real damping curve:
+at rate 9 the boom needs 0.72 s to settle after a 90° turn, and after 100 ms of a
+180° turn it is still 73° off. That bounds how tight shooting can feel and is the
+first thing the device pass should judge. Two candidate fixes are already
+identified: faster boom damping while a weapon is drawn, or firing along the
+camera rather than the body.
+
+### 7a.2 What "10/10" still needs
+
+Being honest about the gap that remains, in order:
+
+1. **A device pass.** Unchanged and now the only thing standing between this and
+   a verdict. Nothing above has been seen running.
+2. **Camera-relative aim**, per 7a.1 — a judgement call that needs hands on it.
+3. **Body-versus-body collision.** Steering separates bodies, but they can still
+   pass through each other when pushed. Real capsule collision is the fix.
+4. **A boss per act.** `Stan`, `Mike` and `George` are vendored, rigged, six and
+   a half metres tall, and unused.
+5. **Environmental kills.** The street is full of props and traffic and none of
+   it can be turned into a weapon, which is odd for a game about leverage.
+6. **Footstep surfaces.** There is one step sound with a wet variant, in a city
+   with tarmac, grating, puddles and gravel.
+7. **Per-archetype death behaviour** and a **practise range**.
+
 ## 8. What to do next, in order
 
 Ordered by how much each raises the game per unit of risk. The first two are the difference between "a combat prototype" and "a combat game".
