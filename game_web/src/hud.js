@@ -66,6 +66,10 @@ const STYLE = `
 .lv-kicker, .lv-label { font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
   color: var(--steel); }
 .lv-objective { position: absolute; top: 40px; left: 44px; display: grid; gap: 3px; }
+/* A hidden block must actually be gone. The display rule above outranks the
+   [hidden] default, so without this the level objective keeps drawing underneath
+   the story objective — two objectives printed on top of each other. */
+.lv-objective[hidden], .lv-story[hidden], .lv-compass[hidden] { display: none; }
 .lv-objective-label { font-size: 17px; letter-spacing: .01em; }
 .lv-objective-distance { font-size: 12px; color: var(--tidal); font-variant-numeric: tabular-nums; }
 .lv-compass { position: absolute; top: 40px; left: 50%; width: 132px; height: 2px;
@@ -96,7 +100,6 @@ const STYLE = `
 .lv-errand-bar i { display: block; height: 100%; width: 0%; background: var(--amber); }
 .lv-errand-tally { color: var(--steel); }
 .lv-story { position: absolute; top: 40px; left: 44px; display: grid; gap: 3px; max-width: 40ch; }
-.lv-story[hidden] { display: none; }
 .lv-kicker { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--tidal); }
 .lv-story-text { font-size: 17px; letter-spacing: .01em; }
 .lv-subtitle { position: absolute; left: 50%; bottom: 92px; transform: translateX(-50%);
@@ -132,7 +135,12 @@ const STYLE = `
   display: grid; gap: 6px; text-align: center; padding: 22px 30px;
   background: color-mix(in srgb, var(--ink) 88%, transparent);
   border: 1px solid color-mix(in srgb, var(--steel) 34%, transparent); }
-.lv-banner[hidden] { display: none; }
+/* A panel that sets its own display rule outranks the [hidden] attribute, so
+   [hidden] does nothing on its own. Every display-bearing panel must say so
+   explicitly, or it stays on screen after the game has stopped asking for it --
+   which is how "Taken." was left printed over a perfectly healthy street. */
+.lv-banner[hidden], .lv-subtitle[hidden], .lv-prompt[hidden],
+.lv-suspicion[hidden], .lv-chaos[hidden], .lv-errand[hidden] { display: none !important; }
 .lv-banner strong { font-size: 20px; letter-spacing: .04em; font-weight: 500; }
 .lv-banner span { font-size: 12px; color: var(--steel); max-width: 320px; }
 `;

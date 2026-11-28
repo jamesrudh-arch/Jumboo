@@ -9,10 +9,14 @@
     "serve": "node serve.js",
     "smoke": "node tools/smoke.mjs",
     "postinstall": "node tools/link-three.mjs",
-    "setup": "node tools/link-three.mjs"
+    "setup": "node tools/link-three.mjs",
+    "smoke:browser": "node tools/browser-smoke.mjs"
   },
   "license": "UNLICENSED",
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
+    "puppeteer-core": "^25.19.0",
+    "@sparticuz/chromium": "^158.0.0",
     "linkedom": "^0.18.15"
   }
 }

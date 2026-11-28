@@ -68,7 +68,10 @@ const STYLE = `
 .cb-wave-count { font-size: 11px; color: var(--steel, #8B9B9B);
   font-variant-numeric: tabular-nums; }
 
-.cb-health { position: absolute; left: 28px; bottom: 96px; width: 190px; display: grid; gap: 5px; }
+/* Sits above the stealth readouts (bottom: 44px, 168px wide) rather than on top
+   of them: the health bar and the stamina bar are both "how much of you is left",
+   so they belong in one column, stacked, not printed over each other. */
+.cb-health { position: absolute; left: 44px; bottom: 150px; width: 168px; display: grid; gap: 5px; }
 .cb-health-bar { height: 4px; background: rgba(139,155,155,.28); }
 .cb-health-bar i { display: block; height: 100%; width: 100%; background: var(--tidal, #8EBAB6);
   transition: width .18s ease, background .18s ease; }
@@ -150,6 +153,12 @@ const STYLE = `
 
 .cb-dead { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   display: grid; gap: 8px; text-align: center; }
+/* A panel that sets its own display rule outranks the [hidden] attribute. Without
+   these rules the death overlay and the wave offers stay on screen after the game
+   has stopped asking for them, which is how "Taken." was printed over a street
+   where nothing had happened. */
+.cb-dead[hidden], .cb-offer[hidden], .cb-takedown[hidden], .cb-health[hidden],
+.cb-wave[hidden], .cb-weapon[hidden], .cb-kicker[hidden] { display: none !important; }
 .cb-dead strong { font-size: 26px; letter-spacing: .02em; }
 .cb-dead span { font-size: 12px; color: var(--steel, #8B9B9B); }
 .cb-key { border: 1px solid rgba(139,155,155,.5); padding: 2px 8px; font-size: 10px;
