@@ -1,0 +1,3 @@
+# Local runtime only. The renderer is vendored in vendor/three; recreate the
+# symlink with: ln -s ../vendor/three node_modules/three
+node_modules/

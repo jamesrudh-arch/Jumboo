@@ -1,0 +1,13 @@
+{
+  "name": "leverage-cinder-lane-slice",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "LEVERAGE: Cinder City \u2014 vertical-slice gameplay study (browser build)",
+  "scripts": {
+    "test": "node --test test/*.test.js test/*.test.mjs",
+    "serve": "node serve.js",
+    "smoke": "node tools/smoke.mjs"
+  },
+  "license": "UNLICENSED"
+}

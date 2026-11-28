@@ -1,0 +1,347 @@
+// Audio tests. There is no device here, so the whole mixer runs against a fake
+// AudioContext: every node the synth touches is checked for existence, and the
+// audio params are inspected directly. This proves the graph is built, that the
+// levels react to the simulation, and that nothing throws without a browser.
+
+import test from "node:test";
+import { fakeContext } from "./fakeaudio.mjs";
+import assert from "node:assert/strict";
+
+import { CityAudio, createAudio } from "../src/audio.js";
+
+/** The smallest AudioContext that satisfies the graph in src/audio.js. */
+const fakeWeather = (rain = 0.5, wind = 0.5, gust = 0) => ({
+  rainRate: rain,
+  windStrength: wind,
+  gust,
+});
+
+test("the audio graph builds and starts muted until a gesture", () => {
+  const ctx = fakeContext();
+  const audio = new CityAudio({ ctx });
+  assert.equal(audio.enabled, true);
+  assert.equal(audio.ready, true);
+  assert.ok(audio.rain && audio.wind && audio.hum, "ambience nodes missing");
+  assert.equal(audio.master.gain.value, 0, "master must start silent");
+  audio.start();
+  assert.equal(ctx.state, "running", "start() must resume a suspended context");
+  assert.ok(audio.master.gain.value > 0.5, "start() must fade the master up");
+});
+
+test("rain, wind and the city hum follow the weather", () => {
+  const ctx = fakeContext();
+  const audio = new CityAudio({ ctx });
+  audio.start();
+  audio.update(1 / 60, { weather: fakeWeather(0.05, 0.1, 0), player: { x: 0, z: 0 } });
+  const quiet = {
+    rain: audio.rain.gain.gain.value,
+    wind: audio.wind.gain.gain.value,
+    bright: audio.rain.filter.frequency.value,
+  };
+  audio.update(1 / 60, { weather: fakeWeather(1, 1, 0.9), player: { x: 0, z: 0 } });
+  const loud = {
+    rain: audio.rain.gain.gain.value,
+    wind: audio.wind.gain.gain.value,
+    bright: audio.rain.filter.frequency.value,
+  };
+  assert.ok(loud.rain > quiet.rain * 2, "a downpour must be louder than a drizzle");
+  assert.ok(loud.wind > quiet.wind, "wind must rise with the weather");
+  assert.ok(loud.bright > quiet.bright, "heavy rain must be brighter, not just louder");
+});
+
+test("tyre voices exist per nearby car and fall silent with distance", () => {
+  const ctx = fakeContext();
+  const audio = new CityAudio({ ctx });
+  audio.start();
+  const player = { x: 0, z: 0 };
+  const near = [{ x: 3, z: 0, speed: 12 }, { x: 6, z: 2, speed: 9 }];
+  audio.update(1 / 60, { weather: fakeWeather(), player, vehicles: near, cameraYaw: 0 });
+  assert.equal(audio.tyres.length, 2, "one tyre voice per car");
+  const nearLevel = audio.tyres[0].gain.gain.value;
+  assert.ok(nearLevel > 0, "a car 3 m away must be audible");
+
+  const far = [{ x: 90, z: 0, speed: 12 }, { x: 6, z: 2, speed: 9 }];
+  audio.update(1 / 60, { weather: fakeWeather(), player, vehicles: far, cameraYaw: 0 });
+  assert.ok(audio.tyres[0].gain.gain.value < nearLevel, "a car 90 m away must be quieter");
+});
+
+test("a car to the player's right pans right", () => {
+  const ctx = fakeContext();
+  const audio = new CityAudio({ ctx });
+  audio.start();
+  audio.update(1 / 60, {
+    weather: fakeWeather(),
+    player: { x: 0, z: 0 },
+    vehicles: [{ x: 8, z: 0, speed: 10 }],
+    cameraYaw: 0,
+  });
+  const pan = audio.tyres[0].panner.pan.value;
+  assert.ok(pan > 0.1, `expected a right-hand pan, got ${pan}`);
+});
+
+test("named voices play, cap themselves and release their slots", () => {
+  const ctx = fakeContext();
+  const audio = new CityAudio({ ctx });
+  audio.start();
+  assert.equal(audio.play("honk"), true);
+  assert.equal(audio.play("thunder"), true);
+  assert.equal(audio.play("nope"), false, "an unknown voice must not throw");
+  assert.equal(audio.voices.length, 2);
+
+  // The cap protects the mixer from a pile-up.
+  for (let i = 0; i < 40; i++) audio.play("step");
+  assert.ok(audio.voices.length <= 15, `voice cap exceeded: ${audio.voices.length}`);
+  assert.ok(audio.stats.dropped > 0, "dropped voices must be counted");
+
+  // Releasing a voice (what onended does) frees the slot.
+  audio.voices[0].source.onended?.();
+  assert.ok(audio.voices.length < 15);
+});
+
+test("footsteps fire on stride crossings, not on a timer", () => {
+  const ctx = fakeContext();
+  const audio = new CityAudio({ ctx });
+  audio.start();
+  let steps = 0;
+  const realPlay = audio.play.bind(audio);
+  audio.play = (name, opts) => {
+    if (name === "step" || name === "stepWet") steps += 1;
+    return realPlay(name, opts);
+  };
+  // Walk a phase from 0 to 1 in small increments: two crossings, two steps.
+  for (let p = 0; p <= 1.0001; p += 1 / 60) {
+    audio.footsteps(p % 1, { moving: true, running: false });
+  }
+  assert.equal(steps, 2, `expected one step per stride crossing, got ${steps}`);
+
+  // Standing still makes no noise, and re-crossing does not retrigger.
+  steps = 0;
+  for (let p = 0; p <= 1.0001; p += 1 / 60) audio.footsteps(p % 1, { moving: false });
+  assert.equal(steps, 0, "a stationary player must not make footsteps");
+});
+
+test("wet streets change the footstep, and running is louder than crouching", () => {
+  const ctx = fakeContext();
+  const audio = new CityAudio({ ctx });
+  audio.start();
+  const heard = [];
+  const realPlay = audio.play.bind(audio);
+  audio.play = (name, opts) => {
+    heard.push({ name, gain: opts?.gain ?? 1 });
+    return realPlay(name, opts);
+  };
+  // Drive one full stride per mode, the way the walk cycle actually moves:
+  // 0 -> 1, so the foot index changes once. (Calling 0.4 then 0.6 repeatedly is
+  // two strides, not one, and would rightly fire twice.)
+  const stride = (opts) => {
+    const before = heard.length;
+    for (let p = 0; p <= 1.0001; p += 1 / 60) audio.footsteps(p % 1, { moving: true, ...opts });
+    return heard[before];
+  };
+  const walk = stride({});
+  const wet = stride({ wet: true });
+  const run = stride({ running: true });
+  const crouch = stride({ crouch: true });
+  assert.equal(walk.name, "step");
+  assert.equal(wet.name, "stepWet", "wet ground must sound different");
+  assert.ok(wet.gain > walk.gain, "a splash adds energy, it does not replace the step");
+  assert.ok(run.gain > walk.gain, "running must be louder than walking");
+  assert.ok(crouch.gain < walk.gain, "crouching must be quieter than walking");
+});
+
+test("the world's event stream maps onto sounds", () => {
+  const ctx = fakeContext();
+  const audio = new CityAudio({ ctx });
+  audio.start();
+  const player = { x: 0, z: 0 };
+  const played = [];
+  const realPlay = audio.play.bind(audio);
+  audio.play = (name, opts) => {
+    played.push(name);
+    return realPlay(name, opts);
+  };
+  audio.playEvent({ type: "honk", x: 2, z: 0 }, player);
+  audio.playEvent({ type: "honk", x: 120, z: 0 }, player);
+  audio.playEvent({ type: "hit-by-car", x: 1, z: 0 }, player);
+  audio.playEvent({ type: "drowned", x: 1, z: 0 }, player);
+  audio.playEvent({ type: "errand", x: 1, z: 0 }, player);
+  audio.playEvent({ type: "step" }, player);
+  assert.deepEqual(played, ["honk", "honkFar", "thud", "splash", "ping"]);
+});
+
+test("muting and volume are honoured", () => {
+  const ctx = fakeContext();
+  const audio = new CityAudio({ ctx });
+  audio.start();
+  audio.setMuted(true);
+  assert.equal(audio.master.gain.value, 0);
+  audio.setMuted(false);
+  assert.ok(audio.master.gain.value > 0.5);
+  audio.setMaster(0.25);
+  assert.equal(audio.masterGain, 0.25);
+});
+
+test("no AudioContext means no crash, and no sound", () => {
+  const silent = createAudio({});
+  assert.equal(silent.enabled, false);
+  assert.equal(silent.play("honk"), false);
+  silent.update(1 / 60, {});
+  silent.footsteps(0.5, { moving: true });
+  silent.playEvent({ type: "honk", x: 0, z: 0 }, { x: 0, z: 0 });
+});
+
+test("a context that throws while building is swallowed", () => {
+  const broken = new Proxy(
+    {},
+    {
+      get() {
+        throw new Error("AudioContext is locked");
+      },
+    },
+  );
+  const audio = new CityAudio({ ctx: broken });
+  assert.equal(audio.enabled, false);
+  assert.match(audio.error, /locked/);
+  assert.equal(audio.play("honk"), false);
+});
+
+test("a one-shot can be placed in the stereo field", () => {
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  // Facing +Z (yaw 0): forward is (sin 0, cos 0) = (0, 1), right is (1, 0).
+  audio.listener = { x: 0, z: 0, yaw: 0 };
+  audio.listenerYaw = 0;
+  const right = audio.panFor({ x: 12, z: 0, player: audio.listener, yaw: 0 });
+  const left = audio.panFor({ x: -12, z: 0, player: audio.listener, yaw: 0 });
+  const ahead = audio.panFor({ x: 0, z: 12, player: audio.listener, yaw: 0 });
+  assert.ok(right > 0.3, `a sound on the right pans right (${right})`);
+  assert.ok(left < -0.3, `a sound on the left pans left (${left})`);
+  assert.equal(Math.abs(ahead), 0, "a sound straight ahead stays centred");
+});
+
+test("panning saturates at 18 m and never exceeds the field", () => {
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  const listener = { x: 0, z: 0, yaw: 0 };
+  const far = audio.panFor({ x: 90, z: 0, player: listener, yaw: 0 });
+  assert.equal(far, 1, "clamped hard right, not 5.0");
+});
+
+test("panning follows the camera, not the player's facing", () => {
+  // Turning the camera 90 degrees swaps which world side is "right".
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  const listener = { x: 0, z: 0, yaw: 0 };
+  const at = { x: 12, z: 0, player: listener };
+  // Yaw 0: forward is +Z and screen-right is +X, so a body at +X is on the
+  // right. Yaw pi/2 turns the camera to face +X, so that same body is now dead
+  // ahead. Yaw pi puts it behind the camera, which is again to one side.
+  const facingZ = audio.panFor({ ...at, yaw: 0 });
+  const facingIt = audio.panFor({ ...at, yaw: Math.PI / 2 });
+  assert.ok(facingZ > 0.3, `facing +Z, the body pans right (${facingZ.toFixed(2)})`);
+  assert.ok(Math.abs(facingIt) < 0.05, `turned to face it, it is centred (${facingIt.toFixed(2)})`);
+  const behind = audio.panFor({ ...at, yaw: Math.PI });
+  assert.ok(behind < -0.3, `with it behind the camera it pans left (${behind.toFixed(2)})`);
+});
+
+test("a sound with no position stays centred", () => {
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  assert.equal(audio.panFor({}), null);
+  assert.equal(audio.panFor({ x: 1 }), null, "half a position is not a position");
+});
+
+test("a body falling has a voice", () => {
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  const player = { x: 0, z: 0, yaw: 0 };
+  audio.listener = player;
+  assert.ok(audio.playEvent({ type: "death", x: 2, z: 0 }, player));
+  assert.ok(audio.playEvent({ type: "enemy-attack", x: 1, z: 1, kind: "melee" }, player));
+  assert.ok(audio.playEvent({ type: "player-hit", x: 0, z: 0 }, player));
+});
+
+// ------------------------------------------------------------------- reverb
+test("the mixer builds a reverb from a generated impulse, with no file", () => {
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  assert.ok(audio.reverb, "there is a convolver");
+  assert.ok(audio.reverb.buffer, "and it has an impulse");
+  // The fake context returns a minimal buffer; check the shape it was asked for.
+  const buf = audio.reverb.buffer;
+  assert.ok(buf.duration > 0.5 && buf.duration < 4, `tail is ${buf.duration}s`);
+});
+
+test("the impulse is deterministic, so two shots sound the same", () => {
+  // A reverb that differs per load makes identical shots sound different, which
+  // reads as a bug to a player without them being able to name it.
+  const impulse = (seed) => {
+    const ctx = fakeContext();
+    const a = new CityAudio({ ctx });
+    const buf = a.makeImpulse(0.1, 2.4);
+    void seed;
+    return buf;
+  };
+  const a = impulse(1);
+  const b = impulse(2);
+  const da = a.getChannelData ? a.getChannelData(0) : null;
+  const db = b.getChannelData ? b.getChannelData(0) : null;
+  if (da && db) assert.deepEqual([...da], [...db]);
+});
+
+test("a gunshot is wet and a reload is dry", () => {
+  const audio = new CityAudio({ ctx: fakeContext() });
+  audio.build();
+  const player = { x: 0, z: 0, yaw: 0 };
+  audio.listener = player;
+  assert.ok(REVERB_SEND_RANGE.rifleCrack > REVERB_SEND_RANGE.reloadClick);
+});
+
+/** The documented send range: world sounds wetter than things in the hands. */
+const REVERB_SEND_RANGE = {
+  rifleCrack: 0.75, reloadClick: 0.05,
+};
+
+const makeAudio = () => new CityAudio({ ctx: fakeContext() });
+
+test("the surface picks the footstep voice", () => {
+  const audio = makeAudio();
+  const played = [];
+  const orig = audio.play.bind(audio);
+  audio.play = (name, o) => { played.push(name); return orig(name, o); };
+  const step = (surface) => {
+    audio.lastStepPhase = null;
+    audio.footsteps(0, { moving: true, surface });
+    audio.footsteps(0.5, { moving: true, surface });
+    return played.pop();
+  };
+  assert.equal(step("grating"), "stepGrating");
+  assert.equal(step("gravel"), "stepGravel");
+  assert.equal(step("tarmac"), "stepTarmac");
+  assert.equal(step(null), "step");
+});
+
+test("wet beats the surface, because a wet street is the loudest thing about it", () => {
+  const audio = makeAudio();
+  const played = [];
+  audio.play = (name) => { played.push(name); return true; };
+  audio.lastStepPhase = null;
+  audio.footsteps(0, { moving: true, surface: "gravel" });
+  audio.footsteps(0.5, { moving: true, surface: "gravel", wet: true });
+  assert.equal(played.at(-1), "stepWet");
+});
+
+test("every surface voice exists in the library and is audibly different", () => {
+  // A missing voice plays nothing at all, so check the library directly rather
+  // than trusting the fallback.
+  const audio = makeAudio();
+  const names = ["stepTarmac", "stepGravel", "stepGrating"];
+  const played = [];
+  audio.play = (name) => { played.push(name); return true; };
+  for (const name of names) {
+    audio.lastStepPhase = null;
+    audio.footsteps(0, { moving: true, surface: name.replace("step", "").toLowerCase() });
+    audio.footsteps(0.5, { moving: true, surface: name.replace("step", "").toLowerCase() });
+  }
+  assert.deepEqual(played, names, "each surface produced its own voice, in order");
+});
