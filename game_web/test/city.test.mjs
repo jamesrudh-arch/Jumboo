@@ -400,6 +400,27 @@ test("street errands exist on the map, pay score, and can be finished", () => {
   assert.ok(world.events.some((ev) => ev.type === "errand"), "no errand event");
 });
 
+test("errand markers stand on walkable ground, not inside a building", () => {
+  const built = buildCity(CITY, TIERS.desktop);
+  const level = buildLevel();
+  const world = new World(LEVEL, { boxes: level.boxes, platforms: level.platforms }, {
+    city: CITY,
+    cityBoxes: built.boxes.concat(level.boxes),
+    cityBuilt: built,
+    tier: TIERS.desktop,
+    seed: 3,
+  });
+  for (const e of world.errands) {
+    for (const b of built.buildings) {
+      const inside = e.x > b.x1 && e.x < b.x2 && e.z > b.z1 && e.z < b.z2;
+      assert.ok(!inside, `errand ${e.id} is inside a building`);
+    }
+    assert.equal(waterAt(CITY, e.x, e.z), null, `errand ${e.id} is in water`);
+    const B = world.bounds;
+    assert.ok(e.x > B.x1 && e.x < B.x2 && e.z > B.z1 && e.z < B.z2, `errand ${e.id} is off the map`);
+  }
+});
+
 test("an errand's sabotage kill darkens the street", () => {
   const world = districtWorld(21);
   world.patrolDefs = [];

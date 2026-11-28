@@ -70,7 +70,7 @@ export const TUNING = {
   errands: [
     { id: "powerbox", label: "Kill the block's power", x: -34, z: 26, radius: 2.4, points: 120, kind: "sabotage" },
     { id: "dropped-bag", label: "Recover the dropped bag", x: 62, z: -46, radius: 2.2, points: 90, kind: "recover" },
-    { id: "witness", label: "Talk to the dockhand", x: -86, z: -118, radius: 2.4, points: 150, kind: "talk" },
+    { id: "witness", label: "Talk to the dockhand", x: -86, z: -104, radius: 2.4, points: 150, kind: "talk" },
   ],
 };
 
@@ -184,10 +184,46 @@ export class World {
     this.hitsTaken = 0;
     this.drownings = 0;
     this.honks = 0;
-    // Street errands reset with the run.
-    this.errands = (this.city ? TUNING.errands : []).map((e) => ({ ...e, done: false, progress: 0 }));
+    // Street errands reset with the run, and each is moved to clear walkable
+    // ground: the authored points are only approximate, and a marker inside a
+    // building is worse than no marker at all.
+    this.errands = (this.city ? TUNING.errands : []).map((e) => {
+      const spot = this.findErrandSpot(e.x, e.z);
+      return { ...e, x: spot.x, z: spot.z, done: false, progress: 0 };
+    });
     this.errandsDone = 0;
     this.errandPoints = 0;
+  }
+
+  /**
+   * Nearest clear spot to (x, z) that is inside the map, not in water, not on
+   * a road centre and not inside a solid box at waist height.
+   */
+  findErrandSpot(x, z) {
+    const b = this.bounds || this.level.bounds;
+    const blockers = this.cityBuilt ? this.cityBuilt.boxes : [];
+    const clear = (px, pz) => {
+      if (px < b.x1 + 3 || px > b.x2 - 3 || pz < b.z1 + 3 || pz > b.z2 - 3) return false;
+      if (waterAt(this.city, px, pz)) return false;
+      for (const q of blockers) {
+        if (px > q.x1 - 0.9 && px < q.x2 + 0.9 && pz > q.z1 - 0.9 && pz < q.z2 + 0.9) {
+          // Any solid that overlaps waist or head height blocks the spot; a
+          // kerb or a road-paint decal does not.
+          if (q.y0 < 1.7 && q.y1 > 0.3) return false;
+        }
+      }
+      return true;
+    };
+    if (clear(x, z)) return { x, z };
+    // Spiral outwards in 2 m steps until something is clear.
+    for (let r = 2; r <= 26; r += 2) {
+      for (let a = 0; a < 12; a++) {
+        const px = x + Math.cos((a / 12) * Math.PI * 2) * r;
+        const pz = z + Math.sin((a / 12) * Math.PI * 2) * r;
+        if (clear(px, pz)) return { x: px, z: pz };
+      }
+    }
+    return { x, z };
   }
 
   makeAgent(def, index) {
