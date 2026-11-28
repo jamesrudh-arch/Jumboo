@@ -239,12 +239,26 @@ test("accuracy is measured, not guessed", () => {
   const target = body(ARCHETYPE.RUNNER, { z: 2 });
   const { combat, run } = setup({ bodies: [target] });
   run.loadout.select("pistol");
-  // Two hits kill a 40 hp runner (26 a hit at 2 m), so the third shot has
-  // nothing to hit and must be counted as a miss rather than as a hit on air.
-  for (let i = 0; i < 5; i++) { combat.fire(); run.loadout.tick(0.5); }
-  assert.equal(combat.hits, 2);
-  assert.equal(combat.misses, 3, "the killed body cannot be hit again");
-  assert.ok(Math.abs(combat.hud().accuracy - 0.4) < 1e-9);
+  // Derive the number of kills from the real stat line rather than hard-coding
+  // it: this test used to assert "two hits kill a 40 hp runner", which stopped
+  // being true the moment health was rebalanced for a longer fight.
+  const perHit = combat.fire() && combat.findTarget(run.loadout.weapon);
+  void perHit;
+  run.loadout.tick(0.5);
+  let shots = 1;
+  let guard = 0;
+  while (!target.dead && guard++ < 60) {
+    combat.fire();
+    run.loadout.tick(0.5);
+    shots += 1;
+  }
+  const kills = shots;
+  // One more shot: there is nothing left to hit, so it must count as a miss.
+  combat.fire();
+  run.loadout.tick(0.5);
+  assert.equal(combat.hits, kills, `every shot until death hit (${kills})`);
+  assert.equal(combat.misses, 1, "the killed body cannot be hit again");
+  assert.ok(Math.abs(combat.hud().accuracy - kills / (kills + 1)) < 1e-9);
 });
 
 test("angleDelta wraps the short way round", () => {

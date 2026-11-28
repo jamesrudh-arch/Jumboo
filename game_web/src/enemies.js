@@ -36,7 +36,7 @@ export const ARCHETYPE = {
 export const ARCHETYPES = {
   [ARCHETYPE.WATCHER]: {
     label: "Watcher",
-    health: 60,
+    health: 220,
     armour: 0.1,
     speed: 0.95,
     sight: 16,
@@ -49,7 +49,7 @@ export const ARCHETYPES = {
   },
   [ARCHETYPE.RUNNER]: {
     label: "Runner",
-    health: 40,
+    health: 190,
     armour: 0,
     speed: 2.4,
     sight: 13,
@@ -61,7 +61,7 @@ export const ARCHETYPES = {
   },
   [ARCHETYPE.BRUTE]: {
     label: "Brute",
-    health: 220,
+    health: 620,
     armour: 0.6,
     speed: 0.85,
     sight: 12,
@@ -73,7 +73,7 @@ export const ARCHETYPES = {
   },
   [ARCHETYPE.FLYER]: {
     label: "Flyer",
-    health: 45,
+    health: 120,
     armour: 0,
     speed: 2.0,
     sight: 18,
@@ -86,7 +86,7 @@ export const ARCHETYPES = {
   },
   [ARCHETYPE.PACK]: {
     label: "Pack",
-    health: 18,
+    health: 70,
     armour: 0,
     speed: 2.8,
     sight: 11,
@@ -99,7 +99,7 @@ export const ARCHETYPES = {
   },
   [ARCHETYPE.HEAVY]: {
     label: "Heavy",
-    health: 160,
+    health: 420,
     armour: 0.35,
     speed: 0.7,
     sight: 15,
@@ -112,7 +112,7 @@ export const ARCHETYPES = {
   },
   [ARCHETYPE.SNIPER]: {
     label: "Sniper",
-    health: 55,
+    health: 150,
     armour: 0.15,
     speed: 0.9,
     sight: 45,

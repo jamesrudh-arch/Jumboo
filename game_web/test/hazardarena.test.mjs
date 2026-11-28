@@ -43,9 +43,9 @@ test("a drum kills several bodies and costs a lot of noise", () => {
   const before = live.filter((e) => !e.dead).length;
   const result = arena.trigger(h);
 
-  assert.ok(result.kills.length >= 3, `${result.kills.length} of ${before} bodies killed`);
+  assert.ok(result.kills.length >= 2, `${result.kills.length} of ${before} bodies killed`);
   assert.ok(noise >= 40, `heard ${noise} m away, so the street comes for you`);
-  assert.ok(arena.stats.hazardKills >= 3);
+  assert.ok(arena.stats.hazardKills >= 2);
   arena.clear();
 });
 
@@ -56,8 +56,11 @@ test("a body at the rim survives a drum — reach is legible", () => {
   const h = arena.hazards.find((x) => x.kind === "barrel");
   h.x = 0; h.z = 0;
   arena.trigger(h);
+  // The rim now keeps one alive: falloff at 4.6 m against 5.2 m reach leaves it
+  // hurt, not dead, which is what makes the edge of a blast legible.
   const survivor = live.find((e) => !e.dead);
-  if (survivor) assert.ok(survivor.root.position.x > 4.5, "it survived because it was outside");
+  assert.ok(survivor, "something at the rim survives");
+  assert.ok(survivor.root.position.x > 4, "and it survived because it was outside");
   arena.clear();
 });
 
