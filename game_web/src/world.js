@@ -16,6 +16,7 @@ import {
   wrapAngle,
 } from "./geom.js";
 import {
+  BoxIndex,
   box,
   hasLineOfSight,
   resolveCircle,
@@ -162,6 +163,24 @@ export class World {
 
   get boxes() {
     return this.openBoxes;
+  }
+
+  /**
+   * The same box list, spatially indexed. Rebuilt when the list identity changes
+   * so a caller that swaps `openBoxes` (main.js does) cannot end up querying a
+   * stale index.
+   */
+  get boxIndex() {
+    if (this._boxIndexFor !== this.openBoxes) {
+      this._boxIndexFor = this.openBoxes;
+      this._boxIndex = new BoxIndex(this.openBoxes);
+    }
+    return this._boxIndex;
+  }
+
+  /** Boxes near a point, for queries that do not need the whole map. */
+  boxesNear(x, z, radius) {
+    return this.boxIndex.near(x, z, radius);
   }
 
   emit(type, data = {}) {
@@ -422,7 +441,7 @@ export class World {
       p.z += this.knockZ * dt;
       this.knockX *= 1 - Math.min(1, dt * 6);
       this.knockZ *= 1 - Math.min(1, dt * 6);
-      resolveCircle(p, this.level.player.radius, this.boxes, p.feetY, p.feetY + 1.8, 3, this.level.stepUp);
+      resolveCircle(p, this.level.player.radius, this.boxesNear(p.x, p.z, 2.5), p.feetY, p.feetY + 1.8, 3, this.level.stepUp);
     }
   }
 
@@ -626,7 +645,7 @@ export class World {
       const headY = p.feetY + lerp(P.height, P.crouchHeight, p.crouch);
       const tryMove = (nx, nz) => {
         const candidate = { x: nx, z: nz };
-        resolveCircle(candidate, P.radius, this.boxes, p.feetY, headY, 3, L.stepUp);
+        resolveCircle(candidate, P.radius, this.boxesNear(candidate.x, candidate.z, 2.5), p.feetY, headY, 3, L.stepUp);
         const support = supportHeightAt(
           candidate.x,
           candidate.z,
@@ -823,7 +842,7 @@ export class World {
     const nz = a.z + Math.cos(yaw) * speed * dt;
     const candidate = { x: nx, z: nz };
     const before = { x: nx, z: nz };
-    resolveCircle(candidate, 0.34, this.boxes, 0, 1.8);
+    resolveCircle(candidate, 0.34, this.boxesNear(candidate.x, candidate.z, 2.5), 0, 1.8);
     // If collision pushed us far off the intended spot, treat it as reaching
     // the waypoint so a blocked route cannot deadlock a patrol.
     if (Math.hypot(candidate.x - before.x, candidate.z - before.z) > 0.2) {
@@ -1148,15 +1167,23 @@ export class World {
     };
 
     // Keep the camera out of walls: shorten the boom if the segment is blocked.
+    // The candidate boxes come from the spatial index once, not from the whole
+    // district on every one of the fourteen samples along the boom.
     let allowed = 1;
     const steps = 14;
+    const nearBoxes = this.boxIndex.query(
+      Math.min(focus.x, desired.x) - 1,
+      Math.min(focus.z, desired.z) - 1,
+      Math.max(focus.x, desired.x) + 1,
+      Math.max(focus.z, desired.z) + 1,
+    );
     for (let i = 1; i <= steps; i++) {
       const t = i / steps;
       const sx = lerp(focus.x, desired.x, t);
       const sz = lerp(focus.z, desired.z, t);
       const sy = lerp(focus.y, desired.y, t);
       let blocked = false;
-      for (const b of this.boxes) {
+      for (const b of nearBoxes) {
         if (b.tag === "floor") continue;
         if (sx > b.x1 - 0.12 && sx < b.x2 + 0.12 && sz > b.z1 - 0.12 && sz < b.z2 + 0.12 && sy > b.y0 - 0.1 && sy < b.y1 + 0.1) {
           blocked = true;

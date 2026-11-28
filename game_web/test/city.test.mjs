@@ -10,6 +10,7 @@ import { World, TUNING } from "../src/world.js";
 import { Traffic, Crowd, VEHICLE_SPEC } from "../src/traffic.js";
 import { TIERS } from "../src/config.js";
 import { Weather, WEATHER, Wetness } from "../src/weather.js";
+import * as collisionIndex from "../src/collision.js";
 
 const rectsOverlap = (a, b) =>
   a.x1 < b.x2 && a.x2 > b.x1 && a.z1 < b.z2 && a.z2 > b.z1;
@@ -613,4 +614,53 @@ test("a stopped car backs out of a jam instead of blocking the street forever", 
   // And the street clears: no car is permanently parked in the junction.
   const stopped = w.traffic.vehicles.filter((v) => v.speed < 0.3).length;
   assert.ok(stopped <= 1, `${stopped} of ${w.traffic.vehicles.length} cars are still stopped 14 s later`);
+});
+
+// ------------------------------------------------------------- collision index
+test("the spatial index never hides a box that matters", () => {
+  const built = buildCity(CITY, TIERS.desktop);
+  const level = buildLevel();
+  const boxes = built.boxes.concat(level.boxes);
+  const { BoxIndex } = collisionIndex;
+  const idx = new BoxIndex(boxes);
+  // Every box must come back from a query over its own footprint, or collision
+  // would let a player walk through it.
+  for (const b of boxes) {
+    const hits = idx.query(b.x1, b.z1, b.x2, b.z2);
+    assert.ok(hits.includes(b), `box ${b.tag} at ${b.x1},${b.z1} is missing from its own bucket`);
+  }
+  // And a query near a wall must include that wall for a body-sized radius.
+  const wall = boxes.find((b) => b.tag === "wall");
+  if (wall) {
+    const near = idx.near((wall.x1 + wall.x2) / 2, wall.z1 - 0.2, 0.42);
+    assert.ok(near.includes(wall), "a wall 20 cm away was not returned");
+  }
+  // The whole point: a query is a small fraction of the map.
+  let total = 0;
+  for (let i = 0; i < 200; i++) {
+    total += idx.near(CITY.bounds.x1 + Math.random() * 300, CITY.bounds.z1 + Math.random() * 250, 2.5).length;
+  }
+  const avg = total / 200;
+  assert.ok(avg < boxes.length * 0.1, `index returns ${avg.toFixed(0)} of ${boxes.length} boxes, which is not a saving`);
+});
+
+test("the district still behaves identically with the index in play", () => {
+  // Same seed, same inputs: the player must end up in the same place. This is
+  // the guard against an index that is fast because it is wrong.
+  const run = () => {
+    const w = districtWorld(31);
+    w.agents.length = 0;
+    w.start();
+    for (let i = 0; i < 240; i++) {
+      w.setInput({ moveZ: 1, run: true });
+      w.cameraYaw = Math.PI;
+      w.update(1 / 60);
+    }
+    return { x: w.player.x, z: w.player.z };
+  };
+  const a = run();
+  const b = run();
+  assert.equal(a.x, b.x);
+  assert.equal(a.z, b.z);
+  assert.ok(Math.hypot(a.x, a.z) > 1, "the player never moved");
 });

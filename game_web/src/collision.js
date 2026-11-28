@@ -187,3 +187,72 @@ export function overlapsAny(px, pz, radius, boxes, feetY = 0, headY = 1.8) {
   }
   return null;
 }
+
+// ------------------------------------------------------------------ index
+/**
+ * A coarse uniform grid over a box list, so a query only touches the handful of
+ * boxes near it instead of all ~280. The camera alone used to test every box in
+ * the district 14 times per frame, which is the sort of cost that shows up on a
+ * phone and nowhere else.
+ *
+ * Buckets are 16 m and boxes are registered in every bucket their footprint
+ * touches. `query` returns candidates (a superset — always still check them).
+ */
+export class BoxIndex {
+  constructor(boxes, cell = 16) {
+    this.cell = cell;
+    this.buckets = new Map();
+    this.boxes = boxes;
+    let x1 = Infinity;
+    let z1 = Infinity;
+    for (const b of boxes) {
+      x1 = Math.min(x1, b.x1);
+      z1 = Math.min(z1, b.z1);
+    }
+    this.originX = Number.isFinite(x1) ? x1 : 0;
+    this.originZ = Number.isFinite(z1) ? z1 : 0;
+    for (const b of boxes) {
+      for (const key of this.keysFor(b.x1, b.z1, b.x2, b.z2)) {
+        let list = this.buckets.get(key);
+        if (!list) this.buckets.set(key, (list = []));
+        list.push(b);
+      }
+    }
+  }
+
+  key(gx, gz) {
+    return gx * 73856093 ^ gz * 19349663;
+  }
+
+  keysFor(x1, z1, x2, z2) {
+    const c = this.cell;
+    const a = Math.floor((x1 - this.originX) / c);
+    const b = Math.floor((z1 - this.originZ) / c);
+    const e = Math.floor((x2 - this.originX) / c);
+    const f = Math.floor((z2 - this.originZ) / c);
+    const out = [];
+    for (let gx = a; gx <= e; gx++) for (let gz = b; gz <= f; gz++) out.push(this.key(gx, gz));
+    return out;
+  }
+
+  /** Boxes whose bucket overlaps the given rectangle. May include duplicates. */
+  query(x1, z1, x2, z2) {
+    const out = [];
+    const seen = new Set();
+    for (const key of this.keysFor(x1, z1, x2, z2)) {
+      const list = this.buckets.get(key);
+      if (!list) continue;
+      for (const b of list) {
+        if (seen.has(b)) continue;
+        seen.add(b);
+        out.push(b);
+      }
+    }
+    return out;
+  }
+
+  /** Boxes near a circle. */
+  near(px, pz, radius) {
+    return this.query(px - radius, pz - radius, px + radius, pz + radius);
+  }
+}
