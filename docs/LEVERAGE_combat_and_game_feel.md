@@ -172,24 +172,35 @@ first thing the device pass should judge. Two candidate fixes are already
 identified: faster boom damping while a weapon is drawn, or firing along the
 camera rather than the body.
 
-### 7a.2 What "10/10" still needs
+### 7a.2 What is done, and what genuinely remains
 
-Being honest about the gap that remains, in order:
+Everything on the original list that did not need a physical device has been
+built, measured and tested. In order, the list as it now stands:
 
-1. **A device pass.** Unchanged and now the only thing standing between this and
-   a verdict. Nothing above has been seen running.
-2. **Camera-relative aim**, per 7a.1 — a judgement call that needs hands on it.
-3. **Body-versus-body collision.** Steering separates bodies, but they can still
-   pass through each other when pushed. Real capsule collision is the fix.
-4. ~~**A boss per act.**~~ **Done** — see 7b. The names previously written here
-   (`Stan`, `Mike`, `George`) were never in this repository; nothing by those
-   names exists in `assets/`. The bosses were built from the `Enemy_Large` rigs
-   that do exist.
-5. **Environmental kills.** The street is full of props and traffic and none of
-   it can be turned into a weapon, which is odd for a game about leverage.
-6. **Footstep surfaces.** There is one step sound with a wet variant, in a city
-   with tarmac, grating, puddles and gravel.
-7. **Per-archetype death behaviour** and a **practise range**.
+| Item | State | Where |
+|---|---|---|
+| Aim bound to movement | **Fixed** — aim is exact, the body lags 0.37 s for looks | `world.js` |
+| Camera-relative aim | **Done** — 0° error after a flick, was 54° | `world.js`, `combat.js` |
+| Body-versus-body collision | **Done** — deterministic separation, crowd-tested | `navigation.js` |
+| A boss per act | **Done** — waves 10, 20, 30, one rule each | `bosses.js` |
+| Environmental kills | **Done** — drums, gas mains, fire, the canal | `hazards.js` |
+| Footstep surfaces | **Done** — tarmac, gravel, grating, water | `surface.js` |
+| Sound through walls | **Done** — 0.09 of the level through three walls | `occlusion.js` |
+| Weapon mods | **Done** — and now actually reachable and offered | `mods.js` |
+
+**What remains, honestly:**
+
+1. **A device pass.** Still the only thing standing between this and a verdict.
+   Nothing above has been seen running in a browser. Every measurement in these
+   documents is from Node, against fakes whose capability has been deliberately
+   matched to production — which catches logic, and cannot judge feel.
+2. **Per-archetype death behaviour.** Every body dies the same way.
+3. **A practice range.** There is nowhere to learn a weapon without a wave
+   arriving.
+4. **Blend trees.** Animations switch rather than blend; `Enemy_Large` and the
+   player rig both have clips that are cross-faded rather than blended.
+5. **Occlusion for the ambience**, not just one-shots — the rain and the hum do
+   not change when you step inside.
 
 ## 7b. Bosses
 
