@@ -44,7 +44,10 @@ export const M01_PLACES = {
   charger: { x: -10.2, z: -8.4, radius: 2.2 },
   lane: { x: -8.6, z: -22, radius: 3.4 },
   sade: { x: -7.4, z: -26, radius: 2.6 },
-  alleyMouth: { x: -20, z: -24, radius: 3 },
+  // The two men hold the mouth of the alley, not the lane itself: they are what
+  // stands between Marcus and the way out. This is the only point for that scene;
+  // an earlier duplicate `alleyMouth` had nothing in it.
+  collectors: { x: -20, z: -24, radius: 3 },
 };
 
 // ---------------------------------------------------------------- conversations
@@ -236,7 +239,7 @@ export function m01Definition() {
         id: "collectors",
         kind: BEAT.TALK,
         conversation: M01_COLLECTORS.id,
-        at: M01_PLACES.alleyMouth,
+        at: M01_PLACES.collectors,
         label: "Two men at the alley",
         // The conversation runs first and sets collectorOutcome; a `fought`
         // outcome then requires the fight beat, which is optional-conditional.

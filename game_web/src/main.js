@@ -25,6 +25,9 @@ import { Arena } from "./arena.js";
 import { CombatHud } from "./combathud.js";
 import { WeaponRack, MuzzleFlash } from "./weaponview.js";
 import { WEAPONS, weaponById } from "./arsenal.js";
+import { StoryDirector } from "./story.js";
+import { Mission } from "./mission.js";
+import { m01Definition, M01_CONVERSATIONS, M01_PLACES } from "./missions/m01.js";
 
 const KEY = {
   forward: ["KeyW", "ArrowUp"],
@@ -61,6 +64,9 @@ const state = {
   banner: null,
   bannerUntil: 0,
   lastHud: null,
+  /** The running story: M01 in the opening build. */
+  story: null,
+  storyFlags: {},
 };
 
 // ------------------------------------------------------------------ renderer
@@ -205,6 +211,14 @@ let muzzleFlash = null;
 let heldWeapon = null;
 let heldId = null;
 let combatEnabled = false;
+/**
+ * The running story, or null before the game starts.
+ *
+ * Declared here rather than next to the builder at the bottom of the file: `let`
+ * does not hoist, and a handler that runs before the declaration is evaluated
+ * throws a temporal-dead-zone error rather than reading undefined.
+ */
+let story = null;
 const combatButtons = { fire: false, reload: false, cycle: false, aim: false };
 
 /** Meshes for the live traffic and the crowd (built once, then moved). */
@@ -459,6 +473,10 @@ async function boot() {
     pendingOffer = e.offer;
   };
   arena.handlers.onDeath = () => {
+    // Dying costs the fight, never the mission: the story rewinds to the beat it
+    // was on, and the player gets up at the last safe state rather than the top
+    // of a level they have already earned.
+    if (story) story.rewind();
     state.banner = { title: "Taken.", body: "Press R to get up. Your score stays.", ms: 4000 };
     state.bannerUntil = performance.now() + 4000;
   };
@@ -554,6 +572,9 @@ function readIntent() {
 window.addEventListener("keydown", (e) => {
   if (e.repeat) return;
   keys.add(e.code);
+  // The story gets first refusal on every key: a conversation is modal, and a
+  // takedown triggered behind a subtitle would be a bug the player sees.
+  if (handleStoryKey(e.code)) return;
   if (e.code === "Escape") togglePause();
   if (e.code === "Enter" && !state.started) start();
   if (handleCombatKey(e.code)) return;
@@ -565,6 +586,32 @@ window.addEventListener("keydown", (e) => {
  * does not also act on it. Every branch is a single press: firing holds the key,
  * which is handled in the frame loop from `keys`, not here.
  */
+/**
+ * Keys the story owns.
+ *
+ * Returns true when the press was consumed, so the caller falls through to the
+ * normal controls only when nobody is talking. Without this, E would both advance
+ * a line and start a street errand behind the subtitle.
+ */
+function handleStoryKey(code) {
+  if (!story) return false;
+  if (!story.talking) return false;
+  if (code === "KeyE" || code === "Enter" || code === "Space") {
+    story.press();
+    return true;
+  }
+  if (code === "Digit1") return story.choose(0);
+  if (code === "Digit2") return story.choose(1);
+  if (code === "Digit3") return story.choose(2);
+  if (code === "Escape") {
+    // A conversation is not a menu, but being unable to leave one is how a game
+    // traps a player; abandon the beat rather than the session.
+    story.rewind();
+    return true;
+  }
+  return false;
+}
+
 function handleCombatKey(code) {
   if (!arena || !state.started || state.paused) return false;
   const run = arena.run;
@@ -796,7 +843,88 @@ function start() {
   hud.visible = true;
   world.start();
   audio.start();
-  // The fight starts where the game says it starts: unarmed.
+  // The story starts with the game, not with the first conversation: the player
+  // should know what they are doing before they are asked to do it.
+  const saved = restoreRun();
+  if (saved?.flags) Object.assign(state.storyFlags, saved.flags);
+  buildStory();
+  if (saved?.checkpoint) state.story.mission.restore(saved.checkpoint);
+  
+// ------------------------------------------------------------------ the story
+// M01 runs on top of the street rather than instead of it: the wave ladder is the
+// pressure, the mission is the reason. Both are stepped on the same fixed clock,
+// so a line of dialogue and a body arriving cannot disagree about when they
+// happened.
+/** Where the mission's bodies should come from, in street coordinates. */
+function placeOf(id) {
+  return M01_PLACES[id] ?? null;
+}
+
+function buildStory() {
+  const flags = (state.storyFlags = {});
+  const mission = new Mission(m01Definition(), {
+    flags,
+    onCheckpoint: (cp) => {
+      // A checkpoint is banked whenever the player could lose progress, so a
+      // browser reload resumes the beat instead of the opening cutscene.
+      saveRun(cp);
+    },
+  });
+  story = new StoryDirector({
+    mission,
+    conversations: M01_CONVERSATIONS,
+    flags,
+    onSubtitle: (view) => {
+      state.subtitle = view;
+    },
+    onObjective: (obj) => {
+      state.objective = obj;
+    },
+    onMissionEnd: (m) => {
+      state.banner = {
+        title: `${m.title} — complete`,
+        body: "The lane is yours. The run continues.",
+        ms: 6000,
+      };
+      state.bannerUntil = performance.now() + 6000;
+    },
+    spawnBeat: (beat) => {
+      if (!arena || !beat.spawn) return;
+      // The mission asks for bodies by name, and the arena places them behind the
+      // player using the same ring the wave ladder uses: a fight must arrive, not
+      // appear in front of you.
+      arena.spawnGroup(beat.spawn);
+    },
+    liveBodies: () => (arena && arena.wave ? arena.wave.live.filter((e) => !e.dead) : []),
+  });
+  story.start();
+  state.objective = mission.objective();
+  state.story = story;
+  return story;
+}
+
+/** Persist the mission's beat so a reload does not replay the opening. */
+function saveRun(checkpoint) {
+  try {
+    const payload = { checkpoint, flags: state.storyFlags, at: Date.now() };
+    window.localStorage?.setItem("leverage.story.v1", JSON.stringify(payload));
+  } catch {
+    // A private window with no storage is not a reason to lose the run; the
+    // game simply cannot resume across a reload.
+  }
+}
+
+function restoreRun() {
+  try {
+    const raw = window.localStorage?.getItem("leverage.story.v1");
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+// The fight starts where the game says it starts: unarmed.
   if (arena) {
     combatEnabled = true;
     arena.startWave();
@@ -909,6 +1037,12 @@ function frame(now) {
       arena.combat.aiming = keys.has("ShiftRight");
       if (keys.has("KeyF")) pullTrigger(FIXED);
       arena.step(FIXED);
+    }
+    if (story) {
+      story.tick(FIXED, {
+        player: world.player,
+        bodies: arena ? arena.wave.live : [],
+      });
     }
     if (muzzleFlash) muzzleFlash.tick(FIXED);
     acc -= FIXED;
@@ -1033,8 +1167,11 @@ function updateHud(now) {
   if (!banner && world.phase === PHASE.WON) {
     banner = { title: "Lane reached.", body: `${formatScore(h)} · ${h.spotted} spotted · ${fmt(h.time)}` };
   }
-  // Prompt priority: the approved beat first, then a street errand.
-  const prompt = h.inWitnessZone && !world.talkedToWitness
+  // A conversation owns the screen: no prompt behind a subtitle, because the key
+  // it advertises does something else while someone is talking.
+  const prompt = state.subtitle
+    ? null
+    : h.inWitnessZone && !world.talkedToWitness
     ? { text: "Talk to Sade", progress: h.interactProgress }
     : h.errand
       ? { text: h.errand.label, progress: h.errand.progress }
@@ -1043,6 +1180,11 @@ function updateHud(now) {
   hud.update(h, {
     prompt,
     banner,
+    // The mission's objective outranks the level's when one is running.
+    story: state.objective
+      ? { act: state.objective.mission === "M01" ? "I" : null, text: state.objective.text }
+      : null,
+    subtitle: state.subtitle ?? null,
     weather: weather.blend.label,
     wet: wetness.level,
     chaos: world.chaosEvents.length,

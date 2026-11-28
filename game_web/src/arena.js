@@ -100,6 +100,49 @@ export class Arena {
   }
 
   /**
+   * Spawn a specific group of bodies, for a mission rather than for the ladder.
+   *
+   * The wave ladder picks its own bodies and its own moment. A mission knows
+   * both — this is the collectors' fight, at the alley, now — so it hands over a
+   * list and gets back the bodies it can count. They use the same arrival ring as
+   * a wave: a fight has to arrive, never appear in front of the player.
+   *
+   * Returns the spawned bodies.
+   */
+  spawnGroup(list) {
+    if (!Array.isArray(list) || !list.length) return [];
+    const expanded = [];
+    for (const item of list) {
+      // Accept both { archetype, count } and a bare archetype name, because a
+      // mission authored as data should not have to know the spawn ring's shape.
+      const name = typeof item === "string" ? item : item.archetype;
+      const n = typeof item === "string" ? 1 : (item.count ?? 1);
+      const stats = ARCHETYPES[name];
+      if (!stats) continue;
+      for (let i = 0; i < n; i++) expanded.push({ ...stats, archetype: name });
+    }
+    if (!expanded.length) return [];
+    const points = spawnPoints(this.world, expanded.length);
+    const placement = expanded.map((stats, i) => {
+      const p = points[i % points.length];
+      const ground = this.world.groundAt ? this.world.groundAt(p.x, p.z) : 0;
+      return { ...stats, x: p.x, z: p.z, y: ground + (stats.flyHeight ?? 0), yaw: p.yaw };
+    });
+    this.wave.spawnAll(placement);
+    const out = [];
+    for (let i = 0; i < placement.length; i++) {
+      const e = this.wave.live[this.wave.live.length - placement.length + i];
+      if (!e) continue;
+      e.root.position.set(placement[i].x, placement[i].y, placement[i].z);
+      e.root.rotation.y = placement[i].yaw;
+      e.spawnHome = { x: placement[i].x, z: placement[i].z };
+      e.flankSlot = i;
+      out.push(e);
+    }
+    return out;
+  }
+
+  /**
    * Begin the next wave. Bodies are placed on a ring behind the player so they
    * arrive rather than appear, and the terrain height is sampled so nothing
    * spawns inside a wall or in the canal.

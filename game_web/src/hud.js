@@ -6,7 +6,7 @@
 
 const TEMPLATE = `
 <div class="lv-frame" aria-hidden="true"></div>
-<div class="lv-objective">
+<div class="lv-objective" data-field="objectiveBlock">
   <span class="lv-kicker">Objective</span>
   <span class="lv-objective-label" data-field="objectiveLabel">—</span>
   <span class="lv-objective-distance" data-field="distance">—</span>
@@ -31,6 +31,15 @@ const TEMPLATE = `
   <span class="lv-errand-label" data-field="errandLabel"></span>
   <span class="lv-errand-bar"><i data-field="errandBar"></i></span>
   <span class="lv-errand-tally" data-field="errandTally"></span>
+</div>
+<div class="lv-story" data-field="story" hidden>
+  <span class="lv-kicker" data-field="storyAct">Act I</span>
+  <span class="lv-story-text" data-field="storyText"></span>
+</div>
+<div class="lv-subtitle" data-field="subtitle" hidden>
+  <span class="lv-speaker" data-field="speaker"></span>
+  <p class="lv-line" data-field="line"></p>
+  <ol class="lv-choices" data-field="choices"></ol>
 </div>
 <div class="lv-prompt" data-field="prompt" hidden><span class="lv-key">E</span><span data-field="promptText"></span><i data-field="progress"></i></div>
 <div class="lv-suspicion" data-field="suspicion" hidden>
@@ -86,6 +95,24 @@ const STYLE = `
 .lv-errand-bar { display: block; height: 2px; background: rgba(240, 237, 229, .18); }
 .lv-errand-bar i { display: block; height: 100%; width: 0%; background: var(--amber); }
 .lv-errand-tally { color: var(--steel); }
+.lv-story { position: absolute; top: 40px; left: 44px; display: grid; gap: 3px; max-width: 40ch; }
+.lv-story[hidden] { display: none; }
+.lv-kicker { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--tidal); }
+.lv-story-text { font-size: 17px; letter-spacing: .01em; }
+.lv-subtitle { position: absolute; left: 50%; bottom: 92px; transform: translateX(-50%);
+  width: min(64ch, 72vw); display: grid; gap: 6px; padding: 14px 18px;
+  background: color-mix(in srgb, var(--ink) 82%, transparent);
+  border-left: 2px solid var(--tidal); backdrop-filter: blur(3px); }
+.lv-subtitle[hidden] { display: none; }
+.lv-speaker { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--amber); }
+.lv-speaker:empty { display: none; }
+.lv-line { margin: 0; font-size: 16px; line-height: 1.45; }
+.lv-line[data-narration="1"] { font-style: italic; color: var(--steel); }
+.lv-choices { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; }
+.lv-choices:empty { display: none; }
+.lv-choices li { font-size: 14px; color: var(--paper); opacity: .78; }
+.lv-choices li b { color: var(--tidal); margin-right: 8px; font-weight: 600; }
+.lv-choices li[data-selected="1"] { opacity: 1; }
 .lv-prompt { position: absolute; left: 50%; bottom: 132px; transform: translateX(-50%);
   display: flex; align-items: center; gap: 9px; padding: 9px 15px;
   background: color-mix(in srgb, var(--ink) 82%, transparent);
@@ -132,6 +159,7 @@ export class Hud {
       this.pips.push(pip);
     }
     this.banner = { title: "", body: "" };
+    this._choiceKey = null;
   }
 
   get visible() {
@@ -193,6 +221,43 @@ export class Hud {
     if (prompt) {
       f.promptText.textContent = prompt.text;
       f.progress.style.width = `${Math.round((prompt.progress || 0) * 100)}%`;
+    }
+
+    // Story: the mission's objective supersedes the level's when one is running.
+    const story = extra.story || null;
+    f.story.hidden = !story;
+    // A mission's objective replaces the level's: two objectives on screen at once
+    // means one of them is pointing the player the wrong way.
+    f.objectiveBlock.hidden = !!story;
+    f.bearing.parentElement.hidden = !!story;
+    if (story) {
+      f.storyAct.textContent = story.act ? `Act ${story.act}` : "Objective";
+      f.storyText.textContent = story.text;
+    }
+
+    // Subtitles. A conversation line owns the bottom of the screen; the choices
+    // are numbered so the keyboard mapping is visible rather than memorised.
+    const sub = extra.subtitle || null;
+    f.subtitle.hidden = !sub;
+    if (sub) {
+      // An empty speaker is a narration line, and a narration line has nobody
+      // saying it — showing a label there would be a lie.
+      f.speaker.textContent = sub.speaker || "";
+      f.line.textContent = sub.text;
+      f.line.dataset.narration = sub.narration ? "1" : "0";
+      const wanted = sub.choices ?? [];
+      const key = wanted.map((c) => c.text).join("|");
+      if (this._choiceKey !== key) {
+        this._choiceKey = key;
+        f.choices.innerHTML = "";
+        wanted.forEach((c, i) => {
+          const li = document.createElement("li");
+          const n = document.createElement("b");
+          n.textContent = String(i + 1);
+          li.append(n, document.createTextNode(c.text));
+          f.choices.append(li);
+        });
+      }
     }
 
     const banner = extra.banner || null;

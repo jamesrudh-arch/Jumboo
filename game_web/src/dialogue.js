@@ -106,12 +106,14 @@ export class Conversation {
       }
       this.current = line;
       this.log.push({ speaker: line.speaker ?? null, text: line.text ?? "" });
+      // The state must describe the line before anyone is told about the line.
+      // `view()` reports choices only while AWAITING_CHOICE, so setting the state
+      // afterwards handed every listener a view that claimed the question was not
+      // being asked — and a HUD that trusts it draws no options at all.
+      this.state = line.choices && line.choices.length
+        ? DIALOGUE.AWAITING_CHOICE
+        : DIALOGUE.RUNNING;
       this.deps.onLine?.(this.view());
-      if (line.choices && line.choices.length) {
-        this.state = DIALOGUE.AWAITING_CHOICE;
-      } else {
-        this.state = DIALOGUE.RUNNING;
-      }
       return this.current;
     }
     this._finish();
