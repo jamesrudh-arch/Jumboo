@@ -45,7 +45,9 @@ for (let gx = 0; gx < W; gx++) {
     const x = B.x1 + gx * STEP;
     const z = B.z1 + gz * STEP;
     let ok = 1;
-    if (waterAt(city, x, z)) ok = 0;
+    // A bridge deck is walkable even though the canal runs under it.
+    const onBridge = (city.bridges || []).some((b) => x > b.x1 && x < b.x2 && z > b.z1 && z < b.z2);
+    if (!onBridge && waterAt(city, x, z)) ok = 0;
     if (ok) {
       for (const b of boxes) {
         if (b.y1 <= 0.45 || b.y0 >= 1.5) continue; // kerbs the player steps over
@@ -64,6 +66,29 @@ const toGrid = (x, z) => ({
   gz: Math.round((z - B.z1) / STEP),
 });
 const toWorld = (gx, gz) => ({ x: B.x1 + gx * STEP, z: B.z1 + gz * STEP });
+
+/** True when the straight line between two points stays on walkable cells.
+ *  The grid is coarse, so sample well under one cell and check the four cells
+ *  the sample could belong to. */
+function lineClear(x1, z1, x2, z2) {
+  const len = Math.hypot(x2 - x1, z2 - z1);
+  const n = Math.max(1, Math.ceil(len / 0.35));
+  for (let i = 0; i <= n; i++) {
+    const x = x1 + ((x2 - x1) * i) / n;
+    const z = z1 + ((z2 - z1) * i) / n;
+    const c = toGrid(x, z);
+    if (c.gx < 0 || c.gx >= W || c.gz < 0 || c.gz >= H) return false;
+    if (!walkable[idx(c.gx, c.gz)]) return false;
+  }
+  return true;
+}
+
+/** Nearest walkable cell to a point, as world coordinates. */
+function snapNearest(x, z) {
+  const g = toGrid(x, z);
+  const cell = snap(g.gx, g.gz, 6);
+  return cell ? toWorld(cell.gx, cell.gz) : { x, z };
+}
 
 /** Nearest walkable cell, searched outward in rings. */
 function snap(gx, gz, maxR = 40) {
@@ -194,7 +219,11 @@ function runOnce(seed, opts = {}) {
   if (opts.errands) {
     for (const e of world.errands) waypoints.push({ id: e.id, x: e.x, z: e.z });
   }
-  waypoints.push({ id: "sade", x: LEVEL.witness.x, z: LEVEL.witness.z, radius: LEVEL.witness.radius });
+  // The witness leg is aimed at a spot inside the talk radius that the grid can
+  // actually stand on: the marker itself can sit under a lamp post base or a
+  // kerb, and a waypoint nobody can occupy fails a leg that is otherwise fine.
+  const sadeSpot = snapNearest(LEVEL.witness.x, LEVEL.witness.z);
+  waypoints.push({ id: "sade", ...sadeSpot, radius: LEVEL.witness.radius });
   waypoints.push({ id: "lane", x: LEVEL.goal.x, z: LEVEL.goal.z });
 
   // Objectives in a nearest-neighbour tour, so a run is one sensible sweep of
@@ -227,12 +256,16 @@ function runOnce(seed, opts = {}) {
   let replanIn = 0;
   let legTime = 0;
   let legStalls = 0;
+  let noPathCount = 0;
+  let lastLoggedWi = -1;
+  let legBudget = 0;
+  let bestLegDist = Infinity;
   let stuckTimer = 0;
   let fleeTime = 0;
   let lastPos = { x: world.player.x, z: world.player.z };
 
   let nextTrace = 0;
-  while (t < 900 && wi < order.length) {
+  while (t < 1200 && wi < order.length) {
     const p = world.player;
     const wp = order[wi];
 
@@ -241,11 +274,17 @@ function runOnce(seed, opts = {}) {
     if (er && er.done) {
       wi++;
       sub = null;
+      legTime = 0;
+      legBudget = 0;
+      bestLegDist = Infinity;
       continue;
     }
     if (wp.id === "sade" && world.talkedToWitness) {
       wi++;
       sub = null;
+      legTime = 0;
+      legBudget = 0;
+      bestLegDist = Infinity;
       continue;
     }
 
@@ -260,13 +299,15 @@ function runOnce(seed, opts = {}) {
         wi++;
         sub = null;
         legTime = 0;
+        legBudget = 0;
+        bestLegDist = Infinity;
       }
       continue;
     }
     // At Sade: hold interact until she has been spoken to. The talk only
-    // completes inside her zone, so the bot has to stand on the marker, not
-    // beside it.
-    if (wp.id === "sade" && dGoal < 1.3) {
+    // completes inside her zone (2.2 m), not on the marker, so the bot only has
+    // to get inside the radius and stop.
+    if (wp.id === "sade" && dGoal < LEVEL.witness.radius * 0.65) {
       world.setInput({ moveX: 0, moveZ: 0, interact: true });
       world.update(dt);
       t += dt;
@@ -278,14 +319,41 @@ function runOnce(seed, opts = {}) {
       continue;
     }
 
+    // The approved beat ends when the player is inside the goal radius, which is
+    // wider than the waypoint tolerance used for walking.
+    if (wp.id === "lane" && world.objective === "reach_lane" && Math.hypot(LEVEL.goal.x - p.x, LEVEL.goal.z - p.z) < LEVEL.goal.radius) {
+      world.setInput({ moveX: 0, moveZ: 0, interact: false });
+      for (let i = 0; i < 8 && world.phase !== PHASE.WON; i++) {
+        world.update(dt);
+        t += dt;
+      }
+      for (const e of world.drainEvents()) if (e.type === "won") log.notes.push(`won at ${t.toFixed(1)}s`);
+      if (trace) console.log("lane end-of-leg at", p.x.toFixed(2), p.z.toFixed(2), "phase", world.phase, "dGoal", Math.hypot(LEVEL.goal.x - p.x, LEVEL.goal.z - p.z).toFixed(2));
+      break;
+    }
+
     // An objective that cannot be reached gets abandoned rather than eating the
     // whole run: this bot is a difficulty probe, not a pathfinding benchmark.
+    // The budget scales with the distance, because the dockhand is a 250 m walk
+    // and a flat limit abandons a leg that is merely long.
     legTime += dt;
-    if (legTime > 150) {
+    if (legBudget === 0) legBudget = 60 + Math.hypot(wp.x - p.x, wp.z - p.z) * 1.1;
+    if (legTime > legBudget) {
+      // A leg that is over budget but closing is a leg the bot keeps missing
+      // the marker on, not an unreachable one: re-plan to it rather than skip.
+      if (dGoal < bestLegDist - 6) {
+        bestLegDist = dGoal;
+        legTime = 0;
+        legBudget = 0;
+        sub = null;
+        continue;
+      }
       log.notes.push(`gave up on ${wp.id} after ${legTime.toFixed(0)}s`);
       wi++;
       sub = null;
       legTime = 0;
+      legBudget = 0;
+      bestLegDist = Infinity;
       continue;
     }
 
@@ -294,11 +362,35 @@ function runOnce(seed, opts = {}) {
     // oscillates instead of walking.
     replanIn -= dt;
     if (!sub || replanIn <= 0) {
-      sub = findPath(p, wp);
-      replanIn = 0.6;
-      if (!sub) {
-        log.notes.push(`no path to ${wp.id}`);
-        break;
+      const next = findPath(p, wp);
+      if (next) {
+        // Keep the old path until the new one is known good, and remember where
+        // we have been: if the destination is genuinely unreachable we want to
+        // say so rather than silently looping.
+        sub = next;
+        replanIn = 0.5;
+        if (trace && wi !== lastLoggedWi) {
+          lastLoggedWi = wi;
+          console.log(`  plan -> ${wp.id} (${wp.x.toFixed(0)},${wp.z.toFixed(0)}) from ${p.x.toFixed(0)},${p.z.toFixed(0)} : ${next.length} pts, ends ${next[next.length - 1].x.toFixed(0)},${next[next.length - 1].z.toFixed(0)}`);
+        }
+        noPathCount = 0;
+      } else {
+        noPathCount += 1;
+        replanIn = 0.4;
+        if (!sub) {
+          log.notes.push(`no path to ${wp.id}`);
+          wi++;
+          legTime = 0;
+          continue;
+        }
+        if (noPathCount > 40) {
+          log.notes.push(`cannot reach ${wp.id}, giving up`);
+          wi++;
+          sub = null;
+          legTime = 0;
+          noPathCount = 0;
+          continue;
+        }
       }
     }
 
@@ -324,7 +416,9 @@ function runOnce(seed, opts = {}) {
       const len = Math.hypot(cand.x - p.x, cand.z - p.z) || 1;
       const off = Math.abs((sub[Math.min(sub.length - 1, Math.round((near + i) / 2))].x - mx) * (cand.z - p.z) / len -
         (sub[Math.min(sub.length - 1, Math.round((near + i) / 2))].z - mz) * (cand.x - p.x) / len);
-      if (off < 1.2) {
+      // The straight-line check is what stops the bot clipping a wall corner:
+      // the chord can look clear at its midpoint while the corner is in the way.
+      if (off < 1.2 && lineClear(p.x, p.z, cand.x, cand.z)) {
         aimIdx = i;
         break;
       }
@@ -403,8 +497,12 @@ function runOnce(seed, opts = {}) {
         stuckTimer = 0;
         sub = null;
         legStalls += 1;
+        if (trace) {
+          console.log(`  stalled at ${p.x.toFixed(1)},${p.z.toFixed(1)} -> ${wp.id} (${legStalls}) aim ${aim.x.toFixed(0)},${aim.z.toFixed(0)} len ${sub ? sub.length : 0} spd ${p.speed.toFixed(2)}`);
+        }
         if (legStalls > 6) {
           log.notes.push(`no route to ${wp.id} (stalled ${legStalls}x)`);
+          if (trace) console.log(`  abandoning ${wp.id} at ${p.x.toFixed(1)},${p.z.toFixed(1)} t=${t.toFixed(0)}`);
           wi++;
           legStalls = 0;
           legTime = 0;
@@ -417,6 +515,10 @@ function runOnce(seed, opts = {}) {
       }
     } else {
       stuckTimer = 0;
+      // Progress resets the patience counters: a long leg should not be
+      // abandoned because of a few momentary snags along the way.
+      legStalls = 0;
+      noPathCount = 0;
     }
     lastPos = { x: p.x, z: p.z };
 
@@ -424,10 +526,6 @@ function runOnce(seed, opts = {}) {
       nextTrace = t + 10;
       console.log(`  ${t.toFixed(0)}s -> ${wp.id} d=${dGoal.toFixed(1)} at ${p.x.toFixed(0)},${p.z.toFixed(0)} spd ${p.speed.toFixed(1)} aim ${aim.x.toFixed(0)},${aim.z.toFixed(0)} len ${sub.length}`);
     }
-    if (false) {
-      console.log(t.toFixed(0), "going to", wp.id, "d", dGoal.toFixed(0), "at", p.x.toFixed(0), p.z.toFixed(0));
-    }
-
     for (const e of world.drainEvents()) {
       if (e.type === "spotted") log.spotted++;
       if (e.type === "caught") {

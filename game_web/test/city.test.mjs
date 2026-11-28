@@ -230,6 +230,36 @@ test("walking into the canal drowns the player and respawns them", () => {
   assert.ok(world.player.feetY > -1, "player did not come back out of the water");
 });
 
+test("crossing a canal bridge does not drown the player", () => {
+  const world = districtWorld();
+  world.patrolDefs = [];
+  world.agents = [];
+  world.start();
+  for (const b of CITY.bridges) {
+    const cx = (b.x1 + b.x2) / 2;
+    const cz = (b.z1 + b.z2) / 2;
+    // Standing on the deck.
+    world.player.x = cx;
+    world.player.z = cz;
+    world.player.feetY = 0.18;
+    world.wetTimer = 0;
+    world.setInput({ moveX: 0, moveZ: 0 });
+    for (let i = 0; i < 60 * 2; i++) world.update(1 / 60);
+    assert.equal(world.drownings, 0, `drowned on ${b.id}`);
+    // Walking the length of it stays dry too.
+    const startDrownings = world.drownings;
+    world.player.x = cx;
+    world.player.z = b.z2 + 1.5;
+    world.player.feetY = 0;
+    world.wetTimer = 0;
+    world.cameraYaw = Math.PI; // face -z, across the canal
+    world.setInput({ moveX: 0, moveZ: 1, run: true });
+    for (let i = 0; i < 60 * 5; i++) world.update(1 / 60);
+    assert.ok(world.player.z < b.z1 + 1, `did not cross ${b.id} (z=${world.player.z.toFixed(2)})`);
+    assert.equal(world.drownings, startDrownings, `drowned crossing ${b.id}`);
+  }
+});
+
 // ------------------------------------------------------------------ traffic
 test("traffic runs on the routes and stays on a road", () => {
   const traffic = new Traffic(CITY, { traffic: 12 }, { aggression: 0.2 });

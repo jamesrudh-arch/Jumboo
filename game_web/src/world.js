@@ -155,10 +155,19 @@ export class World {
     };
   }
 
-  /** True when the player is standing over open water. */
-  waterUnderfoot(x = this.player.x, z = this.player.z) {
+  /**
+   * True when the player is standing over open water. A bridge deck is ground:
+   * the canal runs under all three spans, and without this a player crossing
+   * one drowns mid-bridge.
+   */
+  waterUnderfoot(x = this.player.x, z = this.player.z, feetY = this.player?.feetY ?? 0) {
     if (!this.city) return null;
-    return waterAt(this.city, x, z);
+    const water = waterAt(this.city, x, z);
+    if (!water) return null;
+    for (const b of this.city.bridges || []) {
+      if (x > b.x1 && x < b.x2 && z > b.z1 && z < b.z2 && feetY > water.surfaceY + 0.4) return null;
+    }
+    return water;
   }
 
   get boxes() {
