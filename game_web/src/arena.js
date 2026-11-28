@@ -360,7 +360,8 @@ export class Arena {
     // Two sounds, not one: the incoming blow (so the player hears a hit coming)
     // and the impact. A single sound after the fact is a punishment with no
     // warning attached.
-    this.audio?.playEvent?.({ type: "enemy-attack", x: enemy.root.position.x, z: enemy.root.position.z, kind: attack.kind }, p);
+    this.sound({ type: "enemy-attack", x: enemy.root.position.x, z: enemy.root.position.z, kind: attack.kind });
+    // The player's own hit is in their ear: no walls, no distance.
     this.audio?.playEvent?.({ type: "player-hit", x: p.x, z: p.z }, p);
     this.handlers.onHurt?.({ enemy, damage, health: this.run.health });
     if (this.run.health <= 0 && this.run.state === "dead") {
@@ -437,7 +438,7 @@ export class Arena {
         if (!fallsInWater(enemy.root.position, this.hazardWater)) continue;
         this.wave.damage(enemy, 999);
         kills.push(enemy);
-        this.audio?.playEvent?.({ type: "splash", x: enemy.root.position.x, z: enemy.root.position.z }, this.world.player);
+        this.sound({ type: "splash", x: enemy.root.position.x, z: enemy.root.position.z });
       }
     }
 
@@ -466,7 +467,7 @@ export class Arena {
     // The feel of it: everything at once, and the loudest thing in the game.
     if (this.feel.explosion) this.feel.explosion({ x: hazard.x, z: hazard.z });
     else this.feel.shake.add(1.2);
-    this.audio?.playEvent?.({ type: "explosion", x: hazard.x, z: hazard.z }, this.world.player);
+    this.sound({ type: "explosion", x: hazard.x, z: hazard.z });
     this.stats.hazardKills = (this.stats.hazardKills ?? 0) + kills.length;
     this.hazardLock = 0.35;
     this.onHazard?.({ hazard, kills, chained: spent.size - 1 });
@@ -474,6 +475,18 @@ export class Arena {
     // Noise: the whole street heard that.
     this.world?.hearSound?.({ x: hazard.x, z: hazard.z, radius: spec.noise, loud: true });
     return { hazard, kills, chained: spent.size - 1 };
+  }
+
+  /**
+   * Play a world sound, muffled by however many walls stand between it and the
+   * player. One place, so no call site can forget.
+   */
+  sound(event) {
+    if (!this.audio?.playEvent) return false;
+    const p = this.world?.player;
+    if (!p || event.x === undefined) return this.audio.playEvent(event, p);
+    const walls = this.world.wallsBetween ? this.world.wallsBetween(p.x, p.z, event.x, event.z) : 0;
+    return this.audio.playEvent({ ...event, walls }, p);
   }
 
   /** What the HUD needs to draw a boss: name, bar, phase, and telegraph. */
@@ -558,7 +571,7 @@ export class Arena {
         this.run.takeDamage(damage);
         this.feel.shake.add(0.8);
         this.feel.haptics.fire("heavy", 1);
-        this.audio?.playEvent?.({ type: "hurt", x: boss.root.position.x, z: boss.root.position.z }, p);
+        this.sound({ type: "hurt", x: boss.root.position.x, z: boss.root.position.z });
         this.handlers.onHurt?.({ enemy: boss, damage, health: this.run.health });
         if (this.run.health <= 0) {
           this.inWave = false;
@@ -656,7 +669,7 @@ export class Arena {
         this.feel.shake.add(0.35);
         this.feel.haptics.fire("knife", 0.9);
         this.feel.decals.add({ kind: "blood", size: 0.14, life: 20 });
-        this.audio?.playEvent?.(
+        this.sound(
           { type: "death", x: enemy.root.position.x, z: enemy.root.position.z, armoured: false },
           this.world.player,
         );

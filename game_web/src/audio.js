@@ -99,6 +99,8 @@ const REVERB_SEND = {
 /** Sounds that must stay dry: they are in the player's hands, not the world. */
 const DRY_ONLY = new Set(["dryFire", "reloadClick"]);
 
+import { throughWalls } from "./occlusion.js";
+
 export class CityAudio {
   /**
    * @param {object} options
@@ -403,7 +405,9 @@ export class CityAudio {
     const ctx = this.ctx;
     const now = ctx.currentTime + (options.delay || 0);
     const gain = ctx.createGain();
-    const level = (spec.gain ?? 0.2) * (options.gain ?? 1);
+    // Walls cost level as well as brightness; both are in throughWalls().
+    const wallGain = options.walls > 0 ? throughWalls(options.walls).gain : 1;
+    const level = (spec.gain ?? 0.2) * (options.gain ?? 1) * wallGain;
     let source;
     let tail = now + spec.dur;
 
@@ -424,6 +428,21 @@ export class CityAudio {
       source.loop = false;
     }
 
+    // Sound through walls. A muzzle report behind a warehouse wall is a dull
+    // thud, not a bright crack, and a player uses that distinction to decide
+    // where to face. `options.walls` is the count from src/occlusion.js; the
+    // mixer does not do the geometry itself.
+    let occluder = null;
+    if (options.walls > 0) {
+      const spec2 = throughWalls(options.walls);
+      if (spec2.muffled) {
+        occluder = ctx.createBiquadFilter();
+        occluder.type = "lowpass";
+        occluder.frequency.value = spec2.cutoff;
+        occluder.Q.value = 0.7;
+      }
+    }
+
     // A short attack and a longer release: no clicks, and it sits in the mix.
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(level, now + Math.min(0.02, spec.dur * 0.25));
@@ -436,8 +455,19 @@ export class CityAudio {
     // the street was closing from. Same camera convention as updateTyres:
     // forward is (sin yaw, cos yaw), so right is (cos yaw, -sin yaw).
     const pan = this.panFor(options);
-    const out = pan ? ctx.createStereoPanner() : null;
-    if (out) {
+    // `pan === 0` means "dead ahead", not "no pan". A falsy check here silently
+    // dropped the panner for every sound on the player's centre line.
+    const out = pan !== null && pan !== undefined && ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    if (occluder) {
+      gain.connect(occluder);
+      if (out) {
+        occluder.connect(out);
+        out.pan.value = pan;
+        out.connect(this.bus);
+      } else {
+        occluder.connect(this.bus);
+      }
+    } else if (out) {
       out.pan.value = pan;
       gain.connect(out);
       out.connect(this.bus);

@@ -24,6 +24,7 @@ import {
 } from "./collision.js";
 import { Traffic, Crowd } from "./traffic.js";
 import { waterAt, CITY, mulberry32 } from "./city.js";
+import { wallsBetween as wallsBetweenPoints } from "./occlusion.js";
 
 export const PHASE = {
   BRIEFING: "briefing",
@@ -190,6 +191,22 @@ export class World {
   /** Boxes near a point, for queries that do not need the whole map. */
   boxesNear(x, z, radius) {
     return this.boxIndex.near(x, z, radius);
+  }
+
+  /**
+   * How many walls stand between the player and a point.
+   *
+   * The audio layer uses this to muffle a sound heard through a building, which
+   * is the difference between "a shot somewhere" and "a shot in the next room,
+   * to my left". Cheap because the district is already in a spatial index, and a
+   * fight only has a handful of sounds in flight.
+   */
+  wallsBetween(ax, az, bx, bz) {
+    const midX = (ax + bx) / 2;
+    const midZ = (az + bz) / 2;
+    const span = Math.hypot(bx - ax, bz - az) / 2 + 2;
+    const near = this.boxIndex.near(midX, midZ, span);
+    return wallsBetweenPoints(ax, az, bx, bz, near);
   }
 
   emit(type, data = {}) {
