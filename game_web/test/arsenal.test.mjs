@@ -6,7 +6,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  WEAPONS, MODE, DAMAGE, Loadout, weaponById, unlockedAt, resolveHit,
+  WEAPONS, MODE, DAMAGE, Loadout, weaponById, unlockedAt, resolveHit, armourAt,
 } from "../src/arsenal.js";
 
 test("every weapon points at a model that exists, or is explicitly unarmed", () => {
@@ -167,4 +167,48 @@ test("snapshot is safe to render", () => {
   assert.equal(s.name, "Machine pistol");
   assert.ok(s.ammo >= 0);
   assert.ok(Array.isArray(s.owned));
+});
+
+test("armour degrades under sustained fire but never becomes free", () => {
+  assert.equal(armourAt(0), 0);
+  const fresh = armourAt(0.6, 0);
+  const worn = armourAt(0.6, 8);
+  const ruined = armourAt(0.6, 200);
+  assert.equal(fresh, 0.6);
+  assert.ok(worn < fresh, "armour wears");
+  assert.ok(ruined > 0, "but never disappears: a quarter of the original remains");
+  assert.ok(ruined < fresh * 0.3);
+});
+
+test("a fresh hit is not degraded: priorHits defaults to zero", () => {
+  const w = weaponById("pistol");
+  const a = resolveHit(w, { armour: 0.5, distance: 2 });
+  const b = resolveHit(w, { armour: 0.5, distance: 2, priorHits: 0 });
+  assert.equal(a.damage, b.damage);
+});
+
+test("the wave-6 weapon can finish a wave-6 brute in one magazine", () => {
+  // The regression this protects: the machine pistol needed 37 rounds for
+  // 220 hp behind 60% armour and carried 32, so the reward for wave 6 could not
+  // kill the thing wave 6 is about. Armour degradation is the fix.
+  const waves = { uzi: { health: 220, armour: 0.6 }, shotgun: { health: 220, armour: 0.6 } };
+  for (const [id, target] of Object.entries(waves)) {
+    const w = weaponById(id);
+    let hp = target.health;
+    let shots = 0;
+    const dist = Math.min(2, w.reach * 0.5);
+    while (hp > 0 && shots < 500) {
+      hp -= resolveHit(w, { armour: target.armour, distance: dist, priorHits: shots }).damage;
+      shots += 1;
+    }
+    assert.ok(shots <= w.ammo, `${id} needs ${shots} shots but holds ${w.ammo}`);
+  }
+});
+
+test("a blade still beats a bullet on an armoured target at equal hit count", () => {
+  // Degradation must not erase the knife's identity on the first exchange.
+  const armour = 0.6;
+  const knife = resolveHit(weaponById("knife"), { armour, distance: 1.2, priorHits: 0 });
+  const pistol = resolveHit(weaponById("pistol"), { armour, distance: 2, priorHits: 0 });
+  assert.ok(knife.damage > pistol.damage);
 });

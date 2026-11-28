@@ -241,3 +241,67 @@ export function statLine(archetype, scale = 1) {
       : null,
   };
 }
+
+// --------------------------------------------------------------- clip mapping
+//
+// The packs were authored by different people and name the same idea four ways:
+// `Death` and `Dead`, `Run` and `Gallop`, `Frog_Attack` and `Attack`. Every clip
+// also carries an armature prefix (`CharacterArmature|`). Rather than hard-code
+// one pack's spelling and break when a wave uses another, map by *suffix* with
+// synonyms and a documented fallback.
+
+const CLIP_SYNONYMS = {
+  idle: ["idle", "idle_neutral", "idle_gun", "idle_2", "flying", "float"],
+  move: ["run", "walk", "gallop", "crawl", "swim"],
+  attack: ["attack", "shoot", "gun_shoot", "punch", "punch_left", "punch_right", "kick_left", "kick_right", "bite"],
+  hit: ["hitrecieve", "hit_recieve", "hitreact", "hitreact_left", "hitreact_right", "hitrecieve_2"],
+  death: ["death", "dead", "die"],
+};
+
+/** The part of a clip name after the armature prefix, lowercased. */
+export function clipSuffix(name) {
+  const bar = name.indexOf("|");
+  return (bar >= 0 ? name.slice(bar + 1) : name).toLowerCase();
+}
+
+/**
+ * Map a pack's clip list onto the five states a combat body needs.
+ *
+ * Returns `{ idle, move, attack, hit, death, all }`, where any state may be
+ * null: the wasp has no death clip and the snake has no death clip either, and
+ * the view layer's job is to fade out instead of throwing. Missing `hit` is
+ * common and is not an error — a beast that flinches on every bullet looks
+ * worse than one that does not flinch at all.
+ */
+export function resolveClipMap(names = []) {
+  const map = { idle: null, move: null, attack: null, hit: null, death: null, all: [...names] };
+  for (const [state, synonyms] of Object.entries(CLIP_SYNONYMS)) {
+    // Prefer an exact synonym match, then a suffix match, so `Idle_Gun_Shoot`
+    // does not get picked for `idle` just because it contains the word.
+    const exact = names.find((n) => synonyms.includes(clipSuffix(n)));
+    if (exact) { map[state] = exact; continue; }
+    const partial = names.find((n) => {
+      const s = clipSuffix(n);
+      return synonyms.some((syn) => s === syn || s.endsWith(`_${syn}`) || s.startsWith(`${syn}_`));
+    });
+    if (partial && !Object.values(map).includes(partial)) map[state] = partial;
+  }
+  // A body with no idle still needs a resting pose, and a hovering body has no
+  // walk cycle because hovering *is* its walk: fill whichever one is missing
+  // from the other.
+  if (!map.idle && map.move) map.idle = map.move;
+  if (!map.move && map.idle) map.move = map.idle;
+  // Last resort for a body with neither: a body that cannot move its legs can
+  // still be pushed, so the view layer plays nothing and moves the root.
+  return map;
+}
+
+/**
+ * Enemy bodies above their humanoid kits are authored at unknown scale. The
+ * `.transformed` variants in the source packs are exported 100x, so a body is
+ * normalised by its *measured* height rather than trusted to be in metres.
+ */
+export function scaleToHeight(measuredHeight, targetHeight) {
+  if (!Number.isFinite(measuredHeight) || measuredHeight <= 0) return 1;
+  return targetHeight / measuredHeight;
+}

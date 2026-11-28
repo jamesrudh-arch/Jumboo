@@ -255,16 +255,43 @@ export function unlockedAt(tier) {
 }
 
 /**
+ * Armour is not a constant. A vest stops the first rounds and then stops
+ * stopping them: plates crack, padding compresses, and a body that has taken
+ * twenty hits is not protected the way it was at the first.
+ *
+ * This exists because without it the ladder has a hole. The brute carries 60%
+ * armour, so a wave-6 uzi needed 37 rounds to kill one and carried 32 — the
+ * weapon the game had just handed the player could not finish the fight it was
+ * for. Decking the brute's armour instead would have broken the knife's
+ * identity, which is that a blade goes *through* armour. The correct answer is
+ * that sustained fire degrades armour, so:
+ *
+ *   - the knife still ignores half of it on the first hit (its identity)
+ *   - volume of fire strips it (the machine pistol's identity)
+ *   - a single pistol round does not (the pistol's identity)
+ *
+ * `priorHits` is how many times this target has already been hit.
+ */
+export function armourAt(baseArmour, priorHits = 0) {
+  if (!baseArmour) return 0;
+  // Each hit takes 12% of what is left, floored at a quarter of the original:
+  // armour gets worse, never free.
+  return baseArmour * Math.max(0.25, Math.pow(0.88, priorHits));
+}
+
+/**
  * What a use of this weapon actually delivers, after armour and range.
  * Kept as a pure function so the tests can check the ladder makes sense.
  *
  * armour: 0..1, fraction of a hit absorbed; armourPierce reduces it.
  * distance: metres to the target.
+ * priorHits: hits this target has already taken, which degrades its armour.
  */
-export function resolveHit(weapon, { armour = 0, distance = 0 } = {}) {
+export function resolveHit(weapon, { armour = 0, distance = 0, priorHits = 0 } = {}) {
   if (distance > weapon.reach) return { damage: 0, hit: false, reason: "out of range" };
   const pierce = weapon.armourPierce ?? 0;
-  const effectiveArmour = Math.max(0, armour * (1 - pierce));
+  const degraded = armourAt(armour, priorHits);
+  const effectiveArmour = Math.max(0, degraded * (1 - pierce));
   // Damage falls off past half range for everything except melee.
   let falloff = 1;
   if (weapon.mode !== MODE.MELEE && distance > weapon.reach * 0.5) {
@@ -278,7 +305,7 @@ export function resolveHit(weapon, { armour = 0, distance = 0 } = {}) {
     : hits;
   const raw = per * landed;
   const damage = Math.max(1, Math.round(raw * (1 - effectiveArmour)));
-  return { damage, hit: true, landed, falloff };
+  return { damage, hit: true, landed, falloff, effectiveArmour, degraded };
 }
 
 /**
