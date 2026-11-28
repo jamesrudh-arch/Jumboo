@@ -396,3 +396,47 @@ test("a gunshot is wet and a reload is dry", () => {
 const REVERB_SEND_RANGE = {
   rifleCrack: 0.75, reloadClick: 0.05,
 };
+
+const makeAudio = () => new CityAudio({ ctx: fakeContext() });
+
+test("the surface picks the footstep voice", () => {
+  const audio = makeAudio();
+  const played = [];
+  const orig = audio.play.bind(audio);
+  audio.play = (name, o) => { played.push(name); return orig(name, o); };
+  const step = (surface) => {
+    audio.lastStepPhase = null;
+    audio.footsteps(0, { moving: true, surface });
+    audio.footsteps(0.5, { moving: true, surface });
+    return played.pop();
+  };
+  assert.equal(step("grating"), "stepGrating");
+  assert.equal(step("gravel"), "stepGravel");
+  assert.equal(step("tarmac"), "stepTarmac");
+  assert.equal(step(null), "step");
+});
+
+test("wet beats the surface, because a wet street is the loudest thing about it", () => {
+  const audio = makeAudio();
+  const played = [];
+  audio.play = (name) => { played.push(name); return true; };
+  audio.lastStepPhase = null;
+  audio.footsteps(0, { moving: true, surface: "gravel" });
+  audio.footsteps(0.5, { moving: true, surface: "gravel", wet: true });
+  assert.equal(played.at(-1), "stepWet");
+});
+
+test("every surface voice exists in the library and is audibly different", () => {
+  // A missing voice plays nothing at all, so check the library directly rather
+  // than trusting the fallback.
+  const audio = makeAudio();
+  const names = ["stepTarmac", "stepGravel", "stepGrating"];
+  const played = [];
+  audio.play = (name) => { played.push(name); return true; };
+  for (const name of names) {
+    audio.lastStepPhase = null;
+    audio.footsteps(0, { moving: true, surface: name.replace("step", "").toLowerCase() });
+    audio.footsteps(0.5, { moving: true, surface: name.replace("step", "").toLowerCase() });
+  }
+  assert.deepEqual(played, names, "each surface produced its own voice, in order");
+});

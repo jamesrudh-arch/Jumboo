@@ -40,6 +40,13 @@ const VOICES = {
   honkFar: { kind: "tone", freq: 330, toFreq: 300, dur: 0.5, gain: 0.16, wave: "sawtooth" },
   thunder: { kind: "noise", dur: 2.4, gain: 0.5, filter: "lowpass", freq: 180, q: 0.7 },
   step: { kind: "noise", dur: 0.075, gain: 0.1, filter: "bandpass", freq: 1350, q: 1.4 },
+  // Surfaces. A city has tarmac, metal grating, gravel and standing water, and
+  // one footstep for all of them is the sound of a car park. Each differs
+  // mainly in centre frequency and decay: metal rings, gravel scatters, tarmac
+  // is a dull thud.
+  stepGrating: { kind: "noise", dur: 0.16, gain: 0.13, filter: "bandpass", freq: 2600, q: 4.2 },
+  stepGravel: { kind: "noise", dur: 0.11, gain: 0.12, filter: "highpass", freq: 2400, q: 0.7 },
+  stepTarmac: { kind: "noise", dur: 0.07, gain: 0.095, filter: "lowpass", freq: 900, q: 0.8 },
   // A wet step is slightly louder and much brighter than a dry one: the splash
   // adds energy, it does not replace the footfall.
   stepWet: { kind: "noise", dur: 0.12, gain: 0.15, filter: "bandpass", freq: 2100, q: 0.9 },
@@ -86,6 +93,7 @@ const REVERB_SEND = {
   flame: 0.2, blade: 0.18, swing: 0.12, hitFlesh: 0.1, hitArmour: 0.3,
   bodyFall: 0.3, honk: 0.5, honkFar: 0.7, thunder: 0.4,
   step: 0.12, stepWet: 0.16, splash: 0.3, thud: 0.2, ping: 0.1,
+  stepGrating: 0.3, stepGravel: 0.14, stepTarmac: 0.1,
 };
 
 /** Sounds that must stay dry: they are in the player's hands, not the world. */
@@ -467,7 +475,14 @@ export class CityAudio {
    * Footsteps from walking animation phase. Called every frame with the phase
    * (0..1 per stride) so a step lands exactly when the foot does.
    */
-  footsteps(phase, { running = false, wet = false, crouch = false, moving = false } = {}) {
+  /**
+   * Footsteps from walking animation phase.
+   *
+   * `surface` picks the voice: "tarmac", "grating", "gravel" or "wet". A city has
+   * all four underfoot and one footstep for the lot is the sound of a car park.
+   * Wet wins over the rest, because a wet street is the loudest thing about it.
+   */
+  footsteps(phase, { running = false, wet = false, crouch = false, moving = false, surface = null } = {}) {
     if (!moving) {
       // Forgetting the index on a stop means the next start does not fire a
       // phantom step for a crossing that happened while standing still.
@@ -489,7 +504,11 @@ export class CityAudio {
     this.lastStepPhase = phase;
     this.lastStepIndex = index;
     if (!changed) return false;
-    const name = wet ? "stepWet" : "step";
+    const name = wet ? "stepWet"
+      : surface === "grating" ? "stepGrating"
+      : surface === "gravel" ? "stepGravel"
+      : surface === "tarmac" ? "stepTarmac"
+      : "step";
     // Crouching is the quiet option, so it is scaled down first and the wet
     // multiplier cannot push it back above a normal walk.
     const base = running ? 1.5 : crouch ? 0.4 : 1;

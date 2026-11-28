@@ -16,7 +16,7 @@ import { CombatFeel } from "./feel.js";
 import { Loadout } from "./arsenal.js";
 import { Run, tierForWave } from "./progression.js";
 import { ARCHETYPES, statLine } from "./enemies.js";
-import { steer } from "./navigation.js";
+import { steer, resolveOverlaps } from "./navigation.js";
 import { findTakedownTarget, performTakedown, promptFor, TAKEDOWN } from "./takedown.js";
 import { DamageMarks, bearingTo } from "./damagedir.js";
 import { resolveCircle } from "./collision.js";
@@ -262,6 +262,22 @@ export class Arena {
         }
       }
       e.tick(dt);
+    }
+
+    // Bodies do not intersect. Steering is a preference; this is the constraint.
+    // Done after movement so the correction applies to where everyone ended up.
+    const solid = this.wave.live
+      .filter((e) => !e.dead && !e.behaviour?.hover)
+      .map((e) => {
+        const box = { x: e.root.position.x, z: e.root.position.z, ref: e };
+        return box;
+      });
+    const corrections = resolveOverlaps(solid, 0.72);
+    if (corrections > 0) {
+      for (const b of solid) {
+        b.ref.root.position.x = b.x;
+        b.ref.root.position.z = b.z;
+      }
     }
 
     // A wave ends when nothing is left standing or falling. This is checked

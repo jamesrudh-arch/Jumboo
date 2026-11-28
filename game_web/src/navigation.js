@@ -198,3 +198,55 @@ export function nearestObstacle(x, z, boxes) {
   }
   return best;
 }
+
+
+/**
+ * Push overlapping bodies apart until they are not overlapping.
+ *
+ * Steering keeps them from *wanting* to occupy the same space, but it is a
+ * preference, not a constraint: a body shoved by a crowd or crowded against a
+ * wall can still end up inside another one, and two enemies intersecting is one
+ * of the things a player reads instantly as broken.
+ *
+ * This is O(n^2) over the bodies actually near each other, which for a wave of
+ * twenty bodies is four hundred distance checks a frame at worst, and usually
+ * far fewer once steering has done its work. It runs after movement, so the
+ * steering remains the intention and this is the correction.
+ *
+ * Returns the number of corrections applied, which the caller can use to notice
+ * a wave that is jammed.
+ */
+export function resolveOverlaps(bodies, minDistance = 0.72, iterations = 2) {
+  let corrections = 0;
+  for (let pass = 0; pass < iterations; pass++) {
+    for (let i = 0; i < bodies.length; i++) {
+      const a = bodies[i];
+      if (!a) continue;
+      for (let j = i + 1; j < bodies.length; j++) {
+        const b = bodies[j];
+        if (!b) continue;
+        let dx = b.x - a.x;
+        let dz = b.z - a.z;
+        let d = Math.hypot(dx, dz);
+        if (d >= minDistance) continue;
+        if (d < 1e-5) {
+          // Exactly coincident: pick a deterministic direction rather than a
+          // random one, so a wave is still reproducible frame for frame.
+          const angle = (i * 2.399 + j) % (Math.PI * 2);
+          dx = Math.sin(angle);
+          dz = Math.cos(angle);
+          d = 1;
+        }
+        const overlap = (minDistance - d) * 0.5;
+        const nx = (dx / d) * overlap;
+        const nz = (dz / d) * overlap;
+        // Split the correction: both bodies move half the overlap, so a crowd
+        // does not shove one body across the street.
+        a.x -= nx; a.z -= nz;
+        b.x += nx; b.z += nz;
+        corrections += 1;
+      }
+    }
+  }
+  return corrections;
+}

@@ -151,3 +151,72 @@ test("the steering weights are in the units the arena passes", () => {
   assert.ok(STEER.separate > 0 && STEER.separate < 2);
   assert.ok(STEER.lookahead > 1, "feeler reaches past a doorway");
 });
+
+// --------------------------------------------------------------- body collision
+import { resolveOverlaps } from "../src/navigation.js";
+
+test("two bodies in the same place are pushed apart", () => {
+  const bodies = [{ x: 0, z: 0 }, { x: 0.1, z: 0 }];
+  const n = resolveOverlaps(bodies, 0.72);
+  assert.ok(n > 0, "a correction was applied");
+  const d = Math.hypot(bodies[1].x - bodies[0].x, bodies[1].z - bodies[0].z);
+  assert.ok(d > 0.6, `separated to ${d.toFixed(2)} m`);
+});
+
+test("exactly coincident bodies are separated deterministically", () => {
+  // No random direction: a wave must replay identically frame for frame.
+  const make = () => [{ x: 1, z: 1 }, { x: 1, z: 1 }];
+  const a = make();
+  const b = make();
+  resolveOverlaps(a, 0.72);
+  resolveOverlaps(b, 0.72);
+  assert.deepEqual(a, b);
+  const d = Math.hypot(a[1].x - a[0].x, a[1].z - a[0].z);
+  assert.ok(d > 0.5, `pushed apart to ${d.toFixed(2)}`);
+});
+
+test("bodies already apart are left alone", () => {
+  const bodies = [{ x: 0, z: 0 }, { x: 5, z: 0 }];
+  assert.equal(resolveOverlaps(bodies, 0.72), 0);
+  assert.deepEqual(bodies, [{ x: 0, z: 0 }, { x: 5, z: 0 }]);
+});
+
+test("the correction is split, not dumped on one body", () => {
+  const bodies = [{ x: 0, z: 0 }, { x: 0.2, z: 0 }];
+  resolveOverlaps(bodies, 0.72, 1);
+  assert.ok(bodies[0].x < 0, "the first moved left");
+  assert.ok(bodies[1].x > 0.2, "the second moved right");
+});
+
+test("a crowd resolves without collapsing to a point", () => {
+  const bodies = Array.from({ length: 8 }, () => ({ x: 0, z: 0 }));
+  for (let i = 0; i < 6; i++) resolveOverlaps(bodies, 0.72);
+  const unique = new Set(bodies.map((b) => `${b.x.toFixed(2)},${b.z.toFixed(2)}`));
+  assert.ok(unique.size >= 6, `eight bodies occupy ${unique.size} distinct spots`);
+});
+
+test("a wave does not leave bodies intersecting", async () => {
+  // End to end: seed a wave, cram them together, step, and check no pair is
+  // closer than the body diameter.
+  const { Arena } = await import("../src/arena.js");
+  const arena = new Arena();
+  arena.factory.loader = { async loadAsync() { throw new Error("proxy bodies are fine here"); } };
+  const world = {
+    player: { x: 0, z: 0, yaw: 0, feetY: 0, crouch: 0, speed: 0 },
+    camera: { x: 0, y: 2, z: 4 }, cameraYaw: 0,
+    emit() {}, hearSound() {}, groundAt: () => 0, boxesNear: () => [],
+  };
+  arena.attach({ add() {} }, world);
+  arena.startWave();
+  for (const e of arena.wave.live) e.root.position.set(0, 0, 0);
+  for (let i = 0; i < 10; i++) arena.step(1 / 60);
+  const pts = arena.wave.live.map((e) => e.root.position);
+  let worst = Infinity;
+  for (let i = 0; i < pts.length; i++) {
+    for (let j = i + 1; j < pts.length; j++) {
+      worst = Math.min(worst, Math.hypot(pts[i].x - pts[j].x, pts[i].z - pts[j].z));
+    }
+  }
+  assert.ok(worst > 0.5, `closest pair is ${worst.toFixed(2)} m apart`);
+  arena.clear();
+});

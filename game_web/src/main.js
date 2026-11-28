@@ -13,7 +13,8 @@ import { CharacterAnimator } from "./anim.js";
 import { Hud } from "./hud.js";
 import { World, PHASE } from "./world.js";
 import { LEVEL, buildLevel } from "./level.js";
-import { CITY, buildCity } from "./city.js";
+import { CITY, buildCity, waterAt, roadAt, parkAt } from "./city.js";
+import { citySurfaceAt } from "./surface.js";
 import { CityView, makeVehicleMesh, makePedestrianMesh } from "./cityview.js";
 import { detectTierFromWindow } from "./config.js";
 import { Weather, Wetness } from "./weather.js";
@@ -939,10 +940,23 @@ function updateAudio(dt) {
       running: world.player.running,
       crouch: world.player.crouch > 0.5,
       wet: wetness.level > 0.45,
+      surface: citySurface(world.player.x, world.player.z),
       moving: world.player.moving && !world.player.falling,
     });
   }
   if (weather.rumble > 2.25) audio.play("thunder", { gain: 0.5 });
+}
+
+// The footstep surface under the player, memoised on the metre. Asking the city
+// every frame is a linear scan of roads, parks and water for an answer that
+// changes about once a second.
+let surfaceMemo = { key: "", value: "tarmac" };
+function citySurface(x, z) {
+  const key = `${Math.round(x)},${Math.round(z)}`;
+  if (key === surfaceMemo.key) return surfaceMemo.value;
+  const value = citySurfaceAt(CITY, x, z, { waterAt, roadAt, parkAt });
+  surfaceMemo = { key, value };
+  return value;
 }
 
 function updateFlicker(elapsed) {
