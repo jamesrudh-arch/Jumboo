@@ -297,7 +297,31 @@ document.addEventListener("pointerlockchange", () => {
 });
 
 // Touch: left half is a stick, right half drags the camera.
-const touchState = { stick: null, look: null };
+const touchState = { stick: null, look: null, run: false, crouch: false, interact: false };
+
+// On-screen buttons. They are a real touch path, not decoration: without them
+// a phone player cannot crouch or interact at all.
+function bindHoldButton(id, onDown, onUp) {
+  const el = typeof document !== "undefined" && document.getElementById ? document.getElementById(id) : null;
+  if (!el) return;
+  const down = (e) => {
+    e.preventDefault();
+    el.classList.add("held");
+    onDown();
+  };
+  const up = (e) => {
+    if (e) e.preventDefault();
+    el.classList.remove("held");
+    onUp();
+  };
+  el.addEventListener("pointerdown", down, { passive: false });
+  el.addEventListener("pointerup", up, { passive: false });
+  el.addEventListener("pointercancel", up, { passive: false });
+  el.addEventListener("pointerleave", up, { passive: false });
+}
+bindHoldButton("touch-run", () => { touchState.run = true; }, () => { touchState.run = false; });
+bindHoldButton("touch-crouch", () => { touchState.crouch = true; }, () => { touchState.crouch = false; });
+bindHoldButton("touch-interact", () => { touchState.interact = true; }, () => { touchState.interact = false; });
 canvas.addEventListener(
   "touchstart",
   (e) => {
@@ -337,17 +361,26 @@ canvas.addEventListener("touchcancel", endTouch, { passive: true });
 
 function touchIntent() {
   const s = touchState.stick;
-  if (!s) return { moveX: 0, moveZ: 0, run: false, crouch: false, interact: false };
+  const base = {
+    moveX: 0,
+    moveZ: 0,
+    run: touchState.run,
+    crouch: touchState.crouch,
+    interact: touchState.interact,
+  };
+  // Interact is a press, not a hold: clear it once it has been read.
+  touchState.interact = false;
+  if (!s) return base;
   const dx = (s.x - s.x0) / 56;
   const dy = (s.y - s.y0) / 56;
   const mag = Math.hypot(dx, dy);
   const k = mag > 1 ? 1 / mag : 1;
   return {
+    ...base,
     moveX: Math.max(-1, Math.min(1, dx * k)),
     moveZ: Math.max(-1, Math.min(1, -dy * k)),
-    run: mag > 0.85,
-    crouch: false,
-    interact: false,
+    // Push the stick to the rim to sprint, unless Run is held down.
+    run: base.run || mag > 0.92,
   };
 }
 

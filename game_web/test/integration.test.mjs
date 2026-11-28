@@ -296,3 +296,42 @@ test("the camera keeps a usable distance even when cover collapses the boom", as
   assert.ok(d > 0.9, `camera stays out of the character, got ${d.toFixed(2)} m`);
   assert.ok(c.y > world.player.feetY + 0.3, "camera stays above the floor");
 });
+
+test("the page shell provides every element main.js looks up", async () => {
+  const fs = await import("node:fs/promises");
+  const html = await fs.readFile(new URL("../index.html", import.meta.url), "utf8");
+  const main = await fs.readFile(new URL("../src/main.js", import.meta.url), "utf8");
+  const ids = new Set([...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
+  const wanted = new Set(
+    [...main.matchAll(/getElementById\("([^"]+)"\)/g)].map((m) => m[1]),
+  );
+  assert.ok(wanted.size >= 5, "main.js should look up the shell elements");
+  for (const id of wanted) assert.ok(ids.has(id), `index.html is missing #${id}`);
+});
+
+test("the page shell loads the controls the README documents", async () => {
+  const fs = await import("node:fs/promises");
+  const html = await fs.readFile(new URL("../index.html", import.meta.url), "utf8");
+  const readme = await fs.readFile(new URL("../README.md", import.meta.url), "utf8");
+  // Touch buttons exist and are bound, so the phone path is real.
+  for (const id of ["touch-run", "touch-crouch", "touch-interact"]) {
+    assert.ok(html.includes(`id="${id}"`), `missing #${id}`);
+  }
+  assert.match(readme, /^\| Touch/m);
+  assert.match(readme, /^\| Mouse wheel/m);
+});
+
+test("every module main.js imports exists and parses", async () => {
+  const fs = await import("node:fs/promises");
+  const path = await import("node:path");
+  const main = await fs.readFile(new URL("../src/main.js", import.meta.url), "utf8");
+  const imports = [...main.matchAll(/from\s+"(\.\/[^"]+)"/g)].map((m) => m[1]);
+  assert.ok(imports.length >= 6);
+  for (const spec of imports) {
+    const file = new URL(spec, new URL("../src/main.js", import.meta.url));
+    const text = await fs.readFile(file, "utf8");
+    assert.ok(text.length > 0, `${spec} is empty`);
+    const mod = await import(file.href);
+    assert.ok(Object.keys(mod).length > 0, `${path.basename(file.pathname)} exports nothing`);
+  }
+});

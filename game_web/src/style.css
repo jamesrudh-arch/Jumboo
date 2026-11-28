@@ -150,3 +150,45 @@ button[hidden] { display: none; }
   .controls { grid-template-columns: 1fr 1fr; gap: 8px 12px; }
   .controls dt { min-width: 0; }
 }
+
+/* ---------------------------------------------------------- touch controls */
+#touch-controls {
+  position: fixed;
+  right: 18px;
+  bottom: 96px;
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 20;
+  user-select: none;
+}
+
+.touch-btn {
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  border: 1px solid rgba(142, 186, 182, 0.45);
+  background: rgba(16, 23, 29, 0.62);
+  color: #f0ede5;
+  font: 600 10px/1 "Inter", system-ui, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  backdrop-filter: blur(6px);
+  touch-action: none;
+}
+
+.touch-btn.primary {
+  border-color: rgba(224, 183, 126, 0.65);
+  color: #e0b77e;
+}
+
+.touch-btn.held,
+.touch-btn:active {
+  background: rgba(142, 186, 182, 0.32);
+  transform: scale(0.96);
+}
+
+/* Only on touch devices: a phone gets the overlay, a mouse never sees it. */
+@media (pointer: coarse) {
+  #touch-controls { display: flex; }
+}

@@ -44,7 +44,7 @@ npm run smoke          # drives the page, presses keys, checks the frame
 | Esc | Pause |
 | Gamepad | Either stick, triggers, A |
 | Mouse wheel | Camera distance |
-| Touch (phone) | Left stick moves, right half looks, tap buttons for run / crouch / interact |
+| Touch (phone) | Left stick moves, right side looks; on-screen Run / Crouch / Act buttons appear on coarse pointers |
 
 ## What the slice contains
 
