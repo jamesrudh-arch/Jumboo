@@ -216,16 +216,17 @@ function runOnce(seed, opts = {}) {
     order.push(w);
     here = w;
   }
-  // Sade must come before the lane.
-  const laneIdx = order.findIndex((w) => w.id === "lane");
-  if (laneIdx >= 0) {
-    const lane = order.splice(laneIdx, 1)[0];
-    order.push(lane);
-  }
+  // The approved beat has an order: Sade first, the lane last.
+  const lane = order.splice(order.findIndex((w) => w.id === "lane"), 1)[0];
+  const sade = order.splice(order.findIndex((w) => w.id === "sade"), 1)[0];
+  order.unshift(sade);
+  order.push(lane);
 
   let wi = 0;
   let sub = null; // path from here to the current objective
   let replanIn = 0;
+  let legTime = 0;
+  let legStalls = 0;
   let stuckTimer = 0;
   let fleeTime = 0;
   let lastPos = { x: world.player.x, z: world.player.z };
@@ -258,6 +259,7 @@ function runOnce(seed, opts = {}) {
       if (er.done) {
         wi++;
         sub = null;
+        legTime = 0;
       }
       continue;
     }
@@ -271,7 +273,19 @@ function runOnce(seed, opts = {}) {
       if (world.talkedToWitness) {
         wi++;
         sub = null;
+        legTime = 0;
       }
+      continue;
+    }
+
+    // An objective that cannot be reached gets abandoned rather than eating the
+    // whole run: this bot is a difficulty probe, not a pathfinding benchmark.
+    legTime += dt;
+    if (legTime > 150) {
+      log.notes.push(`gave up on ${wp.id} after ${legTime.toFixed(0)}s`);
+      wi++;
+      sub = null;
+      legTime = 0;
       continue;
     }
 
@@ -288,15 +302,34 @@ function runOnce(seed, opts = {}) {
       }
     }
 
-    // Aim at the furthest point on the path that is still in clear view: that
-    // is what a person does, and it keeps the walk from hugging grid cells.
-    let aim = sub[sub.length - 1];
-    for (let i = sub.length - 1; i >= 0; i--) {
-      if (Math.hypot(sub[i].x - p.x, sub[i].z - p.z) < 3.5) {
-        aim = sub[Math.min(sub.length - 1, i + 2)];
+    // Aim at a point a couple of steps ahead along the path, and look a bit
+    // further where the next stretch is straight. Walking from point to point
+    // makes the bot zig-zag on the grid; this keeps the line natural.
+    let near = 0;
+    let bestD = Infinity;
+    for (let i = 0; i < sub.length; i++) {
+      const d = Math.hypot(sub[i].x - p.x, sub[i].z - p.z);
+      if (d < bestD) {
+        bestD = d;
+        near = i;
+      }
+    }
+    let aimIdx = Math.min(sub.length - 1, near + 2);
+    // Straighten: take the furthest point on the path that stays close to the
+    // straight line from the player to it.
+    for (let i = Math.min(sub.length - 1, near + 8); i > near; i--) {
+      const cand = sub[i];
+      const mx = (p.x + cand.x) / 2;
+      const mz = (p.z + cand.z) / 2;
+      const len = Math.hypot(cand.x - p.x, cand.z - p.z) || 1;
+      const off = Math.abs((sub[Math.min(sub.length - 1, Math.round((near + i) / 2))].x - mx) * (cand.z - p.z) / len -
+        (sub[Math.min(sub.length - 1, Math.round((near + i) / 2))].z - mz) * (cand.x - p.x) / len);
+      if (off < 1.2) {
+        aimIdx = i;
         break;
       }
     }
+    const aim = sub[aimIdx];
 
     let nearest = Infinity;
     let nearestAgent = null;
@@ -369,6 +402,14 @@ function runOnce(seed, opts = {}) {
       if (stuckTimer > 2) {
         stuckTimer = 0;
         sub = null;
+        legStalls += 1;
+        if (legStalls > 6) {
+          log.notes.push(`no route to ${wp.id} (stalled ${legStalls}x)`);
+          wi++;
+          legStalls = 0;
+          legTime = 0;
+          continue;
+        }
         if (findPath(p, wp) === null) {
           log.notes.push(`stuck before ${wp.id}`);
           break;
