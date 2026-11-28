@@ -99,19 +99,59 @@ export class World {
     // layout object or the built result; accept both so a headless run does not
     // have to guess.
     this.cityBuilt = options.cityBuilt || null;
-    if (this.city && !this.city.bounds && this.cityBuilt && this.cityBuilt.bounds) {
-      this.city = { ...this.city, bounds: this.cityBuilt.bounds };
+    if (this.city && !this.city.bounds) {
+      this.city = { ...this.city, bounds: (this.cityBuilt && this.cityBuilt.bounds) || this.boundsFromLevel() };
+    }
+    // A caller may hand over the built district instead of the layout. It has
+    // geometry but no routes, so borrow the authored ones: otherwise the
+    // district silently has no traffic at all.
+    if (this.city && !this.city.trafficRoutes && CITY.trafficRoutes) {
+      this.city = { ...this.city, trafficRoutes: CITY.trafficRoutes };
     }
     this.tier = options.tier || null;
     // With a district the player can walk the whole map; without one the lane
     // keeps its own small bounds, which is what the approved-beat tests expect.
     this.bounds = this.city ? insetRect(this.city.bounds, 2) : level.bounds;
-    this.traffic = this.city ? new Traffic(this.city, this.tier || { traffic: 8 }, { aggression: options.aggression }) : null;
+    // Routes and water live on the layout, not on the built result: a caller
+    // that only had the built district silently got zero traffic.
+    this.traffic = this.city
+      ? new Traffic(this.trafficCity, this.tier || { traffic: 8 }, { aggression: options.aggression })
+      : null;
     this.crowd = this.city ? new Crowd(this.city, (this.tier && this.tier.crowd) || 12, options.seed || 4242) : null;
     // Which box list the collision solver uses: district if present.
     if (this.city && Array.isArray(options.cityBoxes)) this.openBoxes = options.cityBoxes.concat(this.openBoxes);
     this.chaosRng = mulberry32(options.seed || 20261127);
     this.reset();
+  }
+
+  /**
+   * A fallback map rectangle when a caller passes a built district with no
+   * layout at all. The built boxes already cover the map, so the union of them
+   * is the honest bound; without this the constructor throws on `bounds.x1`.
+   */
+  boundsFromLevel() {
+    const boxes = (this.openBoxes || []).filter((b) => b.tag !== "floor" && b.tag !== "platform");
+    if (!boxes.length) return this.level.bounds;
+    let x1 = Infinity;
+    let x2 = -Infinity;
+    let z1 = Infinity;
+    let z2 = -Infinity;
+    for (const b of boxes) {
+      x1 = Math.min(x1, b.x1);
+      x2 = Math.max(x2, b.x2);
+      z1 = Math.min(z1, b.z1);
+      z2 = Math.max(z2, b.z2);
+    }
+    return { x1, x2, z1, z2 };
+  }
+
+  /** The city layout, with the built district folded in where it has extra data. */
+  get trafficCity() {
+    if (!this.city) return null;
+    return {
+      ...this.city,
+      trafficRoutes: this.city.trafficRoutes || [],
+    };
   }
 
   /** True when the player is standing over open water. */

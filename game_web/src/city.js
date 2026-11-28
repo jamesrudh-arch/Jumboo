@@ -134,7 +134,9 @@ export const CITY = {
   lampSpacing: 22,
   treeSpacing: 9,
 
-  // Traffic routes: closed loops on the road network, in metres.
+  // Traffic routes: closed loops on the road network, in metres. (The Traffic
+  // class reads these from the CITY layout, not from the built district, so they
+  // have to stay on this object.)
   trafficRoutes: [
     // Each route is a ring on a real road: out on one street, back on another.
     // A face that leaves the road network would drive through a block.

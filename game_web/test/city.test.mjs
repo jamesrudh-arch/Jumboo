@@ -568,3 +568,49 @@ test("every objective on the map is walkable from the spawn", () => {
     assert.ok(hit, `${name} at ${t.x},${t.z} cannot be walked to from the spawn`);
   }
 });
+
+test("traffic runs on the city layout, whichever object a caller passes", () => {
+  // A caller that only has the built district (tools, tests, the bot) used to
+  // get an empty route list and therefore zero cars, silently.
+  const built = buildCity(CITY, TIERS.desktop);
+  const w1 = new World(LEVEL, { boxes: built.boxes, platforms: built.platforms }, {
+    city: CITY,
+    cityBoxes: built.boxes,
+    cityBuilt: built,
+    tier: TIERS.desktop,
+  });
+  assert.equal(w1.traffic.vehicles.length, TIERS.desktop.traffic, "layout with routes spawns traffic");
+
+  const w2 = new World(LEVEL, { boxes: built.boxes, platforms: built.platforms }, {
+    city: built,
+    cityBoxes: built.boxes,
+    cityBuilt: built,
+    tier: TIERS.desktop,
+  });
+  assert.equal(w2.traffic.vehicles.length, TIERS.desktop.traffic, "the built district still spawns traffic");
+});
+
+test("a stopped car backs out of a jam instead of blocking the street forever", () => {
+  const built = buildCity(CITY, TIERS.desktop);
+  const w = new World(LEVEL, { boxes: built.boxes, platforms: built.platforms }, {
+    city: CITY,
+    cityBoxes: built.boxes,
+    cityBuilt: built,
+    tier: TIERS.desktop,
+  });
+  w.start();
+  // Pin one car in place for longer than the back-up threshold: a dead end or
+  // a pedestrian standing in the lane is what the manoeuvre is for. (A timed
+  // jam lifts on its own, so it never produces a long enough stop.)
+  const held = w.traffic.vehicles[0];
+  let reversed = false;
+  for (let i = 0; i < 60 * 14; i++) {
+    held.speed = 0;
+    w.traffic.update(1 / 60, null, []);
+    if (held.reversing) reversed = true;
+  }
+  assert.ok(reversed, "no car ever backed out of the jam");
+  // And the street clears: no car is permanently parked in the junction.
+  const stopped = w.traffic.vehicles.filter((v) => v.speed < 0.3).length;
+  assert.ok(stopped <= 1, `${stopped} of ${w.traffic.vehicles.length} cars are still stopped 14 s later`);
+});

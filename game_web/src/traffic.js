@@ -38,6 +38,8 @@ export class Vehicle {
     this.speed = this.spec.maxSpeed * 0.6;
     this.yaw = 0;
     this.braking = false;
+    this.reversing = false;
+    this.reverseFor = 0;
     this.honk = 0;
     this.stuckFor = 0;
     this.damage = 0;
@@ -121,11 +123,20 @@ export class Traffic {
     }
   }
 
-  /** Distance along a vehicle's route, wrapped to its length. */
+  /**
+   * Distance along a vehicle's route, wrapped to its length.
+   *
+   * A car that has to reverse out of a jam or a dead end backs up: the distance
+   * goes negative, the heading flips for the duration of the manoeuvre, and the
+   * brake and tail lights swap ends because the yaw is reversed. Without the
+   * flip the car slides backwards along the road.
+   */
   advanceDistance(v, dx) {
     const len = v.route.length || 1;
     v.distance = ((v.distance + dx) % len + len) % len;
-    return sampleRoute(v.route.points, v.distance);
+    const p = sampleRoute(v.route.points, v.distance);
+    if (v.reversing) p.yaw = p.yaw + Math.PI;
+    return p;
   }
 
   /**
@@ -153,17 +164,35 @@ export class Traffic {
       if (v.speed < targetSpeed) v.speed = Math.min(targetSpeed, v.speed + rate * dt);
       else v.speed = Math.max(targetSpeed, v.speed - rate * 1.6 * dt);
 
-      // A fully stopped car honks once, then waits.
+      // A fully stopped car honks once, then waits. If whatever stopped it has
+      // not cleared after a few seconds (a jam that ended in a queue, a car in
+      // a dead end, a pedestrian standing in the lane), it backs up and goes
+      // around instead of sitting there forever.
       if (v.speed < 0.25) {
         v.stuckFor += dt;
         if (v.stuckFor > 1.4 && v.honk <= 0) {
           v.honk = 2.2;
           events.push({ type: "honk", x: v.x, z: v.z, radius: 26 });
         }
+        if (v.stuckFor > 3.2 && v.reverseFor <= 0) v.reverseFor = 1.5;
       } else {
         v.stuckFor = 0;
       }
       v.honk = Math.max(0, v.honk - dt);
+
+      // Backing up: travel the route in reverse at a walking pace, with the
+      // yaw flipped by advanceDistance, then straighten out.
+      v.reverseFor = Math.max(0, v.reverseFor - dt);
+      v.reversing = v.reverseFor > 0;
+      if (v.reversing) {
+        const p = this.advanceDistance(v, -2.4 * dt);
+        v.x = p.x;
+        v.z = p.z;
+        v.yaw = p.yaw;
+        v.leg = p.leg;
+        v.speedNow = -2.4;
+        continue;
+      }
 
       const p = this.advanceDistance(v, v.speed * dt);
       v.x = p.x;

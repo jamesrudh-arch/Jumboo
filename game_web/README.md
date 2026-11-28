@@ -76,8 +76,10 @@ npm run smoke          # drives the page, presses keys, checks the frame
   thunder, honks, splashes, landings and errand pings are event-driven. Fifteen
   voices, with the drop count kept. Starts only on the Begin click, `M` mutes.
 - **Street life** (`src/traffic.js`): 4–14 vehicles on closed routes that keep to
-  the road network, brake for the player, each other and pedestrians, honk when
-  stuck, and knock the player down on contact; 8–16 pedestrians who keep to the
+  the road network, brake for the player, each other and pedestrians (brake
+  lights flare as they do), honk when stuck, back out of a dead end or a jam
+  that will not clear instead of parking in the junction, and knock the player
+  down on contact; 8–16 pedestrians who keep to the
   pavement, flee fast cars, and can be scattered by the chaos director.
 - **Wet streets** (`src/cityview.js` `setWetness`): the rain drives the ground, not
   just the sky. Asphalt darkens and glosses, pavement follows more slowly,
