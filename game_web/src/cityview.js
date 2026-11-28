@@ -663,7 +663,9 @@ export class CityView {
     const list = this.built.lamps;
     if (!list.length) return;
 
-    // Poles: instanced cylinder.
+    // Poles: instanced cylinder, as before. The head is a second instanced
+    // mesh. Lamps are the most numerous prop in the district; two draw calls
+    // for all of them is already about as cheap as this gets.
     const poleGeo = new THREE.CylinderGeometry(0.09, 0.13, 1, 6);
     poleGeo.translate(0, 0.5, 0);
     const poles = new THREE.InstancedMesh(poleGeo, M.metal, list.length);
