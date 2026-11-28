@@ -1115,56 +1115,83 @@ export class CityView {
   }
 }
 
-/** Vehicle meshes for the live traffic layer (instanced per vehicle kind). */
+// One shared tyre geometry for every vehicle: four instances of it are merged
+// into each car's shell, so it is never a separate draw call.
+const VEHICLE_TYRE = new THREE.CylinderGeometry(0.36, 0.36, 0.26, 8);
+
+/**
+ * Vehicle mesh for the live traffic layer.
+ *
+ * One merged body mesh plus one lamp mesh plus one additive road wash: three
+ * draw calls per car instead of twenty-eight. With fourteen cars, the naive
+ * version was most of the frame's draw calls on a phone. The lamp mesh is
+ * separate because brake lights change brightness per vehicle at runtime, and
+ * the wash is separate because it is additive and needs its own render order.
+ */
 export function makeVehicleMesh(kind) {
   const dims = kind === "truck" ? [2.4, 2.9, 7.4] : kind === "van" ? [2.0, 2.2, 5.4] : [1.85, 1.4, 4.3];
   const [w, h, len] = dims;
   const g = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(w, h * 0.9, len),
-    new THREE.MeshStandardMaterial({ color: srgb(0x3b4a54), roughness: 0.42, metalness: 0.35 }),
+
+  // Body, cabin and tyres share one material set: merge each into a single
+  // geometry so the whole shell is one draw call.
+  const shell = new MergeBin();
+  const paint = new THREE.MeshStandardMaterial({ color: srgb(0x3b4a54), roughness: 0.42, metalness: 0.35 });
+  const glass = new THREE.MeshStandardMaterial({
+    color: srgb(0x1a2228),
+    roughness: 0.2,
+    metalness: 0.5,
+    emissive: srgb(0x2a3a42),
+    emissiveIntensity: 0.4,
+  });
+  const rubber = new THREE.MeshStandardMaterial({ color: srgb(0x15191c), roughness: 0.95 });
+  shell.box(paint, 0, h * 0.55, 0, w, h * 0.9, len);
+  shell.box(
+    glass,
+    0,
+    h + 0.04,
+    len * (kind === "truck" ? 0.3 : -0.04),
+    w * 0.84,
+    0.78,
+    len * (kind === "truck" ? 0.2 : 0.42),
   );
-  body.position.y = h * 0.55;
-  g.add(body);
-  const cabin = new THREE.Mesh(
-    new THREE.BoxGeometry(w * 0.84, 0.78, len * (kind === "truck" ? 0.2 : 0.42)),
-    new THREE.MeshStandardMaterial({
-      color: srgb(0x1a2228),
-      roughness: 0.2,
-      metalness: 0.5,
-      emissive: srgb(0x2a3a42),
-      emissiveIntensity: 0.4,
-    }),
-  );
-  cabin.position.set(0, h + 0.04, len * (kind === "truck" ? 0.3 : -0.04));
-  g.add(cabin);
-  // Headlights and tail lights: two quads each, no separate lights (phones).
-  for (const side of [-1, 1]) {
-    const head = new THREE.Mesh(
-      new THREE.BoxGeometry(0.34, 0.16, 0.06),
-      new THREE.MeshStandardMaterial({ color: srgb(0xfff0d2), emissive: srgb(0xffe9c0), emissiveIntensity: 2.2 }),
-    );
-    head.position.set(side * w * 0.33, h * 0.62, len / 2);
-    g.add(head);
-    const tail = new THREE.Mesh(
-      new THREE.BoxGeometry(0.28, 0.14, 0.06),
-      new THREE.MeshStandardMaterial({ color: srgb(0x531f1a), emissive: srgb(0xe88771), emissiveIntensity: 1.4 }),
-    );
-    tail.position.set(side * w * 0.33, h * 0.66, -len / 2);
-    tail.name = "tail-light";
-    g.add(tail);
-  }
   for (const side of [-1, 1]) {
     for (const end of [-1, 1]) {
-      const tyre = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.36, 0.36, 0.26, 8),
-        new THREE.MeshStandardMaterial({ color: srgb(0x15191c), roughness: 0.95 }),
-      );
-      tyre.rotation.z = Math.PI / 2;
-      tyre.position.set(side * (w / 2 - 0.05), 0.36, end * len * 0.32);
-      g.add(tyre);
+      // Tyres are cylinders lying on their side; MergeBin.add handles rotation
+      // through the instance matrix, so build one and place four copies.
+      shell.add(rubber, VEHICLE_TYRE, tyreMatrix(side * (w / 2 - 0.05), 0.36, end * len * 0.32));
     }
   }
+  // Merged per material rather than into one vertex-coloured mesh: three shell
+  // meshes (paint, glass, rubber) instead of eighteen, and the colours stay
+  // faithful in both the GPU path and the offline rasteriser, which has no
+  // vertex-colour support.
+  const shellCount = shell.flush(g, "car-shell");
+  void shellCount;
+
+  // Lamps: one merged mesh, emissive, its material shared per vehicle so
+  // syncStreetActors can flare the tail lights without touching the body.
+  const lampBin = new MergeBin();
+  const headMat = new THREE.MeshStandardMaterial({
+    color: srgb(0xfff0d2),
+    emissive: srgb(0xffe9c0),
+    emissiveIntensity: 2.2,
+  });
+  const tailMat = new THREE.MeshStandardMaterial({
+    color: srgb(0x531f1a),
+    emissive: srgb(0xe88771),
+    emissiveIntensity: 1.4,
+  });
+  for (const side of [-1, 1]) {
+    lampBin.box(headMat, side * w * 0.33, h * 0.62, len / 2, 0.34, 0.16, 0.06);
+    lampBin.box(tailMat, side * w * 0.33, h * 0.66, -len / 2, 0.28, 0.14, 0.06);
+  }
+  lampBin.flush(g, "car-lamp");
+  // Expose the merged tail lamps so the runtime can flare them on braking.
+  const tailLamps = g.children.find((c) => c.isMesh && c.material === tailMat);
+  g.userData.tailMaterial = tailMat;
+  g.userData.tailLamps = tailLamps || null;
+
   // Headlight wash on the road. A real SpotLight per car is far too expensive on
   // a phone, and the CPU rasteriser has no spot path either, so this is a flat
   // additive wedge that the car drags along with it: cheap, and it reads as
@@ -1191,26 +1218,54 @@ export function makeVehicleMesh(kind) {
   return g;
 }
 
-/** Simple pedestrian figure: two legs, a body and a head. */
+/** Matrix for one tyre at (x, y, z), lying on its side. */
+function tyreMatrix(x, y, z) {
+  return new THREE.Matrix4().compose(
+    new THREE.Vector3(x, y, z),
+    new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2)),
+    new THREE.Vector3(1, 1, 1),
+  );
+}
+
+/**
+ * Pedestrian figure: a merged body with two separate legs.
+ *
+ * The legs stay separate because they swing: everything else (coat, head, bag)
+ * is one merged mesh. Twenty pedestrians used to be a hundred draw calls.
+ */
 export function makePedestrianMesh(tone = 0.5) {
   const g = new THREE.Group();
   const coat = [0x3c4a52, 0x55483f, 0x2f3b33, 0x4a4050][Math.floor(tone * 4) % 4];
-  const body = new THREE.Mesh(
-    new THREE.CapsuleGeometry(0.21, 0.62, 4, 8),
-    new THREE.MeshStandardMaterial({ color: srgb(coat), roughness: 0.9 }),
-  );
-  body.position.y = 1.06;
-  g.add(body);
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.13, 8, 6),
-    new THREE.MeshStandardMaterial({ color: srgb(0x9c7f6a), roughness: 0.85 }),
-  );
-  head.position.y = 1.56;
-  g.add(head);
+  const bin = new MergeBin();
+  const coatMat = new THREE.MeshStandardMaterial({ color: srgb(coat), roughness: 0.9 });
+  const skinMat = new THREE.MeshStandardMaterial({ color: srgb(0x9c7f6a), roughness: 0.85 });
   const legMat = new THREE.MeshStandardMaterial({ color: srgb(0x24292c), roughness: 0.9 });
-  const legs = [];
+  // Torso in two blocks: a wider chest over a narrower waist, so the
+  // silhouette is a person and not a wardrobe. Arms hang at the sides; at
+  // street distance that is what separates a figure from a post.
+  bin.box(coatMat, 0, 1.16, 0, 0.4, 0.44, 0.26); // chest
+  bin.box(coatMat, 0, 0.86, 0, 0.34, 0.3, 0.24); // waist
+  bin.box(coatMat, 0, 1.37, 0, 0.42, 0.07, 0.28); // shoulder line
   for (const side of [-1, 1]) {
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.5, 3, 6), legMat);
+    bin.box(coatMat, side * 0.26, 1.12, 0, 0.11, 0.5, 0.13); // upper arm
+    bin.box(coatMat, side * 0.27, 0.86, 0.02, 0.1, 0.16, 0.12); // forearm
+  }
+  bin.box(coatMat, 0, 1.43, 0, 0.12, 0.08, 0.12); // neck
+  bin.add(skinMat, SHARED.sphere, new THREE.Matrix4().compose(
+    new THREE.Vector3(0, 1.55, 0),
+    new THREE.Quaternion(),
+    new THREE.Vector3(0.24, 0.25, 0.24),
+  ));
+  // A shoulder bag on some of them, so a row of figures is not identical.
+  if (Math.floor(tone * 7) % 3 === 0) {
+    bin.box(legMat, 0.26, 0.98, 0.06, 0.16, 0.24, 0.14);
+  }
+  bin.flush(g, "ped-body");
+
+  const legs = [];
+  const legGeo = new THREE.CapsuleGeometry(0.075, 0.5, 3, 6);
+  for (const side of [-1, 1]) {
+    const leg = new THREE.Mesh(legGeo, legMat);
     leg.position.set(side * 0.1, 0.4, 0);
     g.add(leg);
     legs.push(leg);

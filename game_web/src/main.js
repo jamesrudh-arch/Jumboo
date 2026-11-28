@@ -174,7 +174,6 @@ function buildStreetActors() {
   if (!world.traffic) return;
   for (const v of world.traffic.vehicles) {
     const mesh = makeVehicleMesh(v.kind);
-    mesh.userData.tailLights = mesh.children.filter((c) => c.name === "tail-light");
     mesh.userData.vehicle = v;
     scene.add(mesh);
     trafficViews.push(mesh);
@@ -238,12 +237,10 @@ function syncStreetActors(dt) {
     mesh.position.set(v.x, 0, v.z);
     mesh.rotation.y = v.yaw;
     // Braking cars flare their tail lights and dim the road wash, so a car
-    // stopping ahead of you is readable from behind.
-    const tail = mesh.userData.tailLights;
-    if (tail) {
-      const flare = v.braking ? 3.1 : 1.4;
-      for (const t of tail) t.material.emissiveIntensity = flare;
-    }
+    // stopping ahead of you is readable from behind. The lamps are one merged
+    // mesh per car, so the flare is one material write, not four.
+    const tail = mesh.userData.tailMaterial;
+    if (tail) tail.emissiveIntensity = v.braking ? 3.4 : 1.4;
     const wash = mesh.userData.headlight;
     if (wash) wash.material.opacity = v.braking ? 0.05 : v.speed > 0.5 ? 0.12 : 0.03;
   }
