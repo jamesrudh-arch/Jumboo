@@ -547,7 +547,11 @@ function pullTrigger(dt) {
 
 let pendingOffer = null;
 
-/** --------------------------------------------------------------------- input
+// --------------------------------------------------------------------- input
+// This must stay a line comment. It was briefly a block comment opener, which
+// swallowed `keys`, `dragging` and `pointerLocked` into the comment body: the
+// frame loop then threw `keys is not defined` on every tick after BEGIN, so the
+// whole build froze the moment the player started. A line comment cannot do that.
 const keys = new Set();
 let dragging = false;
 let dragMoved = 0;
@@ -582,11 +586,6 @@ window.addEventListener("keydown", (e) => {
 });
 
 /**
- * Combat keys. Returns true when the key was consumed, so the movement layer
- * does not also act on it. Every branch is a single press: firing holds the key,
- * which is handled in the frame loop from `keys`, not here.
- */
-/**
  * Keys the story owns.
  *
  * Returns true when the press was consumed, so the caller falls through to the
@@ -612,6 +611,11 @@ function handleStoryKey(code) {
   return false;
 }
 
+/**
+ * Combat keys. Returns true when the key was consumed, so the movement layer
+ * does not also act on it. Every branch is a single press: firing holds the key,
+ * which is handled in the frame loop from `keys`, not here.
+ */
 function handleCombatKey(code) {
   if (!arena || !state.started || state.paused) return false;
   const run = arena.run;
@@ -843,18 +847,36 @@ function start() {
   hud.visible = true;
   world.start();
   audio.start();
+
   // The story starts with the game, not with the first conversation: the player
   // should know what they are doing before they are asked to do it.
   const saved = restoreRun();
   if (saved?.flags) Object.assign(state.storyFlags, saved.flags);
   buildStory();
   if (saved?.checkpoint) state.story.mission.restore(saved.checkpoint);
-  
+
+  // The fight does not start yet.
+  //
+  // M01 opens on ordinary work in a shop. The wave ladder is the street's
+  // pressure and belongs to the beats that are about pressure, so starting a wave
+  // here put five bodies on an unarmed player while the first objective was still
+  // on screen — which is why the build showed "Taken." before the player had taken
+  // a step. Combat is enabled; the first wave waits for the mission to ask for it.
+  if (arena) {
+    combatEnabled = true;
+    refreshHeldWeapon();
+  }
+
+  last = performance.now();
+  if (canvas.requestPointerLock) canvas.requestPointerLock();
+}
+
 // ------------------------------------------------------------------ the story
 // M01 runs on top of the street rather than instead of it: the wave ladder is the
 // pressure, the mission is the reason. Both are stepped on the same fixed clock,
 // so a line of dialogue and a body arriving cannot disagree about when they
 // happened.
+
 /** Where the mission's bodies should come from, in street coordinates. */
 function placeOf(id) {
   return M01_PLACES[id] ?? null;
@@ -924,15 +946,6 @@ function restoreRun() {
   }
 }
 
-// The fight starts where the game says it starts: unarmed.
-  if (arena) {
-    combatEnabled = true;
-    arena.startWave();
-    refreshHeldWeapon();
-  }
-  last = performance.now();
-  if (canvas.requestPointerLock) canvas.requestPointerLock();
-}
 
 const titleEl = document.getElementById("title");
 const pauseEl = document.getElementById("pause");
