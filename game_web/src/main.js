@@ -19,7 +19,7 @@ import { detectTierFromWindow } from "./config.js";
 import { Weather, Wetness } from "./weather.js";
 import { createAudio } from "./audio.js";
 import { applyGamepad, firstConnectedPad } from "./input.js";
-import { loadKit, loadCityKit } from "./kit.js";
+import { loadKit, loadCityKit, loadKenneyPack } from "./kit.js";
 
 const KEY = {
   forward: ["KeyW", "ArrowUp"],
@@ -345,6 +345,15 @@ async function boot() {
   } catch (err) {
     console.warn("[kit] city kit unavailable, using generated trees", err);
   }
+  // Watercraft: the harbour and canal exist with nothing in them.
+  let waterKit = null;
+  try {
+    waterKit = await loadKenneyPack("water", ["boat-fishing-small", "boat-tow-a",
+      "boat-speed-b", "boat-speed-c", "ship-cargo-a", "ship-cargo-b", "boat-tug-a",
+      "boat-house-a", "boat-row-small", "boat-fan"], {});
+  } catch (err) {
+    console.warn("[kit] watercraft unavailable", err);
+  }
   setStatus("");
   // Swap the generated street furniture for the kit's where the kit has a match.
   if (kit) {
@@ -352,6 +361,13 @@ async function boot() {
       cityView.applyKit(kit);
     } catch (err) {
       console.warn("[kit] street furniture swap failed", err);
+    }
+  }
+  if (waterKit) {
+    try {
+      cityView.applyWaterKit(waterKit);
+    } catch (err) {
+      console.warn("[kit] water swap failed", err);
     }
   }
   // Then the trees and parks, which the street kit does not cover.

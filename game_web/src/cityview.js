@@ -422,6 +422,65 @@ export class CityView {
     return this;
   }
 
+  /**
+   * Put the Kenney watercraft pack on the water. The district already has a
+   * 300 m harbour and a canal with nothing floating in them, which reads as a
+   * hole in the map rather than as water.
+   */
+  applyWaterKit(waterKit) {
+    if (!waterKit) return this;
+    const HARBOUR = this.city.water?.find((w) => w.kind === "harbour");
+    const CANAL = this.city.water?.find((w) => w.kind === "canal");
+    const place = (name, x, z, yaw, scaleHint, surfaceY = -0.6) => {
+      if (!waterKit.has(name)) return null;
+      const mesh = waterKit.make(name);
+      if (!mesh) return null;
+      const size = waterKit.size(name);
+      // Scale to real-world length: a rowing boat is ~3 m, a cargo ship ~78 m.
+      const s = scaleHint / Math.max(size.z, size.x, 0.001);
+      mesh.scale.setScalar(s);
+      mesh.rotation.y = yaw;
+      // Sit the hull *in* the water: the bottom of the hull goes a little under
+      // the surface and the freeboard stays clear. Placing these at y=0 (street
+      // level) left every boat hovering 0.6 m above the harbour.
+      const height = size.y * s;
+      mesh.position.set(x, surfaceY - height * 0.30, z);
+      this.root.add(mesh);
+      this.stats.meshes = (this.stats.meshes || 0) + 1;
+      return mesh;
+    };
+
+    if (HARBOUR) {
+      const midZ = (HARBOUR.z1 + HARBOUR.z2) / 2;
+      // Moored along the quay, then working boats out in the roads.
+      const QUAY = [-110, -78, -46, 14, 46, 78, 110];
+      const sy = HARBOUR.surfaceY ?? -0.6;
+      // The harbour is 32 m deep, so nothing here is bigger than a working
+      // vessel: an ocean liner scaled to 78 m turns the quay into a flat slab.
+      const depth = HARBOUR.z2 - HARBOUR.z1;
+      const maxLen = depth * 0.72;
+      const fit = (want) => Math.min(want, maxLen);
+      QUAY.forEach((x, i) => {
+        const name = ["boat-fishing-small", "boat-tow-a", "boat-speed-b"][i % 3];
+        place(name, x, HARBOUR.z1 + 7, Math.PI / 2 + (i % 2 ? 0.06 : -0.05), fit(9), sy);
+      });
+      place("ship-cargo-a", -44, midZ + 1, Math.PI / 2 + 0.02, fit(24), sy);
+      place("ship-cargo-b", 58, midZ - 2, Math.PI / 2 - 0.03, fit(22), sy);
+      place("boat-tug-a", 12, midZ + 8, -Math.PI / 2, fit(12), sy);
+      place("boat-house-a", -126, midZ - 5, Math.PI / 2, fit(11), sy);
+      place("boat-speed-c", 126, midZ + 7, -Math.PI / 2 + 0.3, fit(7), sy);
+    }
+    if (CANAL) {
+      const z = (CANAL.z1 + CANAL.z2) / 2;
+      // Narrow boats along the canal, bow to the towpath.
+      const cy = CANAL.surfaceY ?? -0.45;
+      [-52, -18, 22, 58, 96].forEach((x, i) => {
+        place(i % 2 ? "boat-row-small" : "boat-fan", x, z, (i % 2 ? 0.02 : -0.02), 3.0, cy);
+      });
+    }
+    return this;
+  }
+
   countMeshes() {
     let n = 0;
     this.root.traverse((o) => {

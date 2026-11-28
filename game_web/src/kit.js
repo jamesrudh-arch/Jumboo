@@ -15,6 +15,7 @@
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 const BASE = "./assets/kit/";
 const MODEL_DIR = `${BASE}models/`;
@@ -284,5 +285,98 @@ export async function loadCityKit(renderer, { onProgress } = {}) {
     parts(name) {
       return models.get(name)?.parts || [];
     },
+  };
+}
+
+// ------------------------------------------------------------- kenney packs
+// Kenney's 3D library, CC0, one colormap atlas per pack. The pack structure is
+// deliberately preserved: a pack is the unit that shares an atlas, so a loader
+// fetches one texture per pack rather than one per model.
+//
+// Source: github.com/shorepine/kenney (mirror of kenney.nl). See CREDITS.md.
+export const KENNEY_BASE = "./assets/kenney/";
+
+/** Which pack each model lives in, and what it is for. */
+export const KENNEY_PACKS = {
+  commercial: { dir: "city-commercial", use: "storefronts, awnings, signage" },
+  suburban: { dir: "city-suburban", use: "houses and low blocks" },
+  roads: { dir: "city-roads", use: "road tiles, crossings, street furniture" },
+  vehicles: { dir: "car", use: "ambulance, police, taxi, van, pickup, sports" },
+  water: { dir: "watercraft", use: "fishing boats, speedboats, houseboats, cargo" },
+  building: { dir: "building", use: "towers, roofs, details" },
+  modular: { dir: "modular-buildings", use: "walls, floors, roofs" },
+  retro: { dir: "retro-urban", use: "low-poly city blocks" },
+  furniture: { dir: "furniture", use: "interior and street furniture" },
+};
+
+/**
+ * Load one Kenney pack: its atlas once, then each named model.
+ * Returns the same shape as loadKit() so callers can use either.
+ */
+export async function loadKenneyPack(packKey, names, { onProgress } = {}) {
+  const pack = KENNEY_PACKS[packKey];
+  if (!pack) throw new Error(`unknown kenney pack ${packKey}`);
+  const dir = `${KENNEY_BASE}${pack.dir}/`;
+
+  const texture = await new Promise((resolve, reject) => {
+    new THREE.TextureLoader().load(`${dir}Textures/colormap.png`, (t) => {
+      t.flipY = false; // glTF UV convention
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.magFilter = THREE.NearestFilter;
+      t.minFilter = THREE.NearestMipmapLinearFilter;
+      resolve(t);
+    }, undefined, reject);
+  });
+  const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.85, metalness: 0.03 });
+
+  const models = new Map();
+  let done = 0;
+  for (const name of names) {
+    try {
+      const buffer = await fetch(`${dir}${name}.glb`).then((r) => r.arrayBuffer());
+      const gltf = await new Promise((resolve, reject) => {
+        new GLTFLoader().parse(buffer, "", resolve, reject);
+      });
+      gltf.scene.updateMatrixWorld(true);
+      const geos = [];
+      gltf.scene.traverse((o) => {
+        if (!o.isMesh) return;
+        const g = o.geometry.clone();
+        g.applyMatrix4(o.matrixWorld);
+        for (const k of Object.keys(g.attributes)) {
+          if (!["position", "normal", "uv"].includes(k)) g.deleteAttribute(k);
+        }
+        geos.push(g);
+      });
+      const merged = geos.length === 1 ? geos[0] : mergeGeometries(geos, false);
+      if (!merged) continue;
+      merged.computeBoundingBox();
+      models.set(name, {
+        geometry: merged,
+        size: merged.boundingBox.getSize(new THREE.Vector3()),
+        triangles: merged.index ? merged.index.count / 3 : merged.attributes.position.count / 3,
+      });
+    } catch (err) {
+      console.warn(`[kenney] ${packKey}/${name} failed`, err);
+    }
+    done++;
+    onProgress?.(done / names.length, name);
+  }
+
+  return {
+    pack: packKey,
+    material,
+    has: (n) => models.has(n),
+    size: (n) => models.get(n)?.size?.clone() || new THREE.Vector3(1, 1, 1),
+    triangles: (n) => models.get(n)?.triangles || 0,
+    names: () => [...models.keys()],
+    make(name) {
+      const m = models.get(name);
+      if (!m) return null;
+      const mesh = new THREE.Mesh(m.geometry, material);
+      mesh.userData.size = m.size.clone();
+      return mesh;
+    },
+    geometry: (name) => models.get(name)?.geometry || null,
   };
 }
