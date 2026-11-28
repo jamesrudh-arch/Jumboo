@@ -16,6 +16,8 @@ import { CombatFeel } from "./feel.js";
 import { Loadout } from "./arsenal.js";
 import { Run, tierForWave } from "./progression.js";
 import { ARCHETYPES, statLine } from "./enemies.js";
+import { steer } from "./navigation.js";
+import { resolveCircle } from "./collision.js";
 
 /**
  * What a body's attack is worth against the player, as a fraction of its
@@ -106,6 +108,9 @@ export class Arena {
       e.root.position.set(placement[i].x, placement[i].y, placement[i].z);
       e.root.rotation.y = placement[i].yaw;
       e.spawnHome = { x: placement[i].x, z: placement[i].z };
+      // A stable flank slot per body: the formation spread is decided by the
+      // wave, not by chance, so a wave is reproducible.
+      e.flankSlot = i;
       e.behaviour = BEHAVIOUR[e.stats.archetype] ?? BEHAVIOUR.runner;
       e.cooldown = 0.6 + (i % 5) * 0.25;
       this.scene?.add(e.root);
@@ -152,11 +157,53 @@ export class Arena {
       const want = dist - b.standoff;
       if (b.approach > 0 && Math.abs(want) > 0.25) {
         const speed = (e.stats.speed ?? 1) * b.approach * (want > 0 ? 1 : -0.6);
-        const nx = e.root.position.x + (dx / dist) * speed * dt;
-        const nz = e.root.position.z + (dz / dist) * speed * dt;
-        const ground = this.world.groundAt ? this.world.groundAt(nx, nz) : 0;
+        // Steering, not a straight line: bodies go around walls, spread across
+        // flank slots, and push off each other so a wave arrives as a formation
+        // rather than as one overlapping blob. Flyers ignore the geometry
+        // because they are above it.
+        let dirX;
+        let dirZ;
+        if (b.hover) {
+          dirX = dx / dist;
+          dirZ = dz / dist;
+        } else {
+          const boxes = this.world.boxesNear ? this.world.boxesNear(e.root.position.x, e.root.position.z, 3.5) : [];
+          const neighbours = this.wave.live
+            .filter((o) => o !== e && !o.dead && !o.behaviour?.hover)
+            .slice(0, 8)
+            .map((o) => ({ x: o.root.position.x, z: o.root.position.z }));
+          const heading = steer({
+            x: e.root.position.x,
+            z: e.root.position.z,
+            targetX: p.x,
+            targetZ: p.z,
+            boxes,
+            neighbours,
+            slot: e.flankSlot ?? 0,
+            count: this.wave.live.length,
+            radius: 0.4,
+            // How far outside its standoff the body is, 0..1: at range it
+            // commits to closing, and near its standoff it gives ground to its
+            // neighbours instead.
+            closing: Math.min(1, Math.abs(want) / 4),
+          });
+          dirX = heading.x;
+          dirZ = heading.z;
+        }
+        let nx = e.root.position.x + dirX * speed * dt;
+        let nz = e.root.position.z + dirZ * speed * dt;
+        // Resolve against the street so a body cannot end up inside a wall even
+        // when the steering was imperfect. The resolution is the same function
+        // the player uses, so bodies and players agree about what is solid.
+        if (!b.hover && this.world.boxesNear) {
+          const body = { x: nx, z: nz };
+          resolveCircle(body, 0.4, this.world.boxesNear(nx, nz, 1.6), 0, 1.8, 2, 0.3);
+          nx = body.x;
+          nz = body.z;
+        }
         e.root.position.x = nx;
         e.root.position.z = nz;
+        const ground = this.world.groundAt ? this.world.groundAt(nx, nz) : 0;
         if (b.hover) {
           // A flyer bobs: a fixed hover height reads as a model on rails.
           e.root.position.y = ground + (e.stats.flyHeight ?? 3) + Math.sin(this.waveTimer * 1.7 + e.spawnHome.x) * 0.22;

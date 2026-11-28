@@ -642,8 +642,18 @@ export class World {
     p.maxSpeed = maxSpeed;
     p.moving = p.speed > 0.06;
 
+    // Facing. While moving, the body turns to the direction of travel, which is
+    // what makes a run read as a run. Standing still, it turns to the camera —
+    // otherwise a player cannot aim without walking, and every shot while
+    // stationary fires along whatever heading the last step happened to leave
+    // behind. The simulation places props by p.yaw, so this is the aim heading
+    // as well as the body heading.
     if (inputMag > 0.05) {
       p.yaw = dampAngle(p.yaw, Math.atan2(dx, dz), 11, dt);
+    } else {
+      // Rate 14 is faster than the walk turn because a camera turn is intent:
+      // the player is pointing, not steering.
+      p.yaw = dampAngle(p.yaw, this.cameraYaw, 14, dt);
     }
 
     // Horizontal movement with axis-separated resolution so the player slides

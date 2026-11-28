@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { World, PHASE, STANCE, TUNING } from "../src/world.js";
 import { LEVEL, buildLevel } from "../src/level.js";
 import { supportHeightAt, resolveCircle, hasLineOfSight } from "../src/collision.js";
+import { createWorld } from "../src/world.js";
 import { dampAngle, wrapAngle, formatTime, mulberry32 } from "../src/geom.js";
 
 function makeWorld() {
@@ -569,4 +570,37 @@ test("kerbs are steps, not walls", () => {
   const blocked = { x: -14, z: -8.6 };
   resolveCircle(blocked, 0.32, [crate], 0, 1.8, 3, LEVEL.stepUp);
   assert.ok(Math.abs(blocked.z - -8.6) > 0.1, "a crate taller than a step should still block");
+});
+
+// ------------------------------------------------------------------- facing
+// The bug this protects: p.yaw was only updated while moving, so standing still
+// and turning the camera did not change where the player was aiming. The body
+// kept the heading of the last step, and a shot fired sideways or backwards.
+test("the player faces the camera when standing still", () => {
+  const world = createWorld(LEVEL, buildLevel);
+  world.start();
+  world.cameraYaw = Math.PI;
+  world.setInput({ moveX: 0, moveZ: 0, run: false, crouch: false, interact: false });
+  for (let i = 0; i < 40; i++) world.update(1 / 60);
+  const diff = Math.abs(wrapAngle(world.player.yaw - world.cameraYaw));
+  assert.ok(diff < 0.1, `after 0.66 s standing still the body faces the camera (off by ${diff.toFixed(2)} rad)`);
+});
+
+test("the player faces the direction of travel when moving", () => {
+  // The moving case must not regress to camera-facing, or a player running
+  // sideways would strafe with their chest to the camera.
+  const world = createWorld(LEVEL, buildLevel);
+  world.start();
+  world.cameraYaw = 0;
+  // Push the stick hard right relative to the camera.
+  world.setInput({ moveX: 1, moveZ: 0, run: false, crouch: false, interact: false });
+  for (let i = 0; i < 40; i++) world.update(1 / 60);
+  const travel = Math.atan2(
+    Math.sin(world.cameraYaw) * 1 - Math.cos(world.cameraYaw) * 1,
+    Math.cos(world.cameraYaw) * 1 + Math.sin(world.cameraYaw) * 1,
+  );
+  void travel;
+  // Right of camera yaw 0 is -X, so the body should be near -pi/2.
+  const diff = Math.abs(wrapAngle(world.player.yaw - -Math.PI / 2));
+  assert.ok(diff < 0.35, `running right, body heading is ${world.player.yaw.toFixed(2)} (want about -1.57)`);
 });
