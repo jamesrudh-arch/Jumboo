@@ -33,7 +33,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0d141a);
 scene.fog = new THREE.Fog(0x17242c, tier.fogNear, tier.fogFar);
 
-new LevelView(scene, built).build();
+new LevelView(scene, built, { district: true }).build();
 const cityBuilt = buildCity(CITY, tier);
 const cityView = new CityView(scene, CITY, cityBuilt, tier).build();
 
@@ -88,6 +88,13 @@ function syncActors() {
 function unsafeAt(pos) {
   const [x, y, z] = pos;
   if (y < 0.9) return "underground";
+  // Tree canopies are solid to the eye even though they are not colliders: a
+  // camera parked in one renders a black frame.
+  for (const t of cityBuilt.trees) {
+    const h = (t.scale || 1) * 3.2;
+    const r = (t.scale || 1) * 2.6;
+    if (Math.hypot(x - t.x, z - t.z) < r && y > h * 0.6 && y < h * 1.6) return "in a tree";
+  }
   for (const w of CITY.water) {
     if (x > w.x1 && x < w.x2 && z > w.z1 && z < w.z2 && y < w.surfaceY + 0.4) return "in water";
   }
@@ -117,8 +124,10 @@ syncActors();
 scene.updateMatrixWorld(true);
 
 const sun = scene.children.reduce((f, c) => f || c.children?.find((x) => x.isDirectionalLight), null);
+// The shadow map has to cover the district, not the lane: a 60 m radius around
+// the lane leaves the whole harbour in shadow and every shot renders black.
 const shadow = tier.shadows && sun
-  ? buildShadowMap(scene, sun, { size: tier.shadowMapSize, center: new THREE.Vector3(0, 0, -20), radius: 60 })
+  ? buildShadowMap(scene, sun, { size: tier.shadowMapSize, center: new THREE.Vector3(0, 0, -35), radius: 200 })
   : null;
 
 const failures = [];
@@ -130,9 +139,9 @@ const shots = [
   // Out of the lane's far doorway, looking at the mid cross-street.
   { name: "03-lane-north-exit", pos: [4, 1.9, -49], look: [4, 1.4, -70], fov: 62 },
   // The canal, from the south bank.
-  { name: "04-canal", pos: [-10, 4.2, -66], look: [20, -1.0, -82], fov: 64 },
+  { name: "04-canal", pos: [-60, 6, -73], look: [40, 0, -80], fov: 62 },
   // Bridges and the water below.
-  { name: "05-bridges", pos: [26, 8.5, -70], look: [-2, -1.4, -86], fov: 62 },
+  { name: "05-bridges", pos: [-26, 11, -89], look: [22, -1.2, -80], fov: 62 },
   // The harbour and the container quay.
   { name: "06-harbour", pos: [0, 7, -108], look: [8, -1.5, -150], fov: 62 },
   // The street outside the lane mouth, looking north to the shophouse row.
@@ -153,6 +162,12 @@ for (const shot of shots) {
   const camera = new THREE.PerspectiveCamera(shot.fov, W / H, 0.1, tier.drawDistance * 1.8);
   camera.position.set(...shot.pos);
   camera.lookAt(new THREE.Vector3(...shot.look));
+  if (process.env.DEBUG_RAY) {
+    const r = new THREE.Raycaster();
+    r.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const hits = r.intersectObject(scene, true).slice(0, 4);
+    console.log("  centre ray:", hits.map((h) => `${h.object.name || h.object.type}@${h.distance.toFixed(1)}`).join(" | ") || "nothing");
+  }
   const bad = unsafeAt(shot.pos);
   if (bad) failures.push(`${shot.name} (${bad})`);
   const t0 = Date.now();

@@ -219,6 +219,11 @@ export class World {
     Object.assign(this.input, patch);
   }
 
+  /** Camera boom length, clamped so it never sits inside the player. */
+  setCameraDistance(d) {
+    this.cameraDistance = clamp(d, 1.6, 8.5);
+  }
+
   look(dx, dy) {
     this.cameraYaw = wrapAngle(this.cameraYaw - dx);
     this.cameraPitch = clamp(this.cameraPitch + dy, -0.35, 0.95);

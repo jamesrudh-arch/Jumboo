@@ -103,7 +103,7 @@ function setStatus(text, isError = false) {
 
 // --------------------------------------------------------------------- world
 const built = buildLevel();
-const view = new LevelView(scene, built).build();
+const view = new LevelView(scene, built, { district: true }).build();
 
 // The district wraps around the approved lane. It is study environment: a
 // procedural city that gives the beat somewhere to breathe.
@@ -283,6 +283,15 @@ canvas.addEventListener("pointermove", (e) => {
     );
   }
 });
+canvas.addEventListener(
+  "wheel",
+  (e) => {
+    e.preventDefault();
+    world.setCameraDistance(world.cameraDistance + Math.sign(e.deltaY) * 0.45);
+  },
+  { passive: false },
+);
+
 document.addEventListener("pointerlockchange", () => {
   pointerLocked = document.pointerLockElement === canvas;
 });

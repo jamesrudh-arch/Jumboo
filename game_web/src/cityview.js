@@ -301,11 +301,15 @@ export class CityView {
       geo.rotateX(-Math.PI / 2);
 
       const material = new THREE.MeshStandardMaterial({
-        color: srgb(w.kind === "harbour" ? 0x16262f : w.kind === "pond" ? 0x1b2a26 : 0x182527),
-        roughness: 0.12,
-        metalness: 0.55,
+        color: srgb(w.kind === "harbour" ? 0x24404e : w.kind === "pond" ? 0x25423a : 0x234252),
+        roughness: 0.1,
+        metalness: 0.62,
+        // A touch of self-lit body keeps the water separate from asphalt in a
+        // dark frame without pretending it is glowing.
+        emissive: srgb(w.kind === "harbour" ? 0x0d1a22 : 0x0c1b16),
+        emissiveIntensity: 1,
         transparent: true,
-        opacity: 0.92,
+        opacity: 0.94,
         envMapIntensity: 1.1,
       });
       // Drive the waves on the CPU: a vertex shader would be free, but the
@@ -322,6 +326,17 @@ export class CityView {
       mesh.receiveShadow = !!this.tier.shadows;
       this.root.add(mesh);
       this.waterMeshes.push({ mesh, spec: w, material });
+
+      // Foam: a narrow pale strip on each bank makes the shoreline legible at
+      // night, when the water and the asphalt are otherwise the same value.
+      const foam = new MergeBin();
+      const foamMat = mat(0x9fb4b8, { roughness: 0.8, emissive: 0x2a3a3e, emissiveIntensity: 0.6 });
+      const fy = w.surfaceY + 0.04;
+      foam.box(foamMat, (w.x1 + w.x2) / 2, fy, w.z1 + 0.5, width, 0.03, 1.0);
+      foam.box(foamMat, (w.x1 + w.x2) / 2, fy, w.z2 - 0.5, width, 0.03, 1.0);
+      foam.box(foamMat, w.x1 + 0.5, fy, (w.z1 + w.z2) / 2, 1.0, 0.03, depth);
+      foam.box(foamMat, w.x2 - 0.5, fy, (w.z1 + w.z2) / 2, 1.0, 0.03, depth);
+      foam.flush(this.root, `foam-${w.id}`);
 
       // The bed under the water, so looking down shows depth, not sky.
       const bed = new THREE.Mesh(
@@ -594,6 +609,39 @@ export class CityView {
       } else if (p.kind === "bench") {
         bin.box(M.timber, p.x, 0.44, p.z, 2.0, 0.12, 0.62);
         bin.box(M.metal, p.x, 0.22, p.z, 1.7, 0.44, 0.12);
+      } else if (p.kind === "bin") {
+        bin.box(M.metal, p.x, 0.42, p.z, 0.62, 0.84, 0.62);
+        bin.box(M.rust, p.x, 0.88, p.z, 0.7, 0.08, 0.7);
+      } else if (p.kind === "hydrant") {
+        bin.box(M.rust, p.x, 0.34, p.z, 0.26, 0.68, 0.26);
+        bin.box(M.rust, p.x, 0.72, p.z, 0.4, 0.12, 0.4);
+      } else if (p.kind === "bollard") {
+        bin.box(M.kerb, p.x, 0.42, p.z, 0.18, 0.84, 0.18);
+        bin.box(M.markAmber, p.x, 0.8, p.z, 0.2, 0.08, 0.2);
+      } else if (p.kind === "signpost") {
+        bin.box(M.metal, p.x, 1.1, p.z, 0.09, 2.2, 0.09);
+        bin.box(M.white, p.x, 2.05, p.z, 0.06, 0.5, 0.72);
+      } else if (p.kind === "crate") {
+        bin.box(M.timber, p.x, 0.3, p.z, 0.72, 0.6, 0.62);
+      } else if (p.kind === "planter") {
+        bin.box(M.kerb, p.x, 0.26, p.z, 1.2, 0.52, 1.2);
+        bin.box(M.leafDark, p.x, 0.66, p.z, 0.9, 0.5, 0.9);
+      } else if (p.kind === "utilityBox") {
+        bin.box(M.metal, p.x, 0.55, p.z, 1.0, 1.1, 0.7);
+        bin.box(M.rust, p.x, 1.12, p.z, 1.06, 0.08, 0.76);
+      } else if (p.kind === "barge") {
+        bin.box(M.rust, p.x, 0.7, p.z, p.w, 1.9, p.d);
+        bin.box(M.metal, p.x, 1.75, p.z, p.w * 0.55, 1.1, p.d * 0.7);
+        bin.box(M.markAmber, p.x - p.w * 0.3, 2.2, p.z, 0.5, 0.8, 0.5);
+      } else if (p.kind === "pier") {
+        bin.box(M.timber, p.x, 0.35, p.z, p.w, 0.3, p.len);
+        for (let z = p.z - p.len / 2; z <= p.z + p.len / 2; z += 3.2) {
+          bin.box(M.timber, p.x - p.w / 2 + 0.3, 0.1, z, 0.24, 0.7, 0.24);
+          bin.box(M.timber, p.x + p.w / 2 - 0.3, 0.1, z, 0.24, 0.7, 0.24);
+        }
+      } else if (p.kind === "buoy") {
+        bin.box(M.markAmber, p.x, -0.15, p.z, 0.7, 0.9, 0.7);
+        bin.box(M.metal, p.x, 0.32, p.z, 0.18, 0.5, 0.18);
       } else if (p.kind === "railing") {
         instancedBoxes.push({ x: p.x, y: 0.55, z: p.z, w: p.len, h: 1.1, d: 0.08 });
       }

@@ -262,8 +262,8 @@ export function waterAt(city, px, pz) {
 }
 
 /** Road containing a point, or null. */
-export function roadAt(city, px, pz) {
-  for (const r of city.roads) if (insideRect(px, pz, r)) return r;
+export function roadAt(city, px, pz, pad = 0) {
+  for (const r of city.roads) if (insideRect(px, pz, r, pad)) return r;
   return null;
 }
 
@@ -577,6 +577,18 @@ export function buildCity(city = CITY, tier = { buildings: 84, treeCount: 200 })
     boxes.push(box(c.x - 2.2, c.z - 2.2, c.x + 2.2, c.z + 2.2, 0, 4, "craneBase"));
   }
 
+  // ------------------------------------------------------------ harbour kit 2
+  // A moored barge, a pier and channel buoys: the basin needs something in it.
+  props.push({ kind: "barge", x: -34, z: -140, w: 30, d: 9, yaw: 0.02 });
+  props.push({ kind: "barge", x: 44, z: -150, w: 22, d: 8, yaw: -0.03 });
+  props.push({ kind: "pier", x: 0, z: -132, len: 18, w: 4.2 });
+  for (let i = 0; i < 6; i++) {
+    props.push({ kind: "buoy", x: -60 + i * 24, z: -126 - (i % 2) * 6 });
+  }
+  for (const b of props.filter((p) => p.kind === "barge")) {
+    boxes.push(box(b.x - b.w / 2, b.z - b.d / 2, b.x + b.w / 2, b.z + b.d / 2, -0.3, 2.2, "barge"));
+  }
+
   // ------------------------------------------------------------- park kit
   for (const park of city.parks) {
     for (let i = 0; i < 5; i++) {
@@ -585,6 +597,40 @@ export function buildCity(city = CITY, tier = { buildings: 84, treeCount: 200 })
       if (waterAt(city, x, z)) continue;
       props.push({ kind: "bench", x, z, yaw: rand() * 0.8 - 0.4 });
       boxes.push(box(x - 1.1, z - 0.35, x + 1.1, z + 0.35, 0, 0.5, "bench"));
+    }
+  }
+
+  // ------------------------------------------------------- street furniture
+  // A city earns its "solid" feel from kerbside clutter. Everything here is
+  // generated along the pavement bands, clear of the road surface.
+  const furnitureRand = mulberry32(0x5f00d);
+  const lampClear = (x, z) => !lamps.some((l) => Math.abs(l.x - x) < 2.4 && Math.abs(l.z - z) < 2.4);
+  const roadClear = (x, z, pad = 0) => !roadAt(city, x, z, pad);
+  for (const road of city.roads) {
+    if (road.kind === "alley") continue;
+    const alongX = road.x2 - road.x1 >= road.z2 - road.z1;
+    const len = alongX ? road.x2 - road.x1 : road.z2 - road.z1;
+    const step = 11;
+    for (let d = 4; d < len - 4; d += step) {
+      const side = furnitureRand() < 0.5 ? -1 : 1;
+      // Put the prop just outside the road edge, on the pavement band.
+      const off = 1.1 + furnitureRand() * 1.2;
+      const x = alongX ? road.x1 + d : side < 0 ? road.x1 - off : road.x2 + off;
+      const z = alongX ? (side < 0 ? road.z1 - off : road.z2 + off) : road.z1 + d;
+      if (!insideRect(x, z, city.bounds, -3)) continue;
+      if (waterAt(city, x, z) || !lampClear(x, z) || !roadClear(x, z, 0.6)) continue;
+      const roll = furnitureRand();
+      const kind =
+        roll < 0.24 ? "bin" :
+        roll < 0.42 ? "hydrant" :
+        roll < 0.58 ? "bollard" :
+        roll < 0.72 ? "signpost" :
+        roll < 0.82 ? "crate" :
+        roll < 0.92 ? "planter" : "utilityBox";
+      props.push({ kind, x, z, yaw: furnitureRand() * 0.7 - 0.35, tone: furnitureRand() });
+      if (kind === "utilityBox") boxes.push(box(x - 0.5, z - 0.35, x + 0.5, z + 0.35, 0, 1.1, "utilityBox"));
+      if (kind === "planter") boxes.push(box(x - 0.6, z - 0.6, x + 0.6, z + 0.6, 0, 0.55, "planter"));
+      if (kind === "bin") boxes.push(box(x - 0.3, z - 0.3, x + 0.3, z + 0.3, 0, 0.9, "bin"));
     }
   }
 

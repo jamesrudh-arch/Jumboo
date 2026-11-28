@@ -160,9 +160,12 @@ function stallSignTexture() {
 
 // --------------------------------------------------------------- builder
 export class LevelView {
-  constructor(scene, built) {
+  constructor(scene, built, options = {}) {
     this.scene = scene;
     this.built = built;
+    // Set when the loading lane is embedded in the generated district: the
+    // distant fake skyline must then stand down.
+    this.hasDistrict = Boolean(options.district);
     this.root = new THREE.Group();
     this.root.name = "level";
     scene.add(this.root);
@@ -222,8 +225,13 @@ export class LevelView {
     this.root.add(walk);
   }
 
-  // Distant blocks so the lane does not end in a void; kept low-poly.
+  /**
+   * Distant blocks so the lane does not end in a void; kept low-poly.
+   * With a district loaded these fakes sit inside the real city (and the haze
+   * card would fog the harbour), so they are skipped entirely.
+   */
   buildSkyline() {
+    if (this.hasDistrict) return;
     const r = this.buildingRng;
     const mat = new THREE.MeshStandardMaterial({ color: 0x0f171d, roughness: 1 });
     const far = new THREE.MeshStandardMaterial({ color: 0x0b1218, roughness: 1 });
