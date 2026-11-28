@@ -17,6 +17,7 @@ import { Loadout } from "./arsenal.js";
 import { Run, tierForWave } from "./progression.js";
 import { ARCHETYPES, statLine } from "./enemies.js";
 import { steer } from "./navigation.js";
+import { findTakedownTarget, performTakedown, promptFor, TAKEDOWN } from "./takedown.js";
 import { resolveCircle } from "./collision.js";
 
 /**
@@ -134,6 +135,14 @@ export class Arena {
    */
   step(dt) {
     if (!this.inWave) return;
+    // A takedown holds the world for a beat. The lock is a number, not a promise:
+    // it always expires.
+    if (this.takedownLock > 0) {
+      this.takedownLock = Math.max(0, this.takedownLock - dt);
+      this.waveTimer += dt;
+      for (const e of this.wave.live) e.tick(dt);
+      return;
+    }
     this.waveTimer += dt;
     const p = this.world.player;
     this.playerHitCooldown = Math.max(0, this.playerHitCooldown - dt);
@@ -286,6 +295,46 @@ export class Arena {
     return true;
   }
 
+  /**
+   * Is a takedown available right now? Cheap enough to ask every frame: it looks
+   * at the live bodies and returns either null or { enemy } plus copy for the
+   * prompt. The HUD shows it, and E performs it.
+   */
+  takedownOffer() {
+    if (!this.inWave || !this.world?.player) return null;
+    const found = findTakedownTarget(this.world.player, this.wave.live);
+    if (!found) return null;
+    return { enemy: found.enemy, prompt: promptFor(found.verdict), verdict: found.verdict };
+  }
+
+  /**
+   * Perform it. The one kill in the game that costs no noise, no ammo and no
+   * alert — the reward for having got behind someone unseen.
+   */
+  takedown() {
+    const offer = this.takedownOffer();
+    if (!offer) return null;
+    const result = performTakedown(this.world.player, offer.enemy, {
+      run: this.run,
+      onKill: (enemy) => {
+        this.stats.kills += 1;
+        this.quietTakedowns = (this.quietTakedowns ?? 0) + 1;
+        // The feel of it: a hard, short lock with the camera held still.
+        this.feel.hitstop.trigger(0.115, "takedown");
+        this.feel.shake.add(0.35);
+        this.feel.haptics.fire("knife", 0.9);
+        this.feel.decals.add({ kind: "blood", size: 0.14, life: 20 });
+        this.audio?.playEvent?.(
+          { type: "death", x: enemy.root.position.x, z: enemy.root.position.z, armoured: false },
+          this.world.player,
+        );
+        this.takedownLock = TAKEDOWN.duration;
+      },
+    });
+    this.onTakedown?.(result);
+    return result;
+  }
+
   /** The trigger. Called from the input layer, once per press or per frame. */
   fire(dt) {
     if (!this.combat) return null;
@@ -319,6 +368,8 @@ export class Arena {
       enemiesTotal: this.wave.live.length,
       accuracy: this.combat?.hud().accuracy ?? null,
       damageTaken: this.stats.damageTaken,
+      takedown: this.takedownOffer(),
+      takedowns: this.quietTakedowns ?? 0,
     };
   }
 

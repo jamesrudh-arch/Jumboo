@@ -558,6 +558,16 @@ window.addEventListener("keydown", (e) => {
 function handleCombatKey(code) {
   if (!arena || !state.started || state.paused) return false;
   const run = arena.run;
+  // A takedown outranks every other use of E. If a body is in reach and behind,
+  // that is unambiguously what the player meant, and the alternative (starting a
+  // conversation instead of killing the man about to turn round) is worse.
+  if (code === "KeyE" || code === "Space") {
+    const offer = arena.takedownOffer();
+    if (offer?.verdict?.ok) {
+      arena.takedown();
+      return true;
+    }
+  }
   if (code === KEY.reload[0]) { arena.reload(); return true; }
   if (code === KEY.cycle[0]) { arena.cycle(1); refreshHeldWeapon(); return true; }
   if (code === KEY.grenade[0]) {

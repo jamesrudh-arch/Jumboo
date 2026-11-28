@@ -31,6 +31,9 @@ const TEMPLATE = `
 </div>
 <div class="cb-crosshair" data-field="crosshair" hidden><i></i><b></b></div>
 <div class="cb-hitmark" data-field="hitmark" hidden>x</div>
+<div class="cb-takedown" data-field="takedown" hidden>
+  <span class="cb-key">E</span><span data-field="takedownText">Take down</span>
+</div>
 <div class="cb-offer" data-field="offer" hidden>
   <span class="cb-kicker">Choose one</span>
   <div class="cb-offer-list" data-field="offerList"></div>
@@ -85,6 +88,15 @@ const STYLE = `
 .cb-hitmark { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   color: var(--amber, #E0B77E); font-size: 16px; font-weight: 700; }
 .cb-hitmark[data-kill="1"] { color: var(--signal, #E88771); font-size: 20px; }
+
+/* The takedown prompt sits just below the crosshair: it is about a body in front
+   of the player, so it belongs where they are already looking. */
+.cb-takedown { position: absolute; left: 50%; top: calc(50% + 34px);
+  transform: translateX(-50%); display: flex; align-items: center; gap: 7px;
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--amber, #E0B77E); }
+.cb-takedown[data-ready="0"] { color: var(--steel, #8B9B9B); opacity: .7; }
+.cb-takedown .cb-key { padding: 1px 6px; border: 1px solid rgba(224,183,126,.5); }
 
 .cb-offer { position: absolute; left: 50%; top: 58%; transform: translate(-50%, -50%);
   display: grid; gap: 10px; text-align: center; min-width: 320px; }
@@ -187,6 +199,16 @@ export class CombatHud {
           f.offerList.appendChild(item);
         });
       }
+    }
+
+    // The takedown prompt. Shown whenever a body is in reach, including when the
+    // reason it is refused is something the player can fix ("Behind them" is
+    // actionable; silence is not).
+    const takedown = state.takedown;
+    f.takedown.hidden = !takedown;
+    if (takedown) {
+      f.takedownText.textContent = takedown.prompt ?? "Take down";
+      f.takedown.dataset.ready = takedown.verdict?.ok ? "1" : "0";
     }
 
     const dead = state.state === "dead";
