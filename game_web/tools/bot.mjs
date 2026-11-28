@@ -224,6 +224,7 @@ function pickHop(world, p, goal, agents) {
 // moment I would be standing in it". The plan below is a breadth-first search
 // over (cell, half-second) instead: it finds a crouch route whose every step
 // lands on ground that no cone covers at that moment, waiting where it has to.
+const RUN_CAP = Number(process.env.BOT_CAP || 420); // sim seconds per run
 const LANE_TICK = 0.5; // seconds per planning step
 const LANE_CELL = 0.7; // metres a crouched player covers per step
 const LANE_HORIZON = 220; // 110 s of plan: a full patrol cycle plus a wait
@@ -575,7 +576,7 @@ function followPath(from, to) {
  * without crossing the hunter. Scored by how much cover and distance it buys,
  * and by how little running it costs.
  */
-function pickEscapeSpot(hunter, CURRENT) {
+function pickEscapeSpot(hunter, CURRENT, others = []) {
   const headY = 1.7;
   let best = null;
   let bestScore = -Infinity;
@@ -583,9 +584,28 @@ function pickEscapeSpot(hunter, CURRENT) {
     for (let gz = 2; gz < H - 2; gz += 2) {
       if (!walkable[idx(gx, gz)]) continue;
       const c = toWorld(gx, gz);
+      // A hunt ends when the hunter has had no line of sight for 2.2 s AND is
+      // more than 10 m away (src/world.js: huntLoseTime / huntGiveUpDistance).
+      // Anything past 10.5 m with sight broken is a genuine escape; requiring
+      // the spot to be beyond the hunter's full sight range was stricter than
+      // the game and left the bot with far too few candidates.
       const range = Math.hypot(c.x - hunter.x, c.z - hunter.z);
-      if (range < (hunter.def.sight || 12) + 2) continue;
+      if (range < 10.5) continue;
       if (hasLineOfSight(hunter.x, 1.62, hunter.z, c.x, headY, c.z, boxes)) continue;
+      // More than one collector converges on a spot, so a place the *nearest*
+      // one cannot see but the next one can is not an escape at all.
+      let seenByOther = false;
+      let nearestToAny = Infinity;
+      for (const other of others) {
+        if (other === hunter) continue;
+        const od = Math.hypot(c.x - other.x, c.z - other.z);
+        if (od < nearestToAny) nearestToAny = od;
+        if (od < 16 && hasLineOfSight(other.x, 1.62, other.z, c.x, headY, c.z, boxes)) {
+          seenByOther = true;
+          break;
+        }
+      }
+      if (seenByOther) continue;
       const fromPlayer = Math.hypot(c.x - CURRENT.x, c.z - CURRENT.z);
       if (fromPlayer > 26) continue;
       // Only spots the bot can actually run to in a straight line: an escape
@@ -599,9 +619,19 @@ function pickEscapeSpot(hunter, CURRENT) {
       const dz = c.z - CURRENT.z;
       const t = Math.max(0, Math.min(1, (hx * dx + hz * dz) / (dx * dx + dz * dz || 1)));
       if (Math.hypot(CURRENT.x + dx * t - hunter.x, CURRENT.z + dz * t - hunter.z) < 3.5) continue;
-      // Prefer the nearest spot that qualifies: a sprint halfway across the
-      // district kills the run on time as surely as being seen does.
-      const score = Math.min(range, 22) - fromPlayer * 1.6;
+      // A player runs at 3.4 m/s and a sprinting collector at 1.63, so a hunt is
+      // won by lengthening the gap, not by finding a nearby hiding place. The old
+      // score paid 1.6 per metre of nearness and only 1.0 per metre of distance
+      // from the hunter, so it kept choosing spots *toward* the hunter and the
+      // bot oscillated across its face until it was caught at 1.8 m.
+      //
+      // Distance from the hunter dominates; a long run costs time, so it carries
+      // a small penalty rather than a large one.
+      const playerRange = Math.hypot(CURRENT.x - hunter.x, CURRENT.z - hunter.z);
+      // Only spots that actually increase the gap are escapes. Anything else is
+      // the bot walking back into the chase.
+      if (range < playerRange + 2) continue;
+      const score = Math.min(range, Math.min(nearestToAny, 40)) * 2.2 - fromPlayer * 0.5;
       if (score > bestScore) {
         bestScore = score;
         best = { x: c.x, z: c.z };
@@ -807,7 +837,7 @@ function runOnce(seed, opts = {}) {
   let lastPos = { x: world.player.x, z: world.player.z };
 
   let nextTrace = 0;
-  while (t < 1200 && wi < order.length) {
+  while (t < RUN_CAP && wi < order.length) {
     const p = world.player;
     const wp = order[wi];
 
@@ -857,6 +887,8 @@ function runOnce(seed, opts = {}) {
         wi++;
         sub = null;
         legTime = 0;
+      } else if (process.env.BOT_DEBUG_TALK && Math.random() < 0.02) {
+        console.log(`    [talk] t=${t.toFixed(1)} d=${dGoal.toFixed(2)} objective=${world.objective} inZone=${world.inWitnessZone ?? "?"} interact=${world.input.interact} prog=${(world.interactProgress ?? -1).toFixed(2)}`);
       }
       continue;
     }
@@ -1115,9 +1147,15 @@ function runOnce(seed, opts = {}) {
       // see, far enough off, not a wiggle away from it: a fan of local headings
       // pins the bot on a corner when every direction it samples is walled, and
       // standing still in a hunt is how it was getting caught.
-      if (fleeTimer <= 0) {
-        fleeSpot = pickEscapeSpot(nearestAgent, p);
-        fleeTimer = 1.2;
+      // Hysteresis: keep the current escape target until it is reached, turns
+      // out to be seen after all, or the attempt has run its course. Re-picking
+      // every 1.2 s is what made the bot change its mind mid-sprint and run back
+      // across the hunter's face instead of away from it.
+      const fleeDone =
+        !fleeSpot || Math.hypot(fleeSpot.x - p.x, fleeSpot.z - p.z) < 2.5;
+      if (fleeTimer <= 0 || fleeDone) {
+        fleeSpot = pickEscapeSpot(nearestAgent, p, world.agents);
+        fleeTimer = 5;
       }
       fleeTimer -= dt;
       const nearBoxes = world.boxesNear(p.x, p.z, 3.5);
@@ -1134,8 +1172,31 @@ function runOnce(seed, opts = {}) {
         }
         if (stepYaw === null) fleeSpot = null;
       }
-      yaw = stepYaw === null ? slideAway(p, nearestAgent, nearBoxes) : stepYaw;
-      run = true;
+      // Stamina decides hunts. A sprint costs 17/s from a 100 pool, so a full
+      // tank buys 5.9 s; a collector chasing at 1.63 m/s outruns an exhausted
+      // player walking at 1.4, and that is exactly how every caught run ended
+      // (stamina 47 -> 30 -> 4 EXH -> caught at 2.7 m).
+      //
+      // But sprinting is only needed to break contact: a *searching* collector
+      // jogs at 1.15 x 0.95 = 1.09 m/s, which a plain walk at 1.35 already beats.
+      // So sprint in short bursts while the hunter actually has eyes on us and
+      // is close, and walk the rest of it out. Running constantly is what left
+      // the tank empty for the chase that mattered.
+      const hunterSees = !!nearestAgent.seeing;
+      const urgent = hunterSees && nearest < 9;
+      const staminaForChase = p.stamina > 30;
+      const sprintNow = urgent || (hunterSees && staminaForChase && nearest < 16);
+      if (stepYaw === null) {
+        // No escape spot (every candidate is seen or walled). Sprint straight
+        // away regardless: at 2:1 speed a straight line out of the cone beats
+        // any clever route, and the hunt ends 2.2 s after line of sight breaks.
+        const away = Math.atan2(p.x - nearestAgent.x, p.z - nearestAgent.z);
+        stepYaw = bodyFree(p.x + Math.sin(away) * 2.0, p.z + Math.cos(away) * 2.0, nearBoxes)
+          ? away
+          : slideAway(p, nearestAgent, nearBoxes);
+      }
+      yaw = stepYaw;
+      run = sprintNow;
       crouch = false;
     } else if (watched && nearest < 6) {
       // Seen up close: crouch and keep going. Sprints are 9 m of noise and they
@@ -1207,7 +1268,7 @@ function runOnce(seed, opts = {}) {
 
     if (trace && t > nextTrace) {
       nextTrace = t + (world.phase === PHASE.HUNT ? 0.5 : 5);
-      console.log(`  ${t.toFixed(0)}s -> ${wp.id} d=${dGoal.toFixed(1)} at ${p.x.toFixed(1)},${p.z.toFixed(1)} spd ${p.speed.toFixed(1)} ${world.phase} crouch=${p.crouch} nearest=${nearest.toFixed(1)} yaw=${(yaw ?? 0).toFixed(2)}`);
+      console.log(`  ${t.toFixed(0)}s -> ${wp.id} d=${dGoal.toFixed(1)} at ${p.x.toFixed(1)},${p.z.toFixed(1)} spd ${p.speed.toFixed(1)} ${world.phase} crouch=${p.crouch} nearest=${nearest.toFixed(1)} yaw=${(yaw ?? 0).toFixed(2)} stam=${p.stamina.toFixed(0)}${p.exhausted ? " EXH" : ""} run=${p.running ? 1 : 0}`);
     }
     for (const e of world.drainEvents()) {
       if (e.type === "spotted") log.spotted++;
@@ -1226,6 +1287,10 @@ function runOnce(seed, opts = {}) {
     if (world.phase === PHASE.WON || world.phase === PHASE.CAUGHT) break;
   }
 
+  // A run that has abandoned every objective cannot be rescued by more sim time;
+  // simulating on to the 1200 s cap just makes the sweep slow enough to be
+  // useless as a fast feedback loop.
+  log.stalled = wi >= order.length && !log.won;
   log.at = wi < order.length ? order[wi].id : "done";
   log.time = +t.toFixed(2);
   log.score = Math.round(world.score);
@@ -1243,7 +1308,7 @@ for (const r of results) {
   console.log(
     `${r.won ? "WON " : "FAIL"} seed=${r.seed} ${r.time}s score=${r.score} rank=${r.rank} ` +
       `spotted=${r.spotted} caught=${r.caught} errands=${r.errands} chaos=${r.chaos} ` +
-      `at=${r.at} d=${r.dist}` +
+      `at=${r.at}${r.stalled ? "(abandoned)" : ""} d=${r.dist}` +
       (r.notes.length ? ` [${r.notes.join(", ")}]` : ""),
   );
 }
