@@ -228,6 +228,9 @@ export class World {
       z: p.z,
       feetY: 0,
       yaw: p.yaw,
+      // Where the player is pointing, as opposed to where the body faces. The
+      // two start together and diverge only for as long as a turn takes.
+      aimYaw: p.yaw,
       speed: 0,
       maxSpeed: 0,
       moving: false,
@@ -648,12 +651,22 @@ export class World {
     // stationary fires along whatever heading the last step happened to leave
     // behind. The simulation places props by p.yaw, so this is the aim heading
     // as well as the body heading.
+    // The aim itself is exact; the *body* is what lags, and only visually.
+    //
+    // This used to damp `p.yaw` toward the camera at rate 14 and use `p.yaw` for
+    // both the character's facing and the hit test. A 180-degree flick left the
+    // aim 44 degrees short after 100 ms and took 0.37 s to settle, which means a
+    // player who turned and fired was shooting where they used to be looking.
+    // Damping is a property of an animation, not of intent: so `aimYaw` is what
+    // the weapon uses, and `p.yaw` follows it at a rate that looks right.
     if (inputMag > 0.05) {
-      p.yaw = dampAngle(p.yaw, Math.atan2(dx, dz), 11, dt);
+      p.aimYaw = Math.atan2(dx, dz);
+      p.yaw = dampAngle(p.yaw, p.aimYaw, 11, dt);
     } else {
-      // Rate 14 is faster than the walk turn because a camera turn is intent:
-      // the player is pointing, not steering.
-      p.yaw = dampAngle(p.yaw, this.cameraYaw, 14, dt);
+      p.aimYaw = this.cameraYaw;
+      // 12 rather than 14: the body no longer has to arrive in time for a shot,
+      // only in time for the eye, so it can afford to look like a person turning.
+      p.yaw = dampAngle(p.yaw, p.aimYaw, 12, dt);
     }
 
     // Horizontal movement with axis-separated resolution so the player slides
@@ -1140,6 +1153,7 @@ export class World {
     p.z = c.z;
     p.feetY = 0;
     p.yaw = L.spawn.yaw;
+    p.aimYaw = L.spawn.yaw;
     p.speed = 0;
     p.maxSpeed = 0;
     p.moving = false;

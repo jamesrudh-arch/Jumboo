@@ -126,7 +126,9 @@ export class Combat {
       if (Math.abs(dy) > (VERTICAL_REACH[weapon.mode] ?? 3)) continue;
       // Angle to the body centre against the player's facing. Forward is -Z in
       // this simulation, which is the same convention the camera uses.
-      const facing = -p.yaw;
+      // Aim, not body heading. `p.yaw` is an animation that lags behind intent;
+      // `aimYaw` is where the player is actually pointing.
+      const facing = -(p.aimYaw ?? p.yaw);
       const angle = Math.abs(angleDelta(Math.atan2(dx, dz) + Math.PI, facing));
       const cone = coneFor(weapon, dist, requireAim || this.aiming);
       if (angle > cone) continue;
@@ -310,7 +312,7 @@ export function angleDelta(a, b) {
  */
 export function spawnPoints(world, count, { minDistance = 9, maxDistance = 18, forwardCone = 1.1 } = {}) {
   const p = world.player;
-  const facing = -p.yaw;
+  const facing = -(p.aimYaw ?? p.yaw);
   const points = [];
   // Deterministic ring placement: evenly spaced, then rotated by a fixed offset
   // so a wave is reproducible from its number alone.
