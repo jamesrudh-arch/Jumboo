@@ -9,6 +9,7 @@ import { World } from "../src/world.js";
 import { LEVEL, buildLevel } from "../src/level.js";
 import { CITY, buildCity } from "../src/city.js";
 import { CityView } from "../src/cityview.js";
+import { segmentHitsBox } from "../src/collision.js";
 import { TIERS } from "../src/config.js";
 import { Weather } from "../src/weather.js";
 import { rasterize, encodePNG, describeImage, tonemapInPlace } from "./software-raster.mjs";
@@ -53,18 +54,56 @@ for (const e of world.errands) {
 scene.updateMatrixWorld(true);
 // Approach cameras: stand back along the nearest road so the marker is seen
 // the way a player would find it, not from inside a block.
+// Pick the camera by measuring it, not by guessing: rasterise a small frame
+// from each candidate stand with only the marker's beam visible, and keep the
+// stand where the beam covers the most pixels. Ray tests said "clear" while the
+// frame was still full of wall, because the marker sits inside a lot.
+const beamOnly = [];
+for (const e of world.errands) {
+  const probe = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.5, 1.5, 2.4, 12, 1, false),
+    new THREE.MeshBasicMaterial({ color: 0xffd9a0 }),
+  );
+  probe.name = "errand-probe";
+  probe.position.set(e.x, 1.2, e.z);
+  probe.visible = false;
+  scene.add(probe);
+  beamOnly.push(probe);
+}
+
+const scoreFrom = (pos, look, only) => {
+  const cam = new THREE.PerspectiveCamera(62, 16 / 9, 0.1, 320);
+  cam.position.set(...pos);
+  cam.lookAt(new THREE.Vector3(...look));
+  cam.updateMatrixWorld(true);
+  for (const o of beamOnly) o.visible = o === only;
+  // The ID pass reports per-object screen area, which is the only reliable way
+  // to ask "how much of this frame is the marker, and how much is wall".
+  const perObject = { list: [] };
+  rasterize(scene, cam, { width: 120, height: 68, mode: "ids", perObject });
+  for (const o of beamOnly) o.visible = false;
+  const entry = perObject.list.find((o) => o.name === "errand-probe");
+  let wall = 0;
+  for (const o of perObject.list) if (o.name !== "errand-probe") wall += o.area;
+  const marker = entry ? entry.area : 0;
+  // Reward the marker filling frame, punish standing with a wall in the lens.
+  return marker - wall * 0.15;
+};
+
 const shots = markers.map((e, i) => {
-  const road = CITY.roads.reduce((best, r) => {
-    const cx = Math.max(r.x1, Math.min(e.x, r.x2));
-    const cz = Math.max(r.z1, Math.min(e.z, r.z2));
-    const d = Math.hypot(cx - e.x, cz - e.z);
-    return !best || d < best.d ? { r, d, cx, cz } : best;
-  }, null);
-  const along = road && road.r.x2 - road.r.x1 > road.r.z2 - road.r.z1;
-  const pos = along
-    ? [e.x - 13, 4.2, e.z + 4.5]
-    : [e.x + 4.5, 4.2, e.z + 13];
-  return { name: `errand-${i + 1}-${e.id}`, pos, look: [e.x, 1.0, e.z], fov: 62 };
+  const look = [e.x, 1.2, e.z];
+  const probe = beamOnly[i];
+  let best = null;
+  for (let a = 0; a < 16; a++) {
+    const ang = (a / 16) * Math.PI * 2;
+    for (const dist of [7, 10, 14, 18]) {
+      const pos = [e.x + Math.sin(ang) * dist, 4.2, e.z + Math.cos(ang) * dist];
+      const score = scoreFrom(pos, look, probe);
+      if (!best || score > best.score) best = { pos, score };
+    }
+  }
+  if (!best || best.score < 12) console.log(`  (marker ${e.id} is barely visible from any angle: ${best && best.score}px)`);
+  return { name: `errand-${i + 1}-${e.id}`, pos: best.pos, look, fov: 62 };
 });
 
 for (const s of shots) {

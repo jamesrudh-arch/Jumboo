@@ -569,7 +569,7 @@ function frame(now) {
     weather.update(dtReal);
     wetness.update(dtReal, weather.rainRate);
     if (animator) animator.update(dtReal);
-    cityView.update(dtReal, camera, weather);
+    cityView.update(dtReal, camera, weather, wetness.level);
     render(now / 1000, dtReal);
     return;
   }
@@ -600,7 +600,7 @@ function frame(now) {
   }
   view.syncCharacters(world);
   view.update(dtReal, world.time, world.hud());
-  cityView.update(dtReal, camera, weather);
+  cityView.update(dtReal, camera, weather, wetness.level);
   syncStreetActors(dtReal);
   syncErrandMarkers(now / 1000);
   updateAudio(dtReal);

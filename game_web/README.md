@@ -50,7 +50,14 @@ npm run smoke          # drives the page, presses keys, checks the frame
 
 - **Simulation** (`src/world.js`, `src/collision.js`, `src/geom.js`): stamina,
   noise propagation, hearing, cone-of-sight detection, suspicion, hunt, catch,
-  checkpoint restart, timed objective, scoring. 25 of the checks cover this.
+  checkpoint restart, timed objective, scoring. Stealth has to be survivable:
+  a crouch is silent, a walk carries ~5 m, a sprint ~9 m; a collector runs at
+  1.55× their patrol walk while they can see you and jogs at 1.15× to where they
+  last saw you, and gives up a hunt after 7.5 s without a sighting. Kerbs and
+  quay lips are *steps*, not walls, so the lane mouth is open. 32 of the checks
+  cover this, including a flood-fill that proves every objective is walkable
+  from the spawn. `tools/bot.mjs` is a headless playthrough bot used to find the
+  above; it reports win rate, time, sightings and where a run stalls.
 - **Level** (`src/level.js`, `src/scene.js`): a night loading lane with shop
   fronts, cover, a walkway, a dock and a market mouth; 7 practicals, one
   shadow-casting moon, procedural canvas textures. All study geometry.
@@ -63,15 +70,28 @@ npm run smoke          # drives the page, presses keys, checks the frame
   harbour. Roads, pavements, kerbs, road paint, a canal with three bridges, a
   harbour basin and a park pond are all generated from the same plain data the
   tests use. 26 of the checks cover it.
+- **Audio** (`src/audio.js`): a synthesised mixer, no audio assets. Rain, wind and
+  city hum beds follow the weather blend; tyres are panned by distance and
+  speed; footsteps follow the animation phase and change with stance and wetness;
+  thunder, honks, splashes, landings and errand pings are event-driven. Fifteen
+  voices, with the drop count kept. Starts only on the Begin click, `M` mutes.
 - **Street life** (`src/traffic.js`): 4–14 vehicles on closed routes that keep to
   the road network, brake for the player, each other and pedestrians, honk when
   stuck, and knock the player down on contact; 8–16 pedestrians who keep to the
   pavement, flee fast cars, and can be scattered by the chaos director.
+- **Wet streets** (`src/cityview.js` `setWetness`): the rain drives the ground, not
+  just the sky. Asphalt darkens and glosses, pavement follows more slowly,
+  ~120 puddles (24 on a phone) fade in, and every street lamp smears a thin
+  additive reflection across the road under it. The look is authored rather than
+  physically reflected — there is no environment map at night, and a phone at 1×
+  does not sell a specular highlight — but it is what makes a downpour read as
+  wet instead of as a clear scene with lines drawn on it.
 - **Weather** (`src/weather.js`): five presets (drizzle, downpour, squall,
   breaking cloud, harbour fog) that blend over ~18 s and change every 55–125 s.
   Sky, fog distance, rain density, wind slant, ambient fill and exposure all come
-  from one blend; wetness builds during rain and drains slowly afterwards.
-  Lightning is disabled on the phone tier and under `prefers-reduced-motion`.
+  from one blend; wetness builds during rain and drains slowly afterwards and
+  feeds the wet-street pass above. Lightning is disabled on the phone tier and
+  under `prefers-reduced-motion`.
 - **Chaos** (`src/world.js` `updateChaos`): every 11–22 s the district does
   something that is visible in the world, not only in a log:
   - **jam** — three cars in a row stop dead for 6–11 s (and honk);
@@ -184,6 +204,13 @@ Fixed while building the slice, each with a regression test where possible:
   every gapped wall from collision (no error, no collider);
 - a hard building cap applied block-by-block, which exhausted itself in the
   north and left the whole southern district empty on the phone tier;
+- the collision solver treating a 22 cm kerb as a wall, which sealed the lane
+  mouth: the player could not walk out of the lane through its own entrance;
+- every footstep beating the collectors' 7 m hearing radius, so walking near a
+  guard pulled them onto you no matter what cover you used;
+- pursuit at 2.05× patrol walk (2.15 m/s) against a 3.4 m/s sprint, with no
+  give-up timer while you were within 10 m — once spotted, being caught was the
+  only possible outcome;
 - pedestrians that "fled" by advancing a walk animation but never moving;
 - pedestrians pulling cars to a full stop, jamming every route permanently;
 - vehicles reporting the heading of the *outbound* leg on the return leg, so

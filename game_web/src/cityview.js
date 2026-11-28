@@ -127,6 +127,8 @@ export class CityView {
     this.time = 0;
     this.waterMeshes = [];
     this.lampLights = [];
+    this.wetMaterials = []; // asphalt/sidewalk meshes that darken and gloss in rain
+    this.puddles = [];
     this.rand = mulberry32(0xc17a1);
   }
 
@@ -175,6 +177,7 @@ export class CityView {
     this.buildLamps();
     this.buildProps();
     this.buildParkedVehicles();
+    this.buildPuddles();
     this.buildRain();
 
     this.stats.meshes = this.countMeshes();
@@ -243,6 +246,9 @@ export class CityView {
     bin.box(this.materials.concrete, 0, 0.06, -76.9, 280, 0.24, 2.2);
 
     const merged = bin.flush(this.root, "ground");
+    // The two biggest surfaces in the frame: the weather drives how they read.
+    this.wetMaterials.push({ material: this.materials.asphalt, kind: "asphalt" });
+    this.wetMaterials.push({ material: this.materials.sidewalk, kind: "sidewalk" });
     this.stats.triangles += merged.triangles;
   }
 
@@ -694,6 +700,39 @@ export class CityView {
       this.lampLights.push(light);
     }
     this.stats.instances += list.length * 2;
+
+    // Wet-road reflections. A real specular highlight needs a renderer that
+    // does specular; a phone at 1x with fog does not sell it either. These are
+    // thin additive streaks laid along the road under each lit lamp, which is
+    // how the wet-street look is actually achieved: the light smears in the
+    // water instead of sitting on it. Opacity is driven by wetness, so the
+    // street only mirrors when it has rained.
+    const streakGeo = new THREE.PlaneGeometry(1, 1);
+    streakGeo.rotateX(-Math.PI / 2);
+    const streakMat = new THREE.MeshBasicMaterial({
+      color: 0xffc879,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const streaks = new THREE.InstancedMesh(streakGeo, streakMat, list.length);
+    streaks.name = "wet-lamp-streaks";
+    streaks.renderOrder = 2;
+    const sm = new THREE.Matrix4();
+    list.forEach((l, i) => {
+      // Sit the smear on the road side of the pole and stretch it away from
+      // the kerb, the way a lamp's reflection runs across wet asphalt.
+      sm.compose(
+        new THREE.Vector3(l.x + l.side * 2.2, 0.03, l.z),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 2, 0)),
+        new THREE.Vector3(0.9, 1, 5.2),
+      );
+      streaks.setMatrixAt(i, sm);
+    });
+    streaks.instanceMatrix.needsUpdate = true;
+    this.root.add(streaks);
+    this.lampStreaks = streakMat;
   }
 
   // -------------------------------------------------------------- props
@@ -859,6 +898,87 @@ export class CityView {
     }
   }
 
+  // ------------------------------------------------------------- puddles
+  // Wet street response. In daylight a city can be dry and still read; in the
+  // rain the ground is the biggest surface on screen, and leaving it matte is
+  // what makes a rainy scene look like a clear one with lines drawn on it.
+  // Puddles are flat discs with an additive grey-blue sheen whose opacity is
+  // driven by the weather; the asphalt and pavement materials darken and gloss
+  // with the same signal.
+  buildPuddles() {
+    const count = this.tier.puddles ?? 0;
+    this.wetMaterials = [];
+    this.puddles = [];
+    if (!count) return;
+    // Big, smooth-ish discs: 12 segments is plenty at this size and keeps the
+    // whole set to one instanced draw call.
+    const geo = new THREE.CircleGeometry(1, 12);
+    geo.rotateX(-Math.PI / 2);
+    // Puddles are read by their *shine*, so they get a cool emissive body that
+    // sits just under the street's value. Plain reflective water is invisible
+    // in this scene: there is no environment map at night and nothing to
+    // reflect, so a physically-correct mirror just returns black.
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x50646e,
+      emissive: 0x33474f,
+      emissiveIntensity: 0.85,
+      roughness: 0.12,
+      metalness: 0.45,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+    });
+    const inst = new THREE.InstancedMesh(geo, material, count);
+    inst.name = "puddles";
+    const m = new THREE.Matrix4();
+    const rand = mulberry32(0x9a17);
+    let placed = 0;
+    let guard = 0;
+    while (placed < count && guard++ < count * 40) {
+      const r = this.city.roads[Math.floor(rand() * this.city.roads.length)];
+      const x = r.x1 + rand() * (r.x2 - r.x1);
+      const z = r.z1 + rand() * (r.z2 - r.z1);
+      if (this.inWater(x, z)) continue;
+      // Sit each puddle on the road surface, not the base slab.
+      // Road surfaces sit at y = 0.02, so puddles go just above that.
+      m.compose(
+        new THREE.Vector3(x, 0.028, z),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rand() * Math.PI, 0)),
+        new THREE.Vector3(0.7 + rand() * 2.1, 1, 0.5 + rand() * 1.4),
+      );
+      inst.setMatrixAt(placed, m);
+      placed += 1;
+    }
+    inst.count = placed;
+    inst.instanceMatrix.needsUpdate = true;
+    inst.renderOrder = 1;
+    this.root.add(inst);
+    this.puddleMaterial = material;
+    this.stats.instances += placed;
+  }
+
+  /** Rain response for the ground: puddles fade in, streets darken and gloss. */
+  setWetness(level) {
+    const w = Math.max(0, Math.min(1, level));
+    if (this.puddleMaterial) this.puddleMaterial.opacity = 0.03 + w * 0.34;
+    if (this.lampStreaks) this.lampStreaks.opacity = w * 0.17;
+    // Asphalt gets darker and much shinier as it soaks; the pavement follows
+    // more slowly, which is what makes a street look wet rather than painted.
+    for (const entry of this.wetMaterials) {
+      const mat = entry.material;
+      if (entry.kind === "asphalt") {
+        mat.roughness = 0.62 - w * 0.4;
+        mat.metalness = 0.12 + w * 0.5;
+      } else {
+        mat.roughness = 0.95 - w * 0.3;
+        mat.metalness = 0.02 + w * 0.14;
+      }
+    }
+  }
+
   // --------------------------------------------------------------- rain
   buildRain() {
     const count = this.tier.rain || 0;
@@ -898,8 +1018,15 @@ export class CityView {
   }
 
   // --------------------------------------------------------------- update
-  update(dt, camera, weather = null) {
+  update(dt, camera, weather = null, wetness = null) {
     this.time += dt;
+    // Wet ground follows the same wetness signal the audio and HUD use, so the
+    // puddles do not disagree with the rain the player can hear.
+    if (wetness !== null && wetness !== undefined) {
+      this.setWetness(wetness);
+    } else if (weather) {
+      this.setWetness(weather.rainRate ?? 0);
+    }
     if (weather) {
       this.rainRate = weather.rainRate;
       const wa = weather.windAngle;

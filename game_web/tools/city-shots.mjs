@@ -111,7 +111,7 @@ for (let i = 0; i < 60 * 8; i++) {
   world.update(1 / 60);
   weather.update(1 / 60);
   wetness.update(1 / 60, weather.rainRate);
-  cityView.update(1 / 60, { position: new THREE.Vector3(0, 2, 0) }, weather);
+  cityView.update(1 / 60, { position: new THREE.Vector3(0, 2, 0) }, weather, wetness.level);
 }
 weather.apply(scene, tier);
 // Match the runtime's ambient fill so the survey shows the shipped mood.
