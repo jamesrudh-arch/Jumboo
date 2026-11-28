@@ -172,6 +172,8 @@ let pedViews = [];
 // cars are the kit's models instead of extruded boxes; if it fails the game
 // falls back to the generated meshes rather than looking broken.
 let kit = null;
+let cityKitRef = null; // trees and parks
+let waterKitRef = null; // watercraft
 const errandMarkers = [];
 
 /** Meshes for the live traffic and the crowd (built once, then moved). */
@@ -354,6 +356,8 @@ async function boot() {
   } catch (err) {
     console.warn("[kit] watercraft unavailable", err);
   }
+  cityKitRef = cityKit;
+  waterKitRef = waterKit;
   setStatus("");
   // Swap the generated street furniture for the kit's where the kit has a match.
   if (kit) {
@@ -801,4 +805,10 @@ boot();
 requestAnimationFrame(frame);
 
 // Expose a small handle for the smoke test and for tuning in the console.
-window.LEVERAGE = { THREE, scene, camera, world, view, cityView, cityBuilt, hud, state, config, tier, weather, wetness };
+// Exposed for the browser smoke test (tools/smoke.mjs) and for debugging the
+// live page. The kits are on it so the test can assert they actually loaded
+// rather than trusting a console line.
+window.LEVERAGE = {
+  THREE, scene, camera, world, view, cityView, cityBuilt, hud, state, config, tier, weather, wetness,
+  kits: { street: kit, city: cityKitRef, water: waterKitRef },
+};

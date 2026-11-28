@@ -175,6 +175,10 @@ export async function loadKit(renderer, { onProgress } = {}) {
     has(name) {
       return sources.has(name);
     },
+    /** Every model this kit loaded, for tests and diagnostics. */
+    allNames() {
+      return [...sources.keys()];
+    },
   };
 }
 

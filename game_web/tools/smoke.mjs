@@ -115,6 +115,47 @@ check("run starts", boot.started);
 check("approved character is in the graph", boot.hasCharacter);
 check("video mode is not in an error phase", boot.phase === "play" || boot.phase === "briefing", boot.phase);
 
+// Assets: assert the kits actually loaded in a real browser, rather than
+// trusting that a fetch succeeded or a console line was printed. This is the
+// only place the GLTFLoader path runs, so it is the only place these can be
+// checked at all.
+const assets = await page.evaluate(() => {
+  const k = window.LEVERAGE.kits || {};
+  const count = (kit, names) => (names || []).filter((n) => kit && kit.has && kit.has(n)).length;
+  return {
+    street: k.street ? count(k.street, ["car_sedan", "car_taxi", "streetlight", "trashcan"]) : -1,
+    city: k.city ? count(k.city, ["araucaria", "buriti", "ipe_amarelo", "parque", "quiosque"]) : -1,
+    water: k.water ? count(k.water, ["ship-cargo-a", "boat-tug-a", "boat-row-small"]) : -1,
+    kitNames: k.street && k.street.allNames ? k.street.allNames().length : 0,
+    vessels: window.LEVERAGE.cityView?.root
+      ? window.LEVERAGE.cityView.root.children.filter((o) => o.isMesh && o.userData?.size && !o.name).length
+      : 0,
+    drawCalls: window.LEVERAGE.cityView?.stats?.meshes ?? 0,
+    instances: window.LEVERAGE.cityView?.stats?.instances ?? 0,
+  };
+});
+check("street kit models resolve", assets.street > 0, `${assets.street}/4 checked`);
+check("tree and park kit models resolve", assets.city > 0, `${assets.city}/5 checked`);
+check("watercraft models resolve", assets.water > 0, `${assets.water}/3 checked`);
+check("vessels are in the scene", assets.vessels >= 10, `${assets.vessels} meshes`);
+
+// Triangle budget: the whole point of the character optimisation is that a frame
+// stays cheap. Fail loudly if it creeps back up.
+const budget = await page.evaluate(() => {
+  let tris = 0;
+  const seen = new Set();
+  window.LEVERAGE.scene.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    const g = o.geometry;
+    const n = (g.index ? g.index.count : g.attributes.position.count) / 3;
+    tris += n * (o.isInstancedMesh ? o.count : 1);
+  });
+  const skinned = window.LEVERAGE.scene.getObjectByProperty("isSkinnedMesh", true);
+  return { tris: Math.round(tris), skinnedVerts: skinned ? skinned.geometry.attributes.position.count : 0 };
+});
+check("scene stays inside its triangle budget", budget.tris < 250000, `${budget.tris} tris`);
+check("character is not oversized", budget.skinnedVerts > 0 && budget.skinnedVerts < 60000, `${budget.skinnedVerts} skinned verts`);
+
 // Walk forward for a second and confirm the player actually moves.
 const before = await page.evaluate(() => ({ x: window.LEVERAGE.world.player.x, z: window.LEVERAGE.world.player.z }));
 await page.keyboard.down("KeyW");
