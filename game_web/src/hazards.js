@@ -17,7 +17,7 @@ export const HAZARD = {
   /** A fuel drum. Goes up, takes the barrel with it, and lights the ground. */
   barrel: {
     reach: 5.2,
-    damage: 68,
+    damage: 240,
     friendly: true,       // hurts bodies other than the shooter
     chain: 4.5,           // how far the blast can set off another barrel
     chainDepth: 3,        // and how many links before it stops, so a chain is finite
@@ -28,7 +28,7 @@ export const HAZARD = {
   /** A gas line in a basement. One hit and the floor stops being a floor. */
   gasMain: {
     reach: 6.4,
-    damage: 84,
+    damage: 320,
     friendly: true,
     chain: 6.8,
     chainDepth: 2,
@@ -54,7 +54,7 @@ export const HAZARD = {
   /** A car. Not an explosion, a battering ram. */
   vehicle: {
     reach: 2.6,
-    damage: 46,
+    damage: 180,
     friendly: true,
     chain: 0,
     chainDepth: 0,

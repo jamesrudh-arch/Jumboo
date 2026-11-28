@@ -127,16 +127,47 @@ export class Mission {
    * waiting for something the player refused.
    */
   _enterBeat() {
-    const beat = this.beat;
+    let beat = this.beat;
     if (!beat) { this._complete(); return; }
     this.beatTime = 0;
     this.spawned = [];
+    // A beat can be conditional on state the mission already has. The loading
+    // lane fight is the example: it exists only if the collectors were not talked
+    // down. Resolving that on entry, rather than asking the level to check it,
+    // means the condition lives next to the beat it belongs to.
+    let guard = 0;
+    while (beat && this._skippable(beat) && guard++ < 32) {
+      this.completedBeats.push({ id: beat.id ?? `beat${this.index}`, reason: "condition" });
+      this.index += 1;
+      beat = this.beat;
+    }
+    if (!beat) { this._complete(); return; }
     if (beat.kind === BEAT.FLAG && beat.optional && !this.flags[beat.flag]) {
       // An optional flag beat that has not happened yet is waited on; one that
       // can never happen is skipped. `expect` says which.
       if (beat.expect === false) { this._advance("skipped"); return; }
     }
     this.deps.onBeatEnter?.(beat, this);
+  }
+
+  /** Should this beat be skipped because the state already decides it? */
+  _skippable(beat) {
+    if (!beat.unless) return false;
+    const values = beat.unlessValue ?? true;
+    const actual = this.flags[beat.unless];
+    if (actual === undefined) return false;
+    if (Array.isArray(values)) return values.includes(actual);
+    return actual === values;
+  }
+
+  /** Do the mission's minimum requirements hold? Used to validate completion. */
+  requirementsMet() {
+    const reqs = this.definition.requires ?? [];
+    return reqs.every((r) => {
+      if (r.anyOf) return r.anyOf.some((f) => this.flags[f] !== undefined && this.flags[f] !== false);
+      if (r.flag) return this.flags[r.flag] !== undefined && this.flags[r.flag] !== false;
+      return true;
+    });
   }
 
   _advance(reason) {
@@ -148,6 +179,12 @@ export class Mission {
   }
 
   _complete() {
+    // A mission can run out of beats without having actually produced its lead.
+    // Completing anyway would let a player finish an act with nothing to follow,
+    // so an unmet requirement is reported rather than swallowed.
+    if (!this.requirementsMet()) {
+      this.deps.onIncomplete?.(this.definition.requires ?? [], this.flags);
+    }
     this.state = MISSION.COMPLETE;
     this.deps.onComplete?.(this);
   }
@@ -200,7 +237,13 @@ export class Mission {
         break;
       }
       case BEAT.FLAG: {
-        if (this.flags[beat.flag]) this._advance("flag");
+        // `anyOf` covers a beat with more than one valid outcome: answering the
+        // call and declining it are different branches of one decision, and the
+        // mission has to remember that it was made without caring which way.
+        const answered = beat.anyOf
+          ? beat.anyOf.some((f) => this.flags[f] !== undefined && this.flags[f] !== false)
+          : this.flags[beat.flag] !== undefined && this.flags[beat.flag] !== false;
+        if (answered) this._advance("flag");
         else if (beat.timeout !== undefined && this.beatTime > beat.timeout) {
           this._advance("timeout");
         }
