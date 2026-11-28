@@ -22,7 +22,7 @@ cd game_web
 npm run serve          # http://localhost:8080
 ```
 
-Requires a browser with WebGL2. `npm test` runs the 44 headless checks. A real
+Requires a browser with WebGL2. `npm test` runs 221 headless checks. A real
 browser check is available separately:
 
 ```bash
@@ -41,10 +41,50 @@ npm run smoke          # drives the page, presses keys, checks the frame
 | Shift | Run — fast, loud |
 | Ctrl / C | Crouch — slow, quiet, harder to see |
 | E / Space | Talk, interact |
+| **F** | **Fire — hold for automatic** |
+| **R** | **Reload; get up after being taken down** |
+| **Q** | **Cycle the arsenal** |
+| **G** | **Throw a frag** |
+| **1 – 6** | **Select a weapon; 1–3 take a between-wave offer** |
+| **Right Shift** | **Aim — narrows the aim cone** |
 | Esc | Pause |
 | Gamepad | Either stick, triggers, A |
 | Mouse wheel | Camera distance |
 | Touch (phone) | Left stick moves, right side looks; on-screen Run / Crouch / Act buttons appear on coarse pointers |
+
+## The fight
+
+The slice now has an arsenal progression on top of the stealth. You start
+**unarmed**, and the street escalates in waves: the weapon you earn answers the
+problem you just met, not the one you are about to.
+
+Fists -> knife -> pistol -> silenced pistol -> machine pistol -> shotgun -> rifle
+-> machine gun -> burner -> launcher, plus a frag and a salvaged blaster. Each
+rung changes *how* a fight is won rather than how hard it hits: the knife pierces
+armour and is silent, the silenced pistol trades damage for discretion, the
+shotgun ends a close fight instantly and tells the whole block.
+
+Seven enemy archetypes that are different problems rather than reskins: a watcher
+that cannot fight but calls others, a runner that punishes reloading in the open,
+a brute that blades beat and bullets mostly do not, a flyer that ignores ground
+cover, a pack that punishes fighting one at a time, a heavy with explosive
+rounds and a sniper that glints before it fires. Ten authored waves and then
+endless laps with a rising scale; the threat curve is monotonic and enforced by
+test.
+
+Feel is treated as part of the system, not as polish: trauma-based camera shake
+whose offset is trauma squared, haptics through the Gamepad rumble motors or the
+phone's vibrator, hitstop on melee connects, a bounded decal budget, and fourteen
+synthesised weapon voices with no audio files.
+
+Full numbers, the reasoning, and the plan for what comes next are in
+[`docs/LEVERAGE_combat_and_game_feel.md`](../docs/LEVERAGE_combat_and_game_feel.md).
+
+**Known limit, stated plainly:** combat was built and proven headless on a
+machine with no browser and no GPU. The simulation is covered by 114 tests; the
+*rendering* of it — the weapon on the hand bone, the shake on a small screen —
+has not been seen running and needs one device pass before anyone calls it
+finished.
 
 ## What the slice contains
 
@@ -172,7 +212,26 @@ npm run smoke          # drives the page, presses keys, checks the frame
   `brand/research/casual_man/README.md`. Because this is the *test* copy, the
   slice inherits the open items recorded there (deformation, device performance).
 - **three.js r170**: `vendor/three/`, MIT, licence alongside. Copied unmodified
-  from the npm tarball; no patches.
+  from the npm tarball; no patches. Exception: `examples/jsm/utils/SkeletonUtils.js`
+  was fetched from the r170 tarball and vendored whole, with **only its import
+  path changed** so it resolves against the local three. The file's own header
+  says so. It is needed because a skinned enemy cannot be cloned with
+  `Object3D.clone()` — the copies would share one skeleton.
+- **Arsenal weapons**: `assets/arsenal/weapons/`, 77 GLB / 3.2 MB, **CC0**.
+  Kenney's *Weapon* and *Blaster* packs, CC0 per the pack's own licence
+  (`kenney.nl`, mirrors under `github.com/shorepine/kenney`). The pack uses
+  palette materials and **ships no texture atlas**, so weapons are given solid
+  `MeshStandardMaterial` colours by damage class rather than the street kit's
+  atlas — assigning that atlas produces a wrong skin. Under 1,700 triangles each;
+  the whole referenced ladder costs about 4 k triangles in frame.
+- **Enemy cast**: `assets/arsenal/enemies/`, 17 GLB / 7.9 MB, **CC0**.
+  Quaternius packs (*Cyberpunk*, *Platformer Game*, *Ultimate Space*, *Easy
+  Enemies*, *Animals*) and Kenney, via the `trebeljahr/quaternius-showcase`
+  mirror. Files keep the `<pack>__<Name>.glb` naming the mirror uses. All 17 are
+  rigged and animated with `Attack`/`Shoot`/`HitRecieve`/`Death`/`Idle`/`Run`
+  clip families. **Note that the packs are not in metres** — the `.transformed`
+  variants in the source are exported 100x, so every body is normalised to its
+  archetype height from its own measured bounding box.
 - **jpeg-js 0.4.4**: `tools/jpeg-js/`, Apache-2.0, used only by the offline
   diagnostic tools.
 - **Fonts**: Bebas Neue and Inter, OFL, used from `game/assets/fonts/` via
@@ -279,6 +338,24 @@ game_web/
 ```
 
 ## Next steps (owner review)
+
+Combat, in the order the design document argues for it:
+
+1. **One real device pass.** This is the gating item for everything in the fight
+   section. Check the weapon sitting on the hand bone, whether shake reads as
+   impact or as nausea on a small screen, and whether wave 1 teaches the controls
+   before it kills.
+2. **Enemy navigation.** Bodies close distance in a straight line today; they
+   should borrow the existing `agents` pathing, flank rather than queue, and use
+   cover.
+3. **The takedown.** A stealth game with a knife and no stealth kill is missing
+   its best verb: crouched and unseen from behind should be a silent kill.
+
+Later: an authored boss per act (`Stan`/`Mike`/`George` are vendored and unused),
+weapon mods so progression becomes expression, environmental kills, and a downed
+state instead of a restart. Reasoning for each is in
+[`docs/LEVERAGE_combat_and_game_feel.md`](../docs/LEVERAGE_combat_and_game_feel.md) §8.
+
 
 1. Decide whether the lane direction, pacing and the Sade beat are worth
    carrying forward; if not, the study stops here.
