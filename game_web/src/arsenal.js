@@ -198,6 +198,7 @@ export const WEAPONS = [
   },
   {
     id: "rocketlauncher",
+    role: "heavy",
     name: "Launcher",
     mode: MODE.HEAVY,
     damage: DAMAGE.EXPLOSIVE,
@@ -229,6 +230,7 @@ export const WEAPONS = [
   },
   {
     id: "grenade",
+    role: "thrown",
     name: "Frag",
     mode: MODE.THROWN,
     damage: DAMAGE.EXPLOSIVE,
@@ -328,6 +330,9 @@ export class Loadout {
     this.reserve = new Map(WEAPONS.map((w) => [w.id, w.reserve ?? 0]));
     this.cooldown = 0;
     this.swinging = 0;
+    // True while the held weapon is the one the game gave the player rather than
+    // one they asked for. Starts true: the opening loadout is not a choice.
+    this.autoPicked = true;
     // Mods fitted per weapon, so a build is a property of the gun rather than of
     // the run. Empty until the player is offered one.
     this.mods = new Map();
@@ -370,6 +375,26 @@ export class Loadout {
   raiseTier(tier) {
     this.tier = Math.max(this.tier, tier);
     for (const w of unlockedAt(this.tier)) this.owned.add(w.id);
+    // Draw the best thing that just became available, unless the player has
+    // deliberately chosen something.
+    //
+    // Without this the player keeps whatever they were holding when the tier
+    // rose — which in practice is fists, because the opening weapon is fists and
+    // nothing ever put a gun in their hands. A run could reach the boss on wave
+    // ten and be fighting it bare-handed. `autoPicked` is what separates "the
+    // game handed me this" from "I chose this": a player who picks the knife
+    // back up keeps it, and one who never chooses always carries the best.
+    if (this.autoPicked) {
+      // The last thing *worth drawing*, not the last thing unlocked. The ladder
+      // ends with thrown and specialist weapons (a grenade, a rocket launcher),
+      // and handing a player a grenade as their primary because it happens to
+      // sort last is how an auto-equip quietly ruins a run.
+      const drawable = unlockedAt(this.tier).filter((w) => !w.role || w.role === "primary");
+      const best = drawable.at(-1);
+      if (best && this.owned.has(best.id) && best.id !== this.current) {
+        this.current = best.id;
+      }
+    }
     return this;
   }
 
@@ -378,9 +403,10 @@ export class Loadout {
   }
 
   /** Switch to a weapon by id, or to the next one up/down. Returns the new id. */
-  select(id) {
+  select(id, { byPlayer = true } = {}) {
     if (id && this.owned.has(id)) {
       this.current = id;
+      if (byPlayer) this.autoPicked = false;
       return this.current;
     }
     return this.current;
