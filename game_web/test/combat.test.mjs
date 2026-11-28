@@ -39,7 +39,10 @@ function fakeEnemies(list = []) {
 function fakeWorld({ x = 0, z = 0, yaw = 0 } = {}) {
   const events = [];
   return {
-    player: { x, z, yaw, feetY: 0 },
+    // Forward is +Z at yaw 0, so `aimYaw` is the same angle as `yaw` here. The
+    // fake carries both because the real player does: one is intent, the other is
+    // the animation that follows it.
+    player: { x, z, yaw, aimYaw: yaw, feetY: 0 },
     events,
     emit(type, data) { events.push({ type, ...data }); },
     hearSound(x, z, r) { events.push({ type: "heard", x, z, radius: r }); },
@@ -80,7 +83,7 @@ test("a shot at nothing still costs ammo and makes noise", () => {
 });
 
 test("a shot into a body damages it and pulls the street", () => {
-  const target = body(ARCHETYPE.RUNNER, { z: -3 });
+  const target = body(ARCHETYPE.RUNNER, { z: 3 });
   const { combat, run, world } = setup({ bodies: [target] });
   run.loadout.select("pistol");
   const hp = target.stats.health;
@@ -94,7 +97,7 @@ test("a shot into a body damages it and pulls the street", () => {
 });
 
 test("a kill is registered with the run, and quietly if the weapon is quiet", () => {
-  const target = body(ARCHETYPE.PACK, { z: -1 });
+  const target = body(ARCHETYPE.PACK, { z: 1 });
   target.stats.health = 5;
   const { combat, run } = setup({ wave: 3, bodies: [target] });
   run.loadout.raiseTier(1);
@@ -107,7 +110,7 @@ test("a kill is registered with the run, and quietly if the weapon is quiet", ()
 });
 
 test("a loud kill is not counted quiet", () => {
-  const target = body(ARCHETYPE.PACK, { z: -2 });
+  const target = body(ARCHETYPE.PACK, { z: 2 });
   target.stats.health = 5;
   const { combat, run } = setup({ wave: 3, bodies: [target] });
   run.loadout.select("shotgun");
@@ -117,7 +120,7 @@ test("a loud kill is not counted quiet", () => {
 });
 
 test("a body out of range cannot be hit, and the aim is honest about it", () => {
-  const target = body(ARCHETYPE.RUNNER, { z: -40 });
+  const target = body(ARCHETYPE.RUNNER, { z: 40 });
   const { combat, run } = setup({ bodies: [target] });
   run.loadout.select("pistol"); // 12 m
   assert.equal(combat.findTarget(run.loadout.weapon), null, "nothing at 40 m for a pistol");
@@ -126,15 +129,25 @@ test("a body out of range cannot be hit, and the aim is honest about it", () => 
 });
 
 test("a player facing away from a body cannot shoot it", () => {
-  const target = body(ARCHETYPE.RUNNER, { z: 3 }); // behind the player
+  // Forward is +Z at yaw 0 (the camera sits behind on -Z and looks toward +Z).
+  // So a body at +Z is in FRONT and a body at -Z is behind: this test used to
+  // assert the opposite, which is the convention bug it was meant to catch.
+  const behind = body(ARCHETYPE.RUNNER, { z: -6 });
   const world = fakeWorld({ yaw: 0 });
-  const { combat, run } = setup({ bodies: [target], world });
+  const { combat, run } = setup({ bodies: [behind], world });
   run.loadout.select("pistol");
-  assert.equal(combat.findTarget(run.loadout.weapon), null);
+  assert.equal(combat.findTarget(run.loadout.weapon), null, "a body behind is out of the cone");
+
+  // And the same body in front is hit, so the test cannot pass by rejecting all.
+  const front = body(ARCHETYPE.RUNNER, { z: 6 });
+  const w2 = fakeWorld({ yaw: 0 });
+  const s2 = setup({ bodies: [front], world: w2 });
+  s2.run.loadout.select("pistol");
+  assert.ok(s2.combat.findTarget(s2.run.loadout.weapon), "a body in front is hit");
 });
 
 test("melee cannot reach a flyer overhead", () => {
-  const flyer = body(ARCHETYPE.FLYER, { z: -1 });
+  const flyer = body(ARCHETYPE.FLYER, { z: 1 });
   flyer.root.position.y = 3.2;
   const { combat, run } = setup({ bodies: [flyer] });
   run.loadout.raiseTier(1);
@@ -145,8 +158,8 @@ test("melee cannot reach a flyer overhead", () => {
 });
 
 test("a shotgun spreads damage onto a body standing next to the target", () => {
-  const target = body(ARCHETYPE.RUNNER, { z: -2 });
-  const neighbour = body(ARCHETYPE.RUNNER, { x: 0.8, z: -2 });
+  const target = body(ARCHETYPE.RUNNER, { z: 2 });
+  const neighbour = body(ARCHETYPE.RUNNER, { x: 0.8, z: 2 });
   const { combat, run } = setup({ bodies: [target, neighbour] });
   run.loadout.select("shotgun");
   const hp = neighbour.stats.health;
@@ -156,8 +169,8 @@ test("a shotgun spreads damage onto a body standing next to the target", () => {
 
 test("armour degrades per body, not globally", () => {
   // Firing 10 rounds into one brute must not make the *next* brute softer.
-  const a = body(ARCHETYPE.BRUTE, { z: -2 });
-  const b = body(ARCHETYPE.BRUTE, { z: -2, x: 0.01 });
+  const a = body(ARCHETYPE.BRUTE, { z: 2 });
+  const b = body(ARCHETYPE.BRUTE, { z: 2, x: 0.01 });
   a.stats.health = 9999;
   b.stats.health = 9999;
   const { combat, run, enemies } = setup({ bodies: [a] });
@@ -191,7 +204,7 @@ test("reloading reports how much moved and plays a click", () => {
 });
 
 test("a launcher blast shakes the camera and marks the ground", () => {
-  const target = body(ARCHETYPE.BRUTE, { z: -6 });
+  const target = body(ARCHETYPE.BRUTE, { z: 6 });
   target.stats.health = 10;
   const { combat, run, feel } = setup({ bodies: [target] });
   run.loadout.select("rocketlauncher");
@@ -201,7 +214,7 @@ test("a launcher blast shakes the camera and marks the ground", () => {
 });
 
 test("per-body hit counts do not leak between waves", () => {
-  const a = body(ARCHETYPE.RUNNER, { z: -2 });
+  const a = body(ARCHETYPE.RUNNER, { z: 2 });
   const { combat, run, enemies } = setup({ bodies: [a] });
   run.loadout.select("pistol");
   combat.fire();
@@ -223,7 +236,7 @@ test("the HUD shows a crosshair only when the weapon has one", () => {
 });
 
 test("accuracy is measured, not guessed", () => {
-  const target = body(ARCHETYPE.RUNNER, { z: -2 });
+  const target = body(ARCHETYPE.RUNNER, { z: 2 });
   const { combat, run } = setup({ bodies: [target] });
   run.loadout.select("pistol");
   // Two hits kill a 40 hp runner (26 a hit at 2 m), so the third shot has
@@ -244,7 +257,8 @@ test("waves spawn behind the player, never in the forward cone", () => {
   const world = fakeWorld({ yaw: 0 });
   const points = spawnPoints(world, 6);
   assert.equal(points.length, 6);
-  const facing = -world.player.yaw;
+  // Forward is +Z at yaw 0, which is also the `aimYaw` convention.
+  const facing = world.player.aimYaw ?? world.player.yaw;
   for (const p of points) {
     assert.ok(Math.hypot(p.x, p.z) >= 9, "not on top of the player");
     const angle = Math.atan2(p.x - world.player.x, p.z - world.player.z);
@@ -261,13 +275,13 @@ test("spawn placement is deterministic for a given wave", () => {
 test("a weapon can hit a body beside it at contact range", () => {
   // The feel bug this protects: at 0.65 m a body 60 degrees off centre was
   // outside the cone, so a player could stand next to a spider and not kick it.
-  const target = body(ARCHETYPE.PACK, { x: 1.2, z: -0.65 });
+  const target = body(ARCHETYPE.PACK, { x: 1.2, z: 0.65 });
   const { combat, run } = setup({ wave: 1, bodies: [target] });
   assert.ok(combat.findTarget(run.loadout.weapon), "point blank needs no aim");
 });
 
 test("the aim cone still rejects a body at range off to the side", () => {
-  const target = body(ARCHETYPE.RUNNER, { x: 8, z: -2 });
+  const target = body(ARCHETYPE.RUNNER, { x: 8, z: 2 });
   const { combat, run } = setup({ bodies: [target] });
   run.loadout.select("pistol");
   assert.equal(combat.findTarget(run.loadout.weapon), null, "8 m to the side is not in front");

@@ -126,10 +126,16 @@ export class Combat {
       if (Math.abs(dy) > (VERTICAL_REACH[weapon.mode] ?? 3)) continue;
       // Angle to the body centre against the player's facing. Forward is -Z in
       // this simulation, which is the same convention the camera uses.
-      // Aim, not body heading. `p.yaw` is an animation that lags behind intent;
-      // `aimYaw` is where the player is actually pointing.
-      const facing = -(p.aimYaw ?? p.yaw);
-      const angle = Math.abs(angleDelta(Math.atan2(dx, dz) + Math.PI, facing));
+      // Aim, not body heading: `p.yaw` is an animation that lags behind intent,
+      // `aimYaw` is where the player is pointing.
+      //
+      // And one convention, not two. This used to negate the aim *and* add PI to
+      // the bearing, which cancels out: `atan2(dx, dz)` already measures from +Z
+      // the same way `aimYaw` does, so the two corrections together meant the
+      // player could only hit what was behind them. Measured: a body dead ahead
+      // and a body directly behind both read as 180 degrees off.
+      const facing = p.aimYaw ?? p.yaw;
+      const angle = Math.abs(angleDelta(Math.atan2(dx, dz), facing));
       const cone = coneFor(weapon, dist, requireAim || this.aiming);
       if (angle > cone) continue;
       // Prefer close and centred.

@@ -46,7 +46,7 @@ test("the boss telegraphs before it can hurt the player", () => {
   const a = setup(10);
   const boss = a.wave.live[0];
   // Stand in its face so it commits.
-  boss.root.position.set(0, 0, -1.5);
+  boss.root.position.set(0, 0, 1.5);
   let sawTelegraph = false;
   let damaged = false;
   const start = a.run.health;
@@ -84,7 +84,7 @@ test("a boss can be killed and its bar goes away", () => {
   a.run.loadout.select("shotgun");
   const boss = a.wave.live[0];
   boss.stats.health = 30;
-  boss.root.position.set(0, 0, -3);
+  boss.root.position.set(0, 0, 3);
   for (let i = 0; i < 60 && !boss.dead; i++) { a.fire(1 / 60); a.step(1 / 60); }
   assert.ok(boss.dead, "the boss died");
   a.step(1 / 60);
@@ -113,7 +113,7 @@ test("killing the boss clears the wave like any other", () => {
   let ended = false;
   a.handlers.onWaveEnd = () => { ended = true; };
   boss.stats.health = 1;
-  boss.root.position.set(0, 0, -2);
+  boss.root.position.set(0, 0, 2);
   a.run.loadout.raiseTier(6);
   a.run.loadout.select("shotgun");
   for (let i = 0; i < 120 && !ended; i++) { a.fire(1 / 60); a.step(1 / 60); }
