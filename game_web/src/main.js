@@ -19,6 +19,7 @@ import { detectTierFromWindow } from "./config.js";
 import { Weather, Wetness } from "./weather.js";
 import { createAudio } from "./audio.js";
 import { applyGamepad, firstConnectedPad } from "./input.js";
+import { loadKit } from "./kit.js";
 
 const KEY = {
   forward: ["KeyW", "ArrowUp"],
@@ -167,13 +168,17 @@ let marcus = null;
 let animator = null;
 let trafficViews = [];
 let pedViews = [];
+// The street-level asset kit (CC0, vendored). When it loads, traffic and parked
+// cars are the kit's models instead of extruded boxes; if it fails the game
+// falls back to the generated meshes rather than looking broken.
+let kit = null;
 const errandMarkers = [];
 
 /** Meshes for the live traffic and the crowd (built once, then moved). */
 function buildStreetActors() {
   if (!world.traffic) return;
   for (const v of world.traffic.vehicles) {
-    const mesh = makeVehicleMesh(v.kind);
+    const mesh = kit ? makeKitVehicle(v) : makeVehicleMesh(v.kind);
     mesh.userData.vehicle = v;
     scene.add(mesh);
     trafficViews.push(mesh);
@@ -186,6 +191,44 @@ function buildStreetActors() {
       pedViews.push(mesh);
     }
   }
+}
+
+/**
+ * A kit car scaled to the simulation's vehicle size. The kit models are authored
+ * around 0.9 m long, which is a display scale; the simulation's cars are real
+ * metres, so each kind is scaled to the same footprint the old box cars used.
+ * Wheels are returned in userData.wheels so they can roll with speed.
+ */
+const KIT_CAR_FOR = { sedan: "car_sedan", van: "car_hatchback", truck: "car_stationwagon" };
+function makeKitVehicle(v) {
+  const target = v.kind === "truck" ? [2.4, 2.9, 7.4] : v.kind === "van" ? [2.0, 2.2, 5.4] : [1.85, 1.4, 4.3];
+  const name = KIT_CAR_FOR[v.kind] || "car_sedan";
+  const group = kit.make(name) || makeVehicleMesh(v.kind);
+  const size = group.userData.size;
+  if (size && size.x > 0.01 && size.z > 0.01) {
+    // Width and length from the simulation, height from the model so the
+    // silhouette keeps the kit's proportions.
+    const sx = target[0] / size.x;
+    const sz = target[2] / size.z;
+    group.scale.set(sx, (sx + sz) / 2, sz);
+  }
+  // A tail-light pair, so braking still reads. The kit's cars are textured, not
+  // lit, and a night street needs the red.
+  const lamps = new THREE.Group();
+  const tailMat = new THREE.MeshStandardMaterial({
+    color: 0x531f1a,
+    emissive: 0xe88771,
+    emissiveIntensity: 1.4,
+    roughness: 0.5,
+  });
+  for (const side of [-1, 1]) {
+    const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.06), tailMat);
+    lamp.position.set(side * target[0] * 0.32, target[1] * 0.62, -target[2] / 2 - 0.02);
+    lamps.add(lamp);
+  }
+  group.add(lamps);
+  group.userData.tailMaterial = tailMat;
+  return group;
 }
 
 /** Copy simulation state onto the street actors. */
@@ -243,6 +286,13 @@ function syncStreetActors(dt) {
     if (tail) tail.emissiveIntensity = v.braking ? 3.4 : 1.4;
     const wash = mesh.userData.headlight;
     if (wash) wash.material.opacity = v.braking ? 0.05 : v.speed > 0.5 ? 0.12 : 0.03;
+    // Kit cars have real wheels on their own nodes: roll them at the speed the
+    // simulation says, which no box car could do.
+    const wheels = mesh.userData.wheels;
+    if (wheels && wheels.length) {
+      const spin = (v.speed || 0) * dt * 2.6;
+      for (const wheel of wheels) wheel.rotation.x -= spin;
+    }
   }
   for (const mesh of pedViews) {
     const p = mesh.userData.person;
@@ -275,6 +325,25 @@ async function boot() {
   } catch (err) {
     console.error(err);
     setStatus("Could not load the character asset. The lane is playable without it.", true);
+  }
+  setStatus("Loading street kit…");
+  try {
+    kit = await loadKit(renderer, {
+      onProgress: (p) => setStatus(`Loading street kit… ${Math.round(p * 100)}%`),
+    });
+  } catch (err) {
+    // A missing kit is a downgrade, not a failure: the generated street stands.
+    console.warn("[kit] street kit unavailable, using generated actors", err);
+    kit = null;
+  }
+  setStatus("");
+  // Swap the generated street furniture for the kit's where the kit has a match.
+  if (kit) {
+    try {
+      cityView.applyKit(kit);
+    } catch (err) {
+      console.warn("[kit] street furniture swap failed", err);
+    }
   }
   buildStreetActors();
   buildErrandMarkers();

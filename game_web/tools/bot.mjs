@@ -113,6 +113,285 @@ function slideAway(p, hunter, nearBoxes) {
   return away;
 }
 
+// ------------------------------------------------------------------ lane plan
+// The loading lane is a corridor with three collectors in it, so the way
+// through is not "walk to the marker": it is "only step into ground no cone is
+// about to sweep, and wait in the dark when there is none". Everything below
+// exists to answer that question far enough ahead to be useful.
+const LANE_BOX = { x1: -11.5, x2: 11.5, z1: -47.5, z2: 6 };
+
+const inLane = (x, z) =>
+  x > LANE_BOX.x1 && x < LANE_BOX.x2 && z > LANE_BOX.z1 && z < LANE_BOX.z2;
+
+/** Where a patrolling collector will be, and facing, over the next ~1.8 s. */
+function agentFuture(a, steps = 4, stepTime = 0.45) {
+  const pts = a.def.points;
+  const out = [];
+  let x = a.x;
+  let z = a.z;
+  let wp = a.waypoint;
+  let yaw = a.yaw;
+  for (let s = 0; s < steps; s++) {
+    // A paused collector sweeps its head instead of walking; the sweep is
+    // modelled as facing straight ahead, which under-estimates nothing that
+    // matters (its body still has to be in the lane for the cone to reach).
+    const paused = s === 0 && a.pause > 0;
+    out.push({ x, z, yaw });
+    if (!paused) {
+      let rem = a.speed * stepTime;
+      let guard = 0;
+      while (rem > 0.001 && guard++ < 24) {
+        const target = pts[wp];
+        const d = Math.hypot(target.x - x, target.z - z);
+        if (d < 0.22) {
+          wp = (wp + 1) % pts.length;
+          continue;
+        }
+        const step = Math.min(rem, d);
+        const dir = Math.atan2(target.x - x, target.z - z);
+        x += Math.sin(dir) * step;
+        z += Math.cos(dir) * step;
+        yaw = dir;
+        rem -= step;
+      }
+    }
+  }
+  return out;
+}
+
+/** True if a crouched player at (x,z) would be in this collector's cone. */
+function visibleFrom(a, pose, x, z, headY, near) {
+  const sight = a.def.sight * 0.55; // crouched sight range
+  if (Math.hypot(pose.x - x, pose.z - z) > sight) return false;
+  const toP = Math.atan2(x - pose.x, z - pose.z);
+  if (Math.abs(Math.atan2(Math.sin(toP - pose.yaw), Math.cos(toP - pose.yaw))) > a.def.fov) return false;
+  return hasLineOfSight(pose.x, 1.62, pose.z, x, headY, z, near);
+}
+
+/**
+ * The best nearby cell to be standing in for the next second and a half, in
+ * eight directions at a few distances. "Stay put" is one of the options, so a
+ * lane corner with a cone sweeping it is a place to wait, not to cross.
+ */
+function pickHop(world, p, goal, agents) {
+  const headY = p.feetY + 1.05;
+  const progressNow = Math.hypot(goal.x - p.x, goal.z - p.z);
+  const opts = [];
+  for (const r of [0, 2, 3.5, 5, 7]) {
+    const dirs = r === 0 ? 1 : 8;
+    for (let k = 0; k < dirs; k++) {
+      const dir = (k * Math.PI) / 4;
+      const x = p.x + Math.sin(dir) * r;
+      const z = p.z + Math.cos(dir) * r;
+      if (r > 0) {
+        if (!lineClear(p.x, p.z, x, z)) continue;
+        if (waterAt(world.city, x, z)) continue;
+      }
+      if (!bodyFree(x, z, world.boxesNear(x, z, 1.8))) continue;
+      const near = world.boxesNear(x, z, 15);
+      let safe = true;
+      for (const a of agents) {
+        for (const pose of agentFuture(a)) {
+          if (visibleFrom(a, pose, x, z, headY, near)) {
+            safe = false;
+            break;
+          }
+        }
+        if (!safe) break;
+      }
+      if (!safe) continue;
+      const progress = progressNow - Math.hypot(goal.x - x, goal.z - z);
+      opts.push({ x, z, r, progress });
+    }
+  }
+  if (!opts.length) return null;
+  // Rank by how much ground the hop actually buys toward the goal, measured as
+  // a walk rather than a straight line: the lane's walls mean a sideways hop
+  // can be worth more than a forward one.
+  opts.sort((a, b) => b.progress - a.progress);
+  const scored = opts.slice(0, 6).map((o) => {
+    const route = followPath({ x: o.x, z: o.z }, goal);
+    const step = route ? Math.hypot(route.x - o.x, route.z - o.z) : 0;
+    return { ...o, score: o.progress - o.r * 0.05 - step * 0.35 };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0];
+}
+
+// ------------------------------------------------- time-expanded lane search
+// Crouch-walking the lane takes about forty seconds, and the collectors sweep
+// as they patrol, so "is this spot safe" is really "is this spot safe at the
+// moment I would be standing in it". The plan below is a breadth-first search
+// over (cell, half-second) instead: it finds a crouch route whose every step
+// lands on ground that no cone covers at that moment, waiting where it has to.
+const LANE_TICK = 0.5; // seconds per planning step
+const LANE_CELL = 0.7; // metres a crouched player covers per step
+const LANE_HORIZON = 220; // 110 s of plan: a full patrol cycle plus a wait
+let LANE_WALK = null;
+let planFutures = null;
+
+function lanePlan(world, from, goal) {
+  const t0 = performance.now();
+  const out = lanePlanInner(world, from, goal);
+  if (process.env.BOT_PERF) console.log(`  lanePlan ${(performance.now() - t0).toFixed(0)}ms`);
+  return out;
+}
+
+function lanePlanInner(world, from, goal) {
+  const x0 = LANE_BOX.x1;
+  const z0 = LANE_BOX.z1;
+  const nx = Math.ceil((LANE_BOX.x2 - LANE_BOX.x1) / LANE_CELL) + 1;
+  const nz = Math.ceil((LANE_BOX.z2 - LANE_BOX.z1) / LANE_CELL) + 1;
+  const cellOf = (x, z) => ({
+    i: Math.max(0, Math.min(nx - 1, Math.round((x - x0) / LANE_CELL))),
+    k: Math.max(0, Math.min(nz - 1, Math.round((z - z0) / LANE_CELL))),
+  });
+  const centre = (i, k) => ({ x: x0 + i * LANE_CELL, z: z0 + k * LANE_CELL });
+  const at = (i, k) => i * nz + k;
+
+  // Walkable cells: the player's body fits and there is no water. The lane's
+  // walls do not move, so this is built once and reused.
+  if (!LANE_WALK || LANE_WALK.nx !== nx || LANE_WALK.nz !== nz) {
+    const walk = new Uint8Array(nx * nz);
+    for (let i = 0; i < nx; i++) {
+      for (let k = 0; k < nz; k++) {
+        const c = centre(i, k);
+        walk[at(i, k)] = !waterAt(world.city, c.x, c.z) && bodyFree(c.x, c.z, boxes) ? 1 : 0;
+      }
+    }
+    const nearCells = new Array(nx * nz);
+    for (let i = 0; i < nx; i++) {
+      for (let k = 0; k < nz; k++) {
+        const c = centre(i, k);
+        nearCells[at(i, k)] = boxes.filter((b) => {
+          if (b.y1 <= 0.2 || b.y0 >= 2.4) return false;
+          const cx = Math.max(b.x1, Math.min(c.x, b.x2));
+          const cz = Math.max(b.z1, Math.min(c.z, b.z2));
+          return Math.hypot(cx - c.x, cz - c.z) < 8;
+        });
+      }
+    }
+    LANE_WALK = { nx, nz, walk, nearCells };
+  }
+  const walk = LANE_WALK.walk;
+  const nearCells = LANE_WALK.nearCells;
+
+  // Visibility per tick: which cells each collector's cone covers. A collector
+  // comes back to roughly the same handful of poses three or four times a lap,
+  // and the line-of-sight test is the expensive part, so cones are memoised by
+  // pose. Everything else here is integer work.
+  const coneCache = new Map();
+  const coneAt = (a, pose) => {
+    const key = `${Math.round(pose.x * 10)},${Math.round(pose.z * 10)},${Math.round(pose.yaw * 60)},${Math.round(a.def.sight * 10)},${Math.round(a.def.fov * 10)}`;
+    const hit = coneCache.get(key);
+    if (hit) return hit;
+    const sight = a.def.sight * 0.55;
+    const i0 = Math.max(0, Math.floor((pose.x - sight - x0) / LANE_CELL));
+    const i1 = Math.min(nx - 1, Math.ceil((pose.x + sight - x0) / LANE_CELL));
+    const k0 = Math.max(0, Math.floor((pose.z - sight - z0) / LANE_CELL));
+    const k1 = Math.min(nz - 1, Math.ceil((pose.z + sight - z0) / LANE_CELL));
+    const cells = [];
+    for (let i = i0; i <= i1; i++) {
+      for (let k = k0; k <= k1; k++) {
+        const c = centre(i, k);
+        const d = Math.hypot(c.x - pose.x, c.z - pose.z);
+        if (d > sight) continue;
+        const toP = Math.atan2(c.x - pose.x, c.z - pose.z);
+        if (Math.abs(Math.atan2(Math.sin(toP - pose.yaw), Math.cos(toP - pose.yaw))) > a.def.fov) continue;
+        if (hasLineOfSight(pose.x, 1.62, pose.z, c.x, 1.05, c.z, nearCells[at(i, k)])) cells.push(at(i, k));
+      }
+    }
+    coneCache.set(key, cells);
+    return cells;
+  };
+  const futures = world.agents.map((a) => agentFuture(a, LANE_HORIZON + 2, LANE_TICK));
+  planFutures = futures;
+  const posesPerTick = [];
+  for (let t = 0; t < LANE_HORIZON; t++) {
+    const covered = new Set();
+    for (let ai = 0; ai < world.agents.length; ai++) {
+      const pose = futures[ai]?.[t];
+      if (!pose) continue;
+      for (const cell of coneAt(world.agents[ai], pose)) covered.add(cell);
+    }
+    posesPerTick.push(covered);
+  }
+
+  // Breadth-first over (cell, tick). Waiting is a move, so a plan can idle out a
+  // sweep; a move into covered ground is never taken.
+  const start = cellOf(from.x, from.z);
+  const goalCell = cellOf(goal.x, goal.z);
+  const seen = new Uint8Array(nx * nz * LANE_HORIZON);
+  const prev = new Int32Array(nx * nz * LANE_HORIZON).fill(-1);
+  let layer = [at(start.i, start.k)];
+  const startIdx = layer[0];
+  seen[startIdx] = 1;
+  const goalIdx = at(goalCell.i, goalCell.k);
+  let found = -1;
+  // If the goal cannot be reached inside the horizon, the best-progress node
+  // still gives a plan: standing in the right pocket beats standing at the mouth.
+  let bestNode = -1;
+  let bestKey = startIdx * LANE_HORIZON;
+  let bestScore = Infinity;
+  const scoreOf = (cellIdx) => {
+    const i = Math.floor(cellIdx / nz);
+    const k = cellIdx % nz;
+    const c = centre(i, k);
+    return Math.hypot(c.x - goal.x, c.z - goal.z);
+  };
+  for (let t = 0; t < LANE_HORIZON - 1 && layer.length && found < 0; t++) {
+    for (const node of layer) {
+      const sc = scoreOf(node);
+      if (sc < bestScore) {
+        bestScore = sc;
+        bestNode = node * LANE_HORIZON + t;
+      }
+    }
+    const next = [];
+    const covered = posesPerTick[t + 1];
+    for (const node of layer) {
+      if (node === goalIdx) {
+        found = node * LANE_HORIZON + t;
+        break;
+      }
+      const i = Math.floor(node / nz);
+      const k = node % nz;
+      for (let di = -1; di <= 1; di++) {
+        for (let dk = -1; dk <= 1; dk++) {
+          const ni = i + di;
+          const nk = k + dk;
+          if (ni < 1 || ni >= nx - 1 || nk < 1 || nk >= nz - 1) continue;
+          if (!walk[at(ni, nk)]) continue;
+          // No corner cutting: a diagonal step needs both orthogonal cells open.
+          if (di && dk && (!walk[at(i + di, k)] || !walk[at(i, k + dk)])) continue;
+          const nid = at(ni, nk);
+          if (covered.has(nid)) continue;
+          const key = nid * LANE_HORIZON + (t + 1);
+          if (seen[key]) continue;
+          seen[key] = 1;
+          prev[key] = node * LANE_HORIZON + t;
+          next.push(nid);
+        }
+      }
+    }
+    layer = next;
+  }
+  if (found < 0) found = bestNode >= 0 ? bestNode : -1;
+  if (found < 0) return null;
+  // Walk the plan back out, then turn it into waypoints.
+  const path = [];
+  let cur = found;
+  while (cur >= 0) {
+    const cellIdx = Math.floor(cur / LANE_HORIZON);
+    const i = Math.floor(cellIdx / nz);
+    const k = cellIdx % nz;
+    path.push(centre(i, k));
+    cur = prev[cur];
+  }
+  path.reverse();
+  return path;
+}
+
 /** Path to a world point, stepped one waypoint ahead of the nearest one. */
 function followPath(from, to) {
   const a = snap(...Object.values(toGrid(from.x, from.z)));
@@ -367,6 +646,16 @@ function runOnce(seed, opts = {}) {
   let stuckWindow = 0;
   let creepHold = 0;
   let fleeSpot = null;
+  let hipWanted = null;
+  let hopWanted = null;
+  let waypoint = null;
+  let hopAge = 0;
+  let lanePlanPath = null;
+  let lanePlanAt = 0;
+  let lanePlanIdx = 0;
+  let lanePlanDirty = false;
+  let lanePlanCooldown = 0;
+  let lagTime = 0;
   let fleeTimer = 0;
   let fleeTime = 0;
   let lastPos = { x: world.player.x, z: world.player.z };
@@ -462,6 +751,106 @@ function runOnce(seed, opts = {}) {
       legTime = 0;
       legBudget = 0;
       bestLegDist = Infinity;
+      continue;
+    }
+
+    // In the lane, movement is chosen hop by hop: only into ground no cone will
+    // sweep in the next couple of seconds. A lane with no such ground is a lane
+    // to wait in, which is exactly what a player does at the corner of cover.
+    if (!ghosts && inLane(p.x, p.z) && world.agents.length && world.phase !== PHASE.HUNT) {
+      const laneGoal = wp.id === "lane" ? LEVEL.goal : wp;
+      hopAge += dt;
+      // The plan is a timed route: the index it is on is the step that belongs to
+      // now. Keep it until it runs out, the bot has fallen well behind it, or it
+      // is nearly exhausted. Re-planning every time a cone sweeps over a future
+      // step would make the bot dither instead of walk; a failed plan backs off
+      // for a second rather than being retried on every frame.
+      const nowIdx = lanePlanPath
+        ? Math.min(lanePlanPath.length - 1, Math.max(0, Math.floor((t - lanePlanAt) / LANE_TICK)))
+        : 0;
+      const lag = lanePlanPath ? Math.hypot(lanePlanPath[nowIdx].x - p.x, lanePlanPath[nowIdx].z - p.z) : Infinity;
+      lagTime = lag > 2.5 ? lagTime + dt : 0;
+      const nearEnd = lanePlanPath && lanePlanIdx >= lanePlanPath.length - 3;
+      // The patrols are not actually deterministic: a collector that hears a
+      // step or brushes a wall is a second off its forecast, and a plan made
+      // against the old one walks into a cone. Compare the live position with
+      // the forecast the plan used and re-plan when they have drifted apart.
+      const drifted =
+        lanePlanPath &&
+        planFutures &&
+        world.agents.some((a, ai) => {
+          const pose = planFutures[ai]?.[nowIdx];
+          return pose && Math.hypot(pose.x - a.x, pose.z - a.z) > 1.2;
+        });
+      if ((!lanePlanPath || lagTime > 1 || nearEnd || drifted) && t >= lanePlanCooldown) {
+        const plan = lanePlan(world, p, laneGoal);
+        lanePlanAt = t;
+        lanePlanDirty = false;
+        lanePlanPath = plan;
+        lanePlanIdx = 0;
+        lagTime = 0;
+        lanePlanCooldown = t + (plan ? 0 : 1.0);
+        if (trace) {
+          if (plan) console.log(`  plan ${t.toFixed(1)}s at ${p.x.toFixed(1)},${p.z.toFixed(1)} -> ${plan.length} steps (${(plan.length * LANE_TICK).toFixed(0)}s) goal ${Math.hypot(p.x - laneGoal.x, p.z - laneGoal.z).toFixed(1)}`);
+          else console.log(`  NO PLAN ${t.toFixed(1)}s at ${p.x.toFixed(1)},${p.z.toFixed(1)} goal ${Math.hypot(p.x - laneGoal.x, p.z - laneGoal.z).toFixed(1)}`);
+        }
+      }
+      let hop = null;
+      if (lanePlanPath) {
+        lanePlanIdx = Math.min(lanePlanPath.length - 1, Math.max(0, Math.floor((t - lanePlanAt) / LANE_TICK)));
+        hop = lanePlanPath[lanePlanIdx];
+      }
+      if (!hop) {
+        // No timed plan: fall back to a single safe hop, and if even that is
+        // impossible stay put and let the next frame try again.
+        hop = pickHop(world, p, laneGoal, world.agents);
+        if (!hop) {
+          world.setInput({ moveX: 0, moveZ: 0, crouch: true, run: false });
+          world.update(dt);
+          t += dt;
+          for (const e of world.drainEvents()) {
+            if (e.type === "spotted") log.spotted++;
+            if (e.type === "caught") {
+              log.caught++;
+              log.notes.push(`caught at ${t.toFixed(1)}s`);
+            }
+          }
+          if (world.phase === PHASE.CAUGHT) break;
+          continue;
+        }
+      }
+      // Freeze rather than step into a cone that is about to sweep this ground.
+      if (hop && Math.hypot(hop.x - p.x, hop.z - p.z) > 0.3) {
+        const headY = p.feetY + 1.05;
+        const near = world.boxesNear(hop.x, hop.z, 15);
+        const aboutToBeSeen = world.agents.some((a) =>
+          agentFuture(a, 4, 0.45).some((pose) => visibleFrom(a, pose, hop.x, hop.z, headY, near)),
+        );
+        if (aboutToBeSeen) hop = { x: p.x, z: p.z };
+      }
+      if (hop) {
+        // Move at walking pace so stamina and noise stay in hand; run only when
+        // the chosen ground is far enough that walking would miss the window.
+        const d = Math.hypot(hop.x - p.x, hop.z - p.z);
+        const move = d < 0.6 ? 0 : 1;
+        world.setInput({ moveX: move, moveZ: 0, crouch: true, run: false });
+        if (move) world.cameraYaw = Math.atan2(hop.x - p.x, hop.z - p.z);
+
+      }
+      world.update(dt);
+      t += dt;
+      for (const e of world.drainEvents()) {
+        if (e.type === "spotted") log.spotted++;
+        if (e.type === "errand") log.errands++;
+        if (e.type === "caught") {
+          log.caught++;
+          log.notes.push(`caught at ${t.toFixed(1)}s`);
+        }
+        if (e.type === "drowned") log.drownings++;
+        if (e.type === "carHit") log.hits++;
+      }
+      lastPos = { x: p.x, z: p.z };
+      if (world.phase === PHASE.CAUGHT) break;
       continue;
     }
 

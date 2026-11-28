@@ -86,7 +86,7 @@ class MergeBin {
     this.add(material, SHARED.box, m);
   }
 
-  flush(parent, namePrefix = "merged") {
+  flush(parent, namePrefix = "merged", userData = null) {
     let i = 0;
     let tris = 0;
     for (const { material, geos } of this.bins.values()) {
@@ -94,6 +94,8 @@ class MergeBin {
       if (!merged) continue;
       const mesh = new THREE.Mesh(merged, material);
       mesh.name = `${namePrefix}-${i++}`;
+      // Tag swappable props so the asset kit can find and replace them later.
+      if (userData) Object.assign(mesh.userData, userData);
       mesh.receiveShadow = true;
       mesh.castShadow = false; // static detail never casts; too costly on phones
       parent.add(mesh);
@@ -112,6 +114,20 @@ function roadGeometry(rect, kind) {
   g.rotateX(-Math.PI / 2);
   g.translate((rect.x1 + rect.x2) / 2, kind === "alley" ? 0.012 : 0.02, (rect.z1 + rect.z2) / 2);
   return g;
+}
+
+/** Believable real-world height for a kit prop, in metres. */
+function kindHeight(model) {
+  switch (model) {
+    case "bench": return 0.9;
+    case "dumpster": return 1.2;
+    case "firehydrant": return 0.75;
+    case "box_A": return 0.7;
+    case "box_B": return 0.6;
+    case "bush": return 1.0;
+    case "streetlight": return 7;
+    default: return 1;
+  }
 }
 
 export class CityView {
@@ -179,6 +195,137 @@ export class CityView {
     this.buildParkedVehicles();
     this.buildPuddles();
     this.buildRain();
+
+    this.stats.meshes = this.countMeshes();
+    return this;
+  }
+
+  /**
+   * Swap the generated street furniture for the asset kit (CC0 KayKit city
+   * models). Called after the kit loads, so the district is playable while it
+   * streams: anything not swapped simply stays as the generated mesh.
+   *
+   * The generated mesh is hidden rather than deleted, so a caller can revert and
+   * so the collision set (built from city data, not from meshes) is untouched.
+   */
+  applyKit(kit) {
+    // 1. Street lamps: a real streetlight model beats a pole and a box.
+    const generatedLamps = this.root.children.filter(
+      (o) => o.name === "lamp-poles" || o.name === "lamp-heads",
+    );
+    if (kit.has("streetlight") && this.built.lamps?.length) {
+      const proto = kit.make("streetlight");
+      const size = kit.size("streetlight");
+      const geo = proto.children[0]?.geometry;
+      if (geo) {
+        // Height comes from the simulation's lamp spec so lighting and collision
+        // still line up; the model supplies the silhouette.
+        const inst = new THREE.InstancedMesh(geo, kit.material, this.built.lamps.length);
+        inst.name = "kit-streetlights";
+        const m = new THREE.Matrix4();
+        const q = new THREE.Quaternion();
+        this.built.lamps.forEach((l, i) => {
+          const h = l.h || 7;
+          const scale = size.y > 0.01 ? h / size.y : 1;
+          q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), l.side < 0 ? Math.PI : 0);
+          m.compose(new THREE.Vector3(l.x, 0, l.z), q, new THREE.Vector3(scale, scale, scale));
+          inst.setMatrixAt(i, m);
+        });
+        inst.instanceMatrix.needsUpdate = true;
+        this.root.add(inst);
+        this.stats.instances += this.built.lamps.length;
+      }
+      for (const o of generatedLamps) o.visible = false;
+    }
+
+    // 2. Parked cars. The generated ones are extruded boxes merged into three
+    // batches; beside a kit car they read as placeholder. Hide them and instance
+    // the kit's models at the same kerbside spots, keeping the authored yaw.
+    const parkedBatch = this.root.children.filter((o) => /^parked-(bodies|glass|tyres)/.test(o.name));
+    const parkedKinds = ["car_sedan", "car_hatchback", "car_taxi", "car_stationwagon", "car_police"].filter((n) => kit.has(n));
+    if (parkedBatch.length && parkedKinds.length && this.built.vehiclesParked?.length) {
+      for (const o of parkedBatch) o.visible = false;
+      // Group the spots by body type so each type is one instanced draw.
+      const byCar = new Map(parkedKinds.map((n) => [n, []]));
+      this.built.vehiclesParked.forEach((v, i) => {
+        const name = parkedKinds[i % parkedKinds.length];
+        byCar.get(name).push(v);
+      });
+      for (const [name, spots] of byCar) {
+        if (!spots.length) continue;
+        const proto = kit.make(name);
+        const geo = proto?.children[0]?.geometry;
+        if (!geo) continue;
+        const size = kit.size(name);
+        // Fit each to the simulation's footprint so parking and collision match.
+        const targetLen = 4.6;
+        const scale = size.z > 0.01 ? targetLen / size.z : 1;
+        const inst = new THREE.InstancedMesh(geo, kit.material, spots.length);
+        inst.name = `kit-parked-${name}`;
+        const m = new THREE.Matrix4();
+        spots.forEach((v, i) => {
+          m.compose(
+            new THREE.Vector3(v.x, 0, v.z),
+            new THREE.Quaternion().setFromEuler(new THREE.Euler(0, v.yaw, 0)),
+            new THREE.Vector3(scale, scale, scale),
+          );
+          inst.setMatrixAt(i, m);
+        });
+        inst.instanceMatrix.needsUpdate = true;
+        this.root.add(inst);
+        this.stats.instances += spots.length;
+      }
+    }
+
+    // 3. Street props: hydrants, bins, benches, planters, utility boxes. Each
+    // swappable prop was built as its own tagged mesh, so it can be hidden and a
+    // kit model put exactly where it stood.
+    const PROP_MODEL = {
+      bench: "bench",
+      bin: "dumpster",
+      hydrant: "firehydrant",
+      crate: "box_A",
+      planter: "bush",
+      utilityBox: "box_B",
+    };
+    const swapped = [];
+    for (const child of [...this.root.children]) {
+      const kind = child.userData.propKind;
+      const model = kind ? PROP_MODEL[kind] : null;
+      if (!model || !kit.has(model)) continue;
+      child.visible = false;
+      swapped.push({ model, x: child.userData.x, z: child.userData.z });
+    }
+    // One instanced draw per model kind, sized to the prop it replaces.
+    const byModel = new Map();
+    for (const s2 of swapped) {
+      if (!byModel.has(s2.model)) byModel.set(s2.model, []);
+      byModel.get(s2.model).push(s2);
+    }
+    for (const [model, spots] of byModel) {
+      const proto = kit.make(model);
+      const geo = proto?.children[0]?.geometry;
+      if (!geo) continue;
+      const size = kit.size(model);
+      const inst = new THREE.InstancedMesh(geo, kit.material, spots.length);
+      inst.name = `kit-${model}`;
+      const m = new THREE.Matrix4();
+      spots.forEach((spot, i) => {
+        // Scale so the kit model is a believable size for the prop it replaces,
+        // not the kitted display scale.
+        const height = kindHeight(model);
+        const scale = size.y > 0.01 ? height / size.y : 1;
+        m.compose(
+          new THREE.Vector3(spot.x, 0, spot.z),
+          new THREE.Quaternion(),
+          new THREE.Vector3(scale, scale, scale),
+        );
+        inst.setMatrixAt(i, m);
+      });
+      inst.instanceMatrix.needsUpdate = true;
+      this.root.add(inst);
+      this.stats.instances += spots.length;
+    }
 
     this.stats.meshes = this.countMeshes();
     return this;
@@ -742,7 +889,16 @@ export class CityView {
     const bin = new MergeBin();
     const M = this.materials;
     const instancedBoxes = [];
+    // Props the asset kit can replace are built one at a time instead of into
+    // the merged batch, so the kit can hide exactly those and take their place.
+    const SWAPPABLE = new Set(["bench", "bin", "hydrant", "crate", "planter", "utilityBox"]);
     for (const p of this.built.props) {
+      if (SWAPPABLE.has(p.kind)) {
+        const solo = new MergeBin();
+        this.buildPropInto(solo, p);
+        solo.flush(this.root, `prop-${p.kind}`, { kind: p.kind, x: p.x, z: p.z });
+        continue;
+      }
       if (p.kind === "containerStack") {
         const cm = M.container[Math.floor(p.tone * M.container.length) % M.container.length];
         for (let i = 0; i < p.stack; i++) {
@@ -752,29 +908,12 @@ export class CityView {
         bin.box(M.rust, p.x, p.h / 2, p.z, 3.2, p.h, 3.2);
         bin.box(M.rust, p.x, p.h - 0.6, p.z, p.reach * 2, 0.9, 1.4);
         bin.box(M.metal, p.x + p.reach * 0.7, p.h - 3.2, p.z, 0.3, 5.4, 0.3);
-      } else if (p.kind === "bench") {
-        bin.box(M.timber, p.x, 0.44, p.z, 2.0, 0.12, 0.62);
-        bin.box(M.metal, p.x, 0.22, p.z, 1.7, 0.44, 0.12);
-      } else if (p.kind === "bin") {
-        bin.box(M.metal, p.x, 0.42, p.z, 0.62, 0.84, 0.62);
-        bin.box(M.rust, p.x, 0.88, p.z, 0.7, 0.08, 0.7);
-      } else if (p.kind === "hydrant") {
-        bin.box(M.rust, p.x, 0.34, p.z, 0.26, 0.68, 0.26);
-        bin.box(M.rust, p.x, 0.72, p.z, 0.4, 0.12, 0.4);
       } else if (p.kind === "bollard") {
         bin.box(M.kerb, p.x, 0.42, p.z, 0.18, 0.84, 0.18);
         bin.box(M.markAmber, p.x, 0.8, p.z, 0.2, 0.08, 0.2);
       } else if (p.kind === "signpost") {
         bin.box(M.metal, p.x, 1.1, p.z, 0.09, 2.2, 0.09);
         bin.box(M.white, p.x, 2.05, p.z, 0.06, 0.5, 0.72);
-      } else if (p.kind === "crate") {
-        bin.box(M.timber, p.x, 0.3, p.z, 0.72, 0.6, 0.62);
-      } else if (p.kind === "planter") {
-        bin.box(M.kerb, p.x, 0.26, p.z, 1.2, 0.52, 1.2);
-        bin.box(M.leafDark, p.x, 0.66, p.z, 0.9, 0.5, 0.9);
-      } else if (p.kind === "utilityBox") {
-        bin.box(M.metal, p.x, 0.55, p.z, 1.0, 1.1, 0.7);
-        bin.box(M.rust, p.x, 1.12, p.z, 1.06, 0.08, 0.76);
       } else if (p.kind === "barge") {
         bin.box(M.rust, p.x, 0.7, p.z, p.w, 1.9, p.d);
         bin.box(M.metal, p.x, 1.75, p.z, p.w * 0.55, 1.1, p.d * 0.7);
@@ -897,6 +1036,29 @@ export class CityView {
       inst.instanceMatrix.needsUpdate = true;
       this.root.add(inst);
       this.stats.instances += tyres.length;
+    }
+  }
+
+  /** Geometry for one prop the kit can replace. */
+  buildPropInto(bin, p) {
+    const M = this.materials;
+    if (p.kind === "bench") {
+      bin.box(M.timber, p.x, 0.44, p.z, 2.0, 0.12, 0.62);
+      bin.box(M.metal, p.x, 0.22, p.z, 1.7, 0.44, 0.12);
+    } else if (p.kind === "bin") {
+      bin.box(M.metal, p.x, 0.42, p.z, 0.62, 0.84, 0.62);
+      bin.box(M.rust, p.x, 0.88, p.z, 0.7, 0.08, 0.7);
+    } else if (p.kind === "hydrant") {
+      bin.box(M.rust, p.x, 0.34, p.z, 0.26, 0.68, 0.26);
+      bin.box(M.rust, p.x, 0.72, p.z, 0.4, 0.12, 0.4);
+    } else if (p.kind === "crate") {
+      bin.box(M.timber, p.x, 0.3, p.z, 0.72, 0.6, 0.62);
+    } else if (p.kind === "planter") {
+      bin.box(M.kerb, p.x, 0.26, p.z, 1.2, 0.52, 1.2);
+      bin.box(M.leafDark, p.x, 0.66, p.z, 0.9, 0.5, 0.9);
+    } else if (p.kind === "utilityBox") {
+      bin.box(M.metal, p.x, 0.55, p.z, 1.0, 1.1, 0.7);
+      bin.box(M.rust, p.x, 1.12, p.z, 1.06, 0.08, 0.76);
     }
   }
 

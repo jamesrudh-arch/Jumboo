@@ -12,6 +12,13 @@
 
 import * as THREE from "three";
 import zlib from "node:zlib";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { decodePNG } from "./png.mjs";
+
+// The game root, so a texture given as "./assets/kit/..." resolves from disk.
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 // ------------------------------------------------------------------ PNG out
 // Match what the WebGL renderer does at the end of its pipeline: ACES filmic
@@ -272,6 +279,12 @@ export function decodeTexture(image) {
     if (image.data && image.width && image.width > 8) {
       // A canvas-like source (the procedural textures): read its pixels.
       out = { width: image.width, height: image.height, data: image.data };
+    } else if (typeof image.src === "string" && image.src.endsWith(".png")) {
+      // A file-backed texture: the asset kit's shared atlas and any PNG the game
+      // loads from disk. Decoding it here is what lets the offline shots show
+      // real textured models instead of falling back to flat white.
+      const file = path.join(ROOT, image.src);
+      if (fs.existsSync(file)) out = decodePNG(fs.readFileSync(file));
     } else if (image.data) {
       const src = image.data;
       if (typeof src === "string" && jpegDecode) {
