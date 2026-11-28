@@ -113,6 +113,7 @@ const cityView = new CityView(scene, CITY, cityBuilt, tier).build();
 const world = new World(LEVEL, { ...built, boxes: cityBuilt.boxes }, {
   city: CITY,
   cityBoxes: cityBuilt.boxes,
+  cityBuilt,
   tier: { ...tier, ...built },
   seed: 20261127,
   aggression: 0.5,
@@ -602,7 +603,15 @@ function updateHud(now) {
   const prompt = h.inWitnessZone && !world.talkedToWitness
     ? { text: "Talk to Sade", progress: h.interactProgress }
     : null;
-  hud.update(h, { prompt, banner, weather: weather.blend.label, wet: wetness.level, chaos: world.chaosEvents.length });
+  const lastChaos = world.chaosEvents[world.chaosEvents.length - 1];
+  hud.update(h, {
+    prompt,
+    banner,
+    weather: weather.blend.label,
+    wet: wetness.level,
+    chaos: world.chaosEvents.length,
+    chaosLabel: lastChaos ? lastChaos.label : "",
+  });
 }
 
 boot();

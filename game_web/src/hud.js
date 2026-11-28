@@ -154,7 +154,12 @@ export class Hud {
     }
     const chaosCount = extra.chaos ?? 0;
     f.chaos.hidden = chaosCount <= 0;
-    if (chaosCount > 0) f.chaosList.textContent = `${chaosCount} unresolved`;
+    if (chaosCount > 0) {
+      // Name the newest event: a bare count tells the player nothing about
+      // whether the road ahead is a trap or just noisy.
+      const label = extra.chaosLabel || "trouble";
+      f.chaosList.textContent = chaosCount > 1 ? `${label} +${chaosCount - 1}` : label;
+    }
 
     const seen = hud.suspicion > 0.02;
     f.suspicion.hidden = !seen;

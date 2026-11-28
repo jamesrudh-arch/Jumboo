@@ -585,6 +585,8 @@ export class CityView {
       if (!l.lit) continue;
       const light = new THREE.PointLight(C.amber, 16, 17, 2);
       light.position.set(l.x + l.side * 0.4, l.h - 0.2, l.z);
+      light.userData.lamp = l;
+      light.userData.base = 16;
       this.root.add(light);
       this.lampLights.push(light);
     }
@@ -819,6 +821,15 @@ export class CityView {
       }
       mesh.geometry.attributes.position.needsUpdate = true;
       mesh.geometry.computeVertexNormals();
+    }
+
+    // Power cuts: a whole block of practicals dies, which changes what the
+    // player can see and where the crowd is safe to walk.
+    const now = this.time;
+    for (const l of this.lampLights) {
+      const spec = l.userData.lamp;
+      const cut = spec && spec.cutUntil !== undefined && spec.cutUntil > now;
+      l.intensity = cut ? (Math.sin(now * 37) > 0.7 ? 2.5 : 0.2) : l.userData.base || 16;
     }
 
     // Rain falls around the camera and wraps. Rate and slant come from the

@@ -169,6 +169,7 @@ function districtWorld(seed = 7, tier = TIERS.desktop) {
   const world = new World(LEVEL, { boxes: level.boxes, platforms: level.platforms }, {
     city: CITY,
     cityBoxes,
+    cityBuilt: built,
     tier,
     seed,
   });
@@ -314,6 +315,56 @@ test("the chaos director fires, logs and stays inside its budget", () => {
     assert.ok(typeof e.kind === "string" && e.kind.length > 0);
     assert.ok(Number.isFinite(e.x) && Number.isFinite(e.z), `${e.kind} has no position`);
   }
+});
+
+test("a jammed car actually holds still, and a sweep car keeps moving", () => {
+  const traffic = new Traffic(CITY, { traffic: 6 }, { aggression: 0 });
+  const v = traffic.vehicles[0];
+  for (let i = 0; i < 90; i++) traffic.update(1 / 60, { x: 999, z: 999 }, []);
+  // Traffic advances its own clock inside update(), so the window is stamped
+  // against that clock, not against a stale local time.
+  v.jamUntil = (traffic.time || 0) + 4.5;
+  const startX = v.x;
+  const startZ = v.z;
+  // A jammed car brakes to a stop (~0.7 s from full speed) and then holds.
+  for (let i = 0; i < 60; i++) traffic.update(1 / 60, { x: 999, z: 999 }, []);
+  assert.ok(v.speed < 0.3, `the jammed car did not stop (speed ${v.speed.toFixed(2)})`);
+  const stoppedX = v.x;
+  const stoppedZ = v.z;
+  for (let i = 0; i < 60; i++) traffic.update(1 / 60, { x: 999, z: 999 }, []);
+  assert.ok(
+    Math.hypot(v.x - stoppedX, v.z - stoppedZ) < 0.1,
+    "a stopped, jammed car kept creeping forward",
+  );
+  // After the window it moves again.
+  for (let i = 0; i < 60 * 4; i++) traffic.update(1 / 60, { x: 999, z: 999 }, []);
+  assert.ok(Math.hypot(v.x - startX, v.z - startZ) > 0.5, "the jam never cleared");
+
+  const w = traffic.vehicles[1];
+  w.sweepUntil = (traffic.time || 0) + 3.5;
+  w.speed = w.spec.maxSpeed;
+  const before = { x: w.x, z: w.z };
+  // A player directly in the road must not stop the sweeping car.
+  for (let i = 0; i < 60; i++) {
+    traffic.update(1 / 60, { x: w.x + Math.sin(w.yaw) * 3, z: w.z + Math.cos(w.yaw) * 3 }, []);
+  }
+  assert.ok(Math.hypot(w.x - before.x, w.z - before.z) > 1, "the sweeping car was braked by the player");
+});
+
+test("a power cut puts out a block of district lamps and then restores them", () => {
+  const world = districtWorld(5);
+  world.start();
+  const lamps = world.cityBuilt.lamps.filter((l) => l.lit);
+  assert.ok(lamps.length > 0);
+  // Force the director to reach the power-cut branch.
+  world.chaosRng = () => 0.5;
+  world.chaosTimer = 0;
+  world.update(1 / 60);
+  const cut = lamps.filter((l) => l.cutUntil !== undefined);
+  assert.ok(cut.length > 0, "no district lamps were cut");
+  assert.ok(world.chaosEvents.some((e) => e.kind === "power"));
+  // The window is finite: nothing is permanently dark.
+  for (const l of cut) assert.ok(Number.isFinite(l.cutUntil));
 });
 
 test("chaos is unpredictable: two seeds do not produce the same script", () => {

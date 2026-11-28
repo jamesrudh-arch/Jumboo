@@ -73,9 +73,16 @@ npm run smoke          # drives the page, presses keys, checks the frame
   from one blend; wetness builds during rain and drains slowly afterwards.
   Lightning is disabled on the phone tier and under `prefers-reduced-motion`.
 - **Chaos** (`src/world.js` `updateChaos`): every 11–22 s the district does
-  something — a car jam, a horn sweep, a power cut on the practicals, a detour,
-  or a panic. Events are logged with position and kind, and the HUD counts the
-  unresolved ones.
+  something that is visible in the world, not only in a log:
+  - **jam** — three cars in a row stop dead for 6–11 s (and honk);
+  - **sweep** — one car ignores the player and runs the street at 125 % speed
+    for 4 s, which is when it can knock you down;
+  - **power cut** — a 26 m block of district lamps goes dark for 9–15 s, which
+    darkens the street around you;
+  - **detour** — a collector breaks its patrol;
+  - **panic** — a pedestrian bolts and the crowd nearby follows.
+  Every event is logged with position, kind and count, and the HUD names the
+  most recent one.
 - **HUD** (`src/hud.js`): objective, compass, stamina, noise, stance, suspicion,
   prompt, timer, banners, plus weather and wet-street readout, and the chaos
   counter. Copy stays inside M01 / EV-01..EV-06.
@@ -174,6 +181,10 @@ Fixed while building the slice, each with a regression test where possible:
   north and left the whole southern district empty on the phone tier;
 - pedestrians that "fled" by advancing a walk animation but never moving;
 - pedestrians pulling cars to a full stop, jamming every route permanently;
+- vehicles reporting the heading of the *outbound* leg on the return leg, so
+  half of every loop drove sideways;
+- chaos that only existed in an event log: a jam cleared next tick, and a power
+  cut switched off one lane lamp the player could not see;
 - water with no gravity and no wet test above its surface, so the canal could
   be walked across;
 - the market-end wall sealing the lane from the district it was built inside.

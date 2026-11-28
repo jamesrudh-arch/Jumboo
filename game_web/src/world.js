@@ -81,6 +81,7 @@ export class World {
     // The district is optional: without it this is exactly the old lane-only
     // build, which keeps the approved-beat tests valid.
     this.city = options.city || null;
+    this.cityBuilt = options.cityBuilt || null;
     this.tier = options.tier || null;
     // With a district the player can walk the whole map; without one the lane
     // keeps its own small bounds, which is what the approved-beat tests expect.
@@ -389,10 +390,18 @@ export class World {
 
   chaosJam() {
     if (!this.traffic || !this.traffic.vehicles.length) return null;
+    // Stop three cars in a row at the same place: a jam has to hold, and one
+    // car pausing for a step reads as nothing at all.
     const v = this.traffic.vehicles[Math.floor(this.chaosRng() * this.traffic.vehicles.length)];
-    v.speed = 0;
-    v.stuckFor = 1.5;
-    return { kind: "jam", label: "Traffic jam", x: v.x, z: v.z };
+    const until = this.time + 6 + this.chaosRng() * 5;
+    let held = 0;
+    for (const other of this.traffic.vehicles) {
+      if (Math.hypot(other.x - v.x, other.z - v.z) > 46) continue;
+      other.jamUntil = until;
+      other.speed = 0;
+      held++;
+    }
+    return { kind: "jam", label: "Traffic jam", x: v.x, z: v.z, count: held };
   }
 
   chaosSweep() {
@@ -403,16 +412,32 @@ export class World {
     if (!v) return null;
     v.speed = Math.min(v.spec.maxSpeed * 1.25, v.speed + 5);
     v.honk = 1.6;
+    v.sweepUntil = this.time + 4;
     this.hearSound(v.x, v.z, 26);
     return { kind: "sweep", label: "A car cuts across", x: v.x, z: v.z };
   }
 
   chaosPowerCut() {
-    if (!this.level.lights || !this.level.lights.length) return null;
-    const idx = Math.floor(this.chaosRng() * this.level.lights.length);
-    const light = this.level.lights[idx];
-    light.flicker = 1.4 + this.chaosRng() * 2;
-    return { kind: "power", label: "The lights stutter", x: light.x, z: light.z };
+    // A block of the district loses its lamps: the street gets darker around
+    // the player, which is the point (and it is a real stealth opportunity).
+    const centreX = this.player.x + (this.chaosRng() - 0.5) * 60;
+    const centreZ = this.player.z + (this.chaosRng() - 0.5) * 60;
+    let hit = 0;
+    if (this.cityBuilt && Array.isArray(this.cityBuilt.lamps)) {
+      const radius = 26;
+      this.powerCut = { x: centreX, z: centreZ, radius, until: this.time + 9 + this.chaosRng() * 6 };
+      for (const l of this.cityBuilt.lamps) {
+        if (Math.hypot(l.x - centreX, l.z - centreZ) > radius) continue;
+        l.cutUntil = this.powerCut.until;
+        hit++;
+      }
+    }
+    if (!hit && this.level.lights && this.level.lights.length) {
+      const light = this.level.lights[Math.floor(this.chaosRng() * this.level.lights.length)];
+      light.flicker = 1.4 + this.chaosRng() * 2;
+      return { kind: "power", label: "The lights stutter", x: light.x, z: light.z, count: 1 };
+    }
+    return { kind: "power", label: "The lights go out", x: centreX, z: centreZ, count: hit, radius: 26 };
   }
 
   chaosDetour() {

@@ -58,10 +58,16 @@ function sampleRoute(points, distance) {
     const len = dist2D(a.x, a.z, b.x, b.z);
     if (remaining <= len || len < 1e-6) {
       const t = len < 1e-6 ? 0 : remaining / len;
+      // The heading is the direction of travel along this leg, which is a -> b
+      // on the way out and b -> a on the return half of a closed loop. (Using
+      // the a -> b heading everywhere made every car drive the return leg
+      // backwards, i.e. sideways down the street.)
+      const dirX = b.x - a.x;
+      const dirZ = b.z - a.z;
       return {
-        x: a.x + (b.x - a.x) * t,
-        z: a.z + (b.z - a.z) * t,
-        yaw: Math.atan2(b.x - a.x, b.z - a.z),
+        x: a.x + dirX * t,
+        z: a.z + dirZ * t,
+        yaw: Math.atan2(dirX, dirZ),
         leg: i,
         legLen: len,
       };
@@ -128,13 +134,19 @@ export class Traffic {
    */
   update(dt, player, agents = []) {
     if (!Array.isArray(agents)) agents = [];
+    this.time = (this.time || 0) + dt;
     const events = [];
     for (const v of this.vehicles) {
+      v.time = this.time;
       v.hitCooldown = Math.max(0, v.hitCooldown - dt);
 
       // Look ahead: brake for the player, for pedestrians and for other cars.
-      const ahead = this.obstacleAhead(v, player, agents);
-      const targetSpeed = ahead.blocked ? Math.max(0, ahead.speedCap) : v.spec.maxSpeed;
+      // A jammed car holds still; a car on a sweep ignores the player and keeps
+      // going, which is what makes the sweep a threat rather than a slowdown.
+      const jammed = v.jamUntil !== undefined && v.jamUntil > (v.time || 0);
+      const sweeping = v.sweepUntil !== undefined && v.sweepUntil > (v.time || 0);
+      const ahead = sweeping ? { blocked: false, speedCap: v.spec.maxSpeed } : this.obstacleAhead(v, player, agents);
+      const targetSpeed = jammed ? 0 : ahead.blocked ? Math.max(0, ahead.speedCap) : v.spec.maxSpeed;
       const braking = targetSpeed < v.speed - 0.05;
       v.braking = braking;
       const rate = braking ? v.spec.accel * 2.2 : v.spec.accel;
