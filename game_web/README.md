@@ -22,7 +22,7 @@ cd game_web
 npm run serve          # http://localhost:8080
 ```
 
-Requires a browser with WebGL2. `npm test` runs 221 headless checks. A real
+Requires a browser with WebGL2. `npm test` runs 406 headless checks. A real
 browser check is available separately:
 
 ```bash
@@ -345,16 +345,33 @@ Combat, in the order the design document argues for it:
    section. Check the weapon sitting on the hand bone, whether shake reads as
    impact or as nausea on a small screen, and whether wave 1 teaches the controls
    before it kills.
-2. **Enemy navigation.** Bodies close distance in a straight line today; they
-   should borrow the existing `agents` pathing, flank rather than queue, and use
-   cover.
-3. **The takedown.** A stealth game with a knife and no stealth kill is missing
-   its best verb: crouched and unseen from behind should be a silent kill.
+2. ~~**Enemy navigation.**~~ **Done.** `src/navigation.js`: context steering
+   rather than a navmesh, plus body-to-body separation so a crowd does not collapse
+   into one blob.
+3. ~~**The takedown.**~~ **Done.** `src/takedown.js`: close, behind, unseen and
+   slow, rewards 2.4× a loud kill, and costs nothing but nerve.
+4. ~~**Weapon mods.**~~ **Done.** `src/mods.js`: ten mods, four slots, every one a
+   real trade, offered on every third wave so a build takes a run to complete.
+5. ~~**Environmental kills.**~~ **Done.** `src/hazards.js`: drums and gas mains,
+   fire that keeps working after the bang, and a canal that drowns what is thrown
+   into it.
+6. ~~**A downed state.**~~ **Done.** Eight seconds on the ground, two revives, then
+   it is final.
+7. ~~**A boss per act.**~~ **Done.** `src/bosses.js`: three bosses on waves 10, 20
+   and 30, each built on a rule the player can learn. The earlier note in this
+   file that `Stan`/`Mike`/`George` were "vendored and unused" was wrong — no such
+   assets exist in this repository.
+8. ~~**Sound through walls.**~~ **Done.** `src/occlusion.js`: a segment test
+   against the district's boxes turns into a low-pass and a level cut.
 
-Later: an authored boss per act (`Stan`/`Mike`/`George` are vendored and unused),
-weapon mods so progression becomes expression, environmental kills, and a downed
-state instead of a restart. Reasoning for each is in
-[`docs/LEVERAGE_combat_and_game_feel.md`](../docs/LEVERAGE_combat_and_game_feel.md) §8.
+Also shipped since this list was written: directional damage indicators, stereo
+panning, and a generated reverb. Reasoning and the measurements for each are in
+[`docs/LEVERAGE_combat_and_game_feel.md`](../docs/LEVERAGE_combat_and_game_feel.md)
+§7a and §7b.
+
+What genuinely remains is the device pass — nothing on this list has been seen
+running in a browser — plus per-surface footsteps beyond the three that exist,
+per-archetype death behaviour, and a practice range.
 
 
 1. Decide whether the lane direction, pacing and the Sade beat are worth
