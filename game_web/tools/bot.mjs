@@ -14,6 +14,7 @@
 import { buildLevel, LEVEL } from "../src/level.js";
 import { buildCity, CITY, waterAt } from "../src/city.js";
 import { World, PHASE } from "../src/world.js";
+import { hasLineOfSight } from "../src/collision.js";
 
 const args = process.argv.slice(2);
 const runs = Number(args.find((a) => /^\d+$/.test(a)) || 5);
@@ -81,6 +82,108 @@ function lineClear(x1, z1, x2, z2) {
     if (!walkable[idx(c.gx, c.gz)]) return false;
   }
   return true;
+}
+
+/** True when a body of radius 0.45 fits at this spot, tested against real boxes. */
+function bodyFree(x, z, nearBoxes) {
+  for (const b of nearBoxes) {
+    if (b.y1 <= 0.45 || b.y0 >= 1.7) continue;
+    const cx = Math.max(b.x1, Math.min(x, b.x2));
+    const cz = Math.max(b.z1, Math.min(z, b.z2));
+    if (Math.hypot(cx - x, cz - z) < 0.45) return false;
+  }
+  return true;
+}
+
+/**
+ * A heading that moves away from `hunter` without walking into anything.
+ * Rotates out from straight-away in both directions and takes the first clear
+ * step, so a wall or a parked car deflects the escape instead of stopping it.
+ * Standing still in a hunt is what gets a player caught, so this always returns
+ * a heading, even if it has to be a compromise.
+ */
+function slideAway(p, hunter, nearBoxes) {
+  const away = Math.atan2(p.x - hunter.x, p.z - hunter.z);
+  for (const reach of [1.6, 2.4, 3.2]) {
+    for (const turn of [0, 0.35, -0.35, 0.7, -0.7, 1.05, -1.05, 1.4, -1.4, 1.75, -1.75, 2.1, -2.1]) {
+      const test = away + turn;
+      if (bodyFree(p.x + Math.sin(test) * reach, p.z + Math.cos(test) * reach, nearBoxes)) return test;
+    }
+  }
+  return away;
+}
+
+/** Path to a world point, stepped one waypoint ahead of the nearest one. */
+function followPath(from, to) {
+  const a = snap(...Object.values(toGrid(from.x, from.z)));
+  const b = snap(...Object.values(toGrid(to.x, to.z)));
+  if (!a || !b) return null;
+  const path = findPath(a, b);
+  if (!path) return null;
+  let near = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < path.length; i++) {
+    const d = Math.hypot(path[i].x - from.x, path[i].z - from.z);
+    if (d < bestD) {
+      bestD = d;
+      near = i;
+    }
+  }
+  // Take the furthest point along the path that is still on a clear straight
+  // line, so a chase does not walk the bot straight into a wall corner the
+  // 1 m grid said was fine. If not even the next cell is clear, slide.
+  for (let i = Math.min(path.length - 1, near + 6); i > near; i--) {
+    if (lineClear(from.x, from.z, path[i].x, path[i].z)) return path[i];
+  }
+  const direct = path[Math.min(path.length - 1, near + 1)];
+  for (const turn of [0.6, -0.6, 1.2, -1.2]) {
+    const base = Math.atan2(direct.x - from.x, direct.z - from.z) + turn;
+    const x = from.x + Math.sin(base) * 1.4;
+    const z = from.z + Math.cos(base) * 1.4;
+    if (lineClear(from.x, from.z, x, z)) return { x, z };
+  }
+  return direct;
+}
+
+/**
+ * A cell the hunter cannot see, at least its own sight radius away, reachable
+ * without crossing the hunter. Scored by how much cover and distance it buys,
+ * and by how little running it costs.
+ */
+function pickEscapeSpot(hunter, CURRENT) {
+  const headY = 1.7;
+  let best = null;
+  let bestScore = -Infinity;
+  for (let gx = 2; gx < W - 2; gx += 2) {
+    for (let gz = 2; gz < H - 2; gz += 2) {
+      if (!walkable[idx(gx, gz)]) continue;
+      const c = toWorld(gx, gz);
+      const range = Math.hypot(c.x - hunter.x, c.z - hunter.z);
+      if (range < (hunter.def.sight || 12) + 2) continue;
+      if (hasLineOfSight(hunter.x, 1.62, hunter.z, c.x, headY, c.z, boxes)) continue;
+      const fromPlayer = Math.hypot(c.x - CURRENT.x, c.z - CURRENT.z);
+      if (fromPlayer > 26) continue;
+      // Only spots the bot can actually run to in a straight line: an escape
+      // spot behind a parked car is not an escape, it is a corner to be caught
+      // in, which is what happened against the lane's vehicles.
+      if (!lineClear(CURRENT.x, CURRENT.z, c.x, c.z)) continue;
+      // Do not run across the hunter's face to get there.
+      const hx = hunter.x - CURRENT.x;
+      const hz = hunter.z - CURRENT.z;
+      const dx = c.x - CURRENT.x;
+      const dz = c.z - CURRENT.z;
+      const t = Math.max(0, Math.min(1, (hx * dx + hz * dz) / (dx * dx + dz * dz || 1)));
+      if (Math.hypot(CURRENT.x + dx * t - hunter.x, CURRENT.z + dz * t - hunter.z) < 3.5) continue;
+      // Prefer the nearest spot that qualifies: a sprint halfway across the
+      // district kills the run on time as surely as being seen does.
+      const score = Math.min(range, 22) - fromPlayer * 1.6;
+      if (score > bestScore) {
+        bestScore = score;
+        best = { x: c.x, z: c.z };
+      }
+    }
+  }
+  return best;
 }
 
 /** Nearest walkable cell to a point, as world coordinates. */
@@ -261,6 +364,10 @@ function runOnce(seed, opts = {}) {
   let legBudget = 0;
   let bestLegDist = Infinity;
   let stuckTimer = 0;
+  let stuckWindow = 0;
+  let creepHold = 0;
+  let fleeSpot = null;
+  let fleeTimer = 0;
   let fleeTime = 0;
   let lastPos = { x: world.player.x, z: world.player.z };
 
@@ -349,6 +456,7 @@ function runOnce(seed, opts = {}) {
         continue;
       }
       log.notes.push(`gave up on ${wp.id} after ${legTime.toFixed(0)}s`);
+      if (trace) console.log(`  out of patience on ${wp.id} at ${p.x.toFixed(1)},${p.z.toFixed(1)} d=${dGoal.toFixed(1)} after ${legTime.toFixed(0)}s`);
       wi++;
       sub = null;
       legTime = 0;
@@ -356,6 +464,21 @@ function runOnce(seed, opts = {}) {
       bestLegDist = Infinity;
       continue;
     }
+
+    // Cover: the lane is three cones deep with a pause at every waypoint, so the
+    // way through it is crouched. A crouch cuts a collector's sight radius to
+    // 55 %, and being hard to see is what lets the bot cross the open stretches
+    // instead of being frozen at the mouth waiting for a cone that never leaves.
+    const seenNow = world.agents.some((a) => a.seeing);
+    const nearAgent = world.agents.some((a) => {
+      if (a.state === "hunt" || a.state === "returning") return false;
+      return Math.hypot(a.x - p.x, a.z - p.z) < 16;
+    });
+    // Hysteresis: once inside 16 m the bot keeps sneaking until it is 20 m clear,
+    // otherwise it strides in, sprints at the edge and gets heard on the way.
+    if (nearAgent) creepHold = 3;
+    else if (creepHold > 0) creepHold -= dt;
+    const creep = !ghosts && !seenNow && creepHold > 0;
 
     // Re-plan on a short cycle: a path computed once goes stale as soon as the
     // player is pushed off it, and following stale waypoints is how a bot
@@ -445,36 +568,47 @@ function runOnce(seed, opts = {}) {
     let run;
     let crouch;
     if (world.phase === PHASE.HUNT && nearestAgent) {
-      // Flee along open ground, away from the hunter.
-      const away = Math.atan2(p.x - nearestAgent.x, p.z - nearestAgent.z);
-      let best = away;
-      let bestScore = -Infinity;
-      for (let k = -6; k <= 6; k++) {
-        const test = away + k * 0.24;
-        let open = 0;
-        for (let step = 1; step <= 4; step++) {
-          const c = toGrid(p.x + Math.sin(test) * step * 0.9, p.z + Math.cos(test) * step * 0.9);
-          if (c.gx < 0 || c.gx >= W || c.gz < 0 || c.gz >= H || !walkable[idx(c.gx, c.gz)]) break;
-          open = step;
-        }
-        const score = open * 2 + Math.cos(test - away) * 1.4;
-        if (score > bestScore) {
-          bestScore = score;
-          best = test;
-        }
+      // A hunt ends when the hunter loses sight for 7.5 s and is still more than
+      // 10 m away. Fleeing is therefore a search for a cell the hunter cannot
+      // see, far enough off, not a wiggle away from it: a fan of local headings
+      // pins the bot on a corner when every direction it samples is walled, and
+      // standing still in a hunt is how it was getting caught.
+      if (fleeTimer <= 0) {
+        fleeSpot = pickEscapeSpot(nearestAgent, p);
+        fleeTimer = 1.2;
       }
-      yaw = best;
+      fleeTimer -= dt;
+      const nearBoxes = world.boxesNear(p.x, p.z, 3.5);
+      let stepYaw = null;
+      if (fleeSpot) {
+        const fleeStep = followPath(p, fleeSpot);
+        if (fleeStep) {
+          const d = Math.hypot(fleeStep.x - p.x, fleeStep.z - p.z) || 1;
+          const tryYaw = Math.atan2(fleeStep.x - p.x, fleeStep.z - p.z);
+          // Only take the path heading if the next stride actually fits.
+          if (bodyFree(p.x + Math.sin(tryYaw) * Math.min(d, 1.6), p.z + Math.cos(tryYaw) * Math.min(d, 1.6), nearBoxes)) {
+            stepYaw = tryYaw;
+          }
+        }
+        if (stepYaw === null) fleeSpot = null;
+      }
+      yaw = stepYaw === null ? slideAway(p, nearestAgent, nearBoxes) : stepYaw;
       run = true;
       crouch = false;
-    } else if (watched && nearest < 5) {
-      yaw = Math.atan2(p.x - nearestAgent.x, p.z - nearestAgent.z);
-      run = true;
-      crouch = false;
+    } else if (watched && nearest < 6) {
+      // Seen up close: crouch and keep going. Sprints are 9 m of noise and they
+      // read as motion, which is exactly what turns a glimpse into a hunt — the
+      // old branch bolted, and the collector caught it at 1.2 m every time.
+      const away = Math.atan2(p.x - nearestAgent.x, p.z - nearestAgent.z);
+      const goal = Math.atan2(aim.x - p.x, aim.z - p.z);
+      yaw = goal + Math.atan2(Math.sin(away - goal), Math.cos(away - goal)) * 0.35;
+      run = false;
+      crouch = true;
     } else {
       yaw = Math.atan2(aim.x - p.x, aim.z - p.z);
       // Sprint on open ground; crouch when a cone is on us at range, which is
       // slower but silent, and silence is what stops the alarm.
-      crouch = watched && nearest < 13;
+      crouch = creep || (watched && nearest < 13);
       run = !crouch && nearest > 12;
     }
 
@@ -491,7 +625,13 @@ function runOnce(seed, opts = {}) {
     }
 
     // Stuck detection: pushed into a corner or a wall we cannot path around.
-    if (Math.hypot(p.x - lastPos.x, p.z - lastPos.z) < 0.02) {
+    // Measured over half a second, not per frame: a crouched step moves 1.2 cm
+    // a frame, which is slower than a per-frame 2 cm threshold and used to read
+    // as standing still the whole time the bot was sneaking.
+    if (stuckWindow < 0.5) {
+      stuckWindow += dt;
+    } else if (Math.hypot(p.x - lastPos.x, p.z - lastPos.z) < 0.35) {
+      stuckWindow = 0;
       stuckTimer += dt;
       if (stuckTimer > 2) {
         stuckTimer = 0;
@@ -514,17 +654,18 @@ function runOnce(seed, opts = {}) {
         }
       }
     } else {
+      stuckWindow = 0;
       stuckTimer = 0;
       // Progress resets the patience counters: a long leg should not be
       // abandoned because of a few momentary snags along the way.
       legStalls = 0;
       noPathCount = 0;
     }
-    lastPos = { x: p.x, z: p.z };
+    if (stuckWindow >= 0.5) lastPos = { x: p.x, z: p.z };
 
     if (trace && t > nextTrace) {
-      nextTrace = t + 10;
-      console.log(`  ${t.toFixed(0)}s -> ${wp.id} d=${dGoal.toFixed(1)} at ${p.x.toFixed(0)},${p.z.toFixed(0)} spd ${p.speed.toFixed(1)} aim ${aim.x.toFixed(0)},${aim.z.toFixed(0)} len ${sub.length}`);
+      nextTrace = t + (world.phase === PHASE.HUNT ? 0.5 : 5);
+      console.log(`  ${t.toFixed(0)}s -> ${wp.id} d=${dGoal.toFixed(1)} at ${p.x.toFixed(1)},${p.z.toFixed(1)} spd ${p.speed.toFixed(1)} ${world.phase} crouch=${p.crouch} nearest=${nearest.toFixed(1)} yaw=${(yaw ?? 0).toFixed(2)}`);
     }
     for (const e of world.drainEvents()) {
       if (e.type === "spotted") log.spotted++;
@@ -533,6 +674,9 @@ function runOnce(seed, opts = {}) {
         log.notes.push(`caught at ${t.toFixed(1)}s`);
       }
       if (e.type === "errand") log.errands++;
+      if (trace && (e.type === "spotted" || e.type === "heard" || e.type === "escaped")) {
+        console.log(`  ${e.type} at ${t.toFixed(1)}s pos ${p.x.toFixed(1)},${p.z.toFixed(1)} stance ${p.crouch ? "crouch" : "stand"} spd ${p.speed.toFixed(1)}`);
+      }
       if (e.type === "drowned") log.drownings++;
       if (e.type === "carHit") log.hits++;
       if (e.type === "won") log.notes.push(`won at ${t.toFixed(1)}s`);
