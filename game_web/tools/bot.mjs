@@ -227,8 +227,14 @@ function pickHop(world, p, goal, agents) {
 const LANE_TICK = 0.5; // seconds per planning step
 const LANE_CELL = 0.7; // metres a crouched player covers per step
 const LANE_HORIZON = 220; // 110 s of plan: a full patrol cycle plus a wait
+const LANE_REPLAN = 2.0; // seconds between re-plans: four planning ticks
 let LANE_WALK = null;
 let planFutures = null;
+
+// Collector cones memoised across plans: a collector returns to roughly the
+// same poses each lap and the line-of-sight test is the expensive part here.
+const CONE_CACHE = new Map();
+const CONE_CACHE_MAX = 40000;
 
 function lanePlan(world, from, goal) {
   const t0 = performance.now();
@@ -280,7 +286,7 @@ function lanePlanInner(world, from, goal) {
   // comes back to roughly the same handful of poses three or four times a lap,
   // and the line-of-sight test is the expensive part, so cones are memoised by
   // pose. Everything else here is integer work.
-  const coneCache = new Map();
+  const coneCache = CONE_CACHE;
   const coneAt = (a, pose) => {
     const key = `${Math.round(pose.x * 10)},${Math.round(pose.z * 10)},${Math.round(pose.yaw * 60)},${Math.round(a.def.sight * 10)},${Math.round(a.def.fov * 10)}`;
     const hit = coneCache.get(key);
@@ -301,6 +307,7 @@ function lanePlanInner(world, from, goal) {
         if (hasLineOfSight(pose.x, 1.62, pose.z, c.x, 1.05, c.z, nearCells[at(i, k)])) cells.push(at(i, k));
       }
     }
+    if (coneCache.size > CONE_CACHE_MAX) coneCache.clear();
     coneCache.set(key, cells);
     return cells;
   };
@@ -319,14 +326,63 @@ function lanePlanInner(world, from, goal) {
 
   // Breadth-first over (cell, tick). Waiting is a move, so a plan can idle out a
   // sweep; a move into covered ground is never taken.
-  const start = cellOf(from.x, from.z);
+  // The player's body can stand in a sliver the 0.7 m grid samples as solid: the
+  // movement solver works on real boxes, the grid on cell centres. Planning from
+  // a solid cell finds zero neighbours and returns a one-step "stay here", which
+  // wedges the bot permanently. Seed the search from the nearest open cell
+  // instead, so it can always plan its way back out.
+  let start = cellOf(from.x, from.z);
+  if (!walk[at(start.i, start.k)]) {
+    let best = null;
+    let bestD = Infinity;
+    for (let r = 1; r <= 4 && !best; r++) {
+      for (let di = -r; di <= r; di++) {
+        for (let dk = -r; dk <= r; dk++) {
+          if (Math.max(Math.abs(di), Math.abs(dk)) !== r) continue;
+          const ni = start.i + di;
+          const nk = start.k + dk;
+          if (ni < 1 || ni >= nx - 1 || nk < 1 || nk >= nz - 1) continue;
+          if (!walk[at(ni, nk)]) continue;
+          const c = centre(ni, nk);
+          const d = Math.hypot(c.x - from.x, c.z - from.z);
+          if (d < bestD) {
+            bestD = d;
+            best = { i: ni, k: nk };
+          }
+        }
+      }
+    }
+    if (best) start = best;
+  }
   const goalCell = cellOf(goal.x, goal.z);
   const seen = new Uint8Array(nx * nz * LANE_HORIZON);
   const prev = new Int32Array(nx * nz * LANE_HORIZON).fill(-1);
   let layer = [at(start.i, start.k)];
   const startIdx = layer[0];
   seen[startIdx] = 1;
-  const goalIdx = at(goalCell.i, goalCell.k);
+  let goalIdx = at(goalCell.i, goalCell.k);
+  if (!walk[goalIdx]) {
+    // Same discretisation on the far end: aim at the nearest open cell to the
+    // objective rather than at a cell the grid refuses to enter.
+    let bestD = Infinity;
+    for (let r = 1; r <= 6 && bestD === Infinity; r++) {
+      for (let di = -r; di <= r; di++) {
+        for (let dk = -r; dk <= r; dk++) {
+          if (Math.max(Math.abs(di), Math.abs(dk)) !== r) continue;
+          const ni = goalCell.i + di;
+          const nk = goalCell.k + dk;
+          if (ni < 1 || ni >= nx - 1 || nk < 1 || nk >= nz - 1) continue;
+          if (!walk[at(ni, nk)]) continue;
+          const c = centre(ni, nk);
+          const d = Math.hypot(c.x - goal.x, c.z - goal.z);
+          if (d < bestD) {
+            bestD = d;
+            goalIdx = at(ni, nk);
+          }
+        }
+      }
+    }
+  }
   let found = -1;
   // If the goal cannot be reached inside the horizon, the best-progress node
   // still gives a plan: standing in the right pocket beats standing at the mouth.
@@ -354,6 +410,20 @@ function lanePlanInner(world, from, goal) {
         found = node * LANE_HORIZON + t;
         break;
       }
+      // Waiting is a move. This is the whole point of planning over (cell, tick):
+      // when a cone is about to sweep the only corridor out, the correct play is
+      // to hold still behind cover for a second and then walk. Without this
+      // transition the search finds nothing, falls back to "best progress", and
+      // returns the cell the bot is already standing on: a one-step plan that
+      // freezes it in place for the rest of the run.
+      if (!covered.has(node)) {
+        const wkey = node * LANE_HORIZON + (t + 1);
+        if (!seen[wkey]) {
+          seen[wkey] = 1;
+          prev[wkey] = node * LANE_HORIZON + t;
+          next.push(node);
+        }
+      }
       const i = Math.floor(node / nz);
       const k = node % nz;
       for (let di = -1; di <= 1; di++) {
@@ -378,6 +448,82 @@ function lanePlanInner(world, from, goal) {
   }
   if (found < 0) found = bestNode >= 0 ? bestNode : -1;
   if (found < 0) return null;
+  if (process.env.BOT_DEBUG_LANE) {
+    // Is the goal reachable at all if we ignore the collectors? Separates a map
+    // problem (no route exists) from a timing problem (routes exist but every
+    // one of them is swept).
+    const seen2 = new Uint8Array(nx * nz);
+    let queue = [at(start.i, start.k)];
+    seen2[queue[0]] = 1;
+    let reach = false;
+    while (queue.length && !reach) {
+      const nq = [];
+      for (const node of queue) {
+        if (node === goalIdx) { reach = true; break; }
+        const i = Math.floor(node / nz);
+        const k = node % nz;
+        for (let di = -1; di <= 1; di++) for (let dk = -1; dk <= 1; dk++) {
+          const ni = i + di, nk = k + dk;
+          if (ni < 1 || ni >= nx - 1 || nk < 1 || nk >= nz - 1) continue;
+          if (!walk[at(ni, nk)]) continue;
+          if (di && dk && (!walk[at(i + di, k)] || !walk[at(i, k + dk)])) continue;
+          const nid = at(ni, nk);
+          if (seen2[nid]) continue;
+          seen2[nid] = 1;
+          nq.push(nid);
+        }
+      }
+      queue = nq;
+    }
+    {
+      const si = start.i, sk = start.k;
+      const nb = [];
+      for (let di = -1; di <= 1; di++) for (let dk = -1; dk <= 1; dk++) {
+        if (!di && !dk) continue;
+        const ni = si + di, nk = sk + dk;
+        const inb = ni >= 1 && ni < nx - 1 && nk >= 1 && nk < nz - 1;
+        const w = inb && walk[at(ni, nk)] ? 1 : 0;
+        const c = inb && posesPerTick[1] ? (posesPerTick[1].has(at(ni, nk)) ? 1 : 0) : -1;
+        nb.push(`${di},${dk}:walk=${w},cov=${c}`);
+      }
+      // Count how far the search actually gets from here.
+      {
+        const s2 = new Uint8Array(nx * nz);
+        let lay = [at(si, sk)];
+        s2[lay[0]] = 1;
+        const sizes = [];
+        for (let tt = 0; tt < LANE_HORIZON - 1 && lay.length && sizes.length < 6; tt++) {
+          const cov2 = posesPerTick[tt + 1];
+          const nx2 = [];
+          for (const node of lay) {
+            const i = Math.floor(node / nz), k = node % nz;
+            for (let di = -1; di <= 1; di++) for (let dk = -1; dk <= 1; dk++) {
+              const ni = i + di, nk = k + dk;
+              if (ni < 1 || ni >= nx - 1 || nk < 1 || nk >= nz - 1) continue;
+              if (!walk[at(ni, nk)]) continue;
+              if (di && dk && (!walk[at(i + di, k)] || !walk[at(i, k + dk)])) continue;
+              const nid = at(ni, nk);
+              if (s2[nid]) continue;
+              if (cov2?.has(nid)) continue;
+              s2[nid] = 1;
+              nx2.push(nid);
+            }
+          }
+          lay = nx2;
+          sizes.push(lay.length);
+        }
+        console.log(`    [bfs] layer sizes ${sizes.join(",")}`);
+      }
+      const selfCov = posesPerTick[1]?.has(at(si, sk)) ? 1 : 0;
+      console.log(`    [nb] self=${selfCov} ${nb.join(" ")}`);
+      // How much of the straight lane ahead of the bot is covered?
+      let cov = 0, tot = 0;
+      for (let k = sk; k >= goalCell.k; k--) { tot++; if (posesPerTick[1]?.has(at(si, k))) cov++; }
+      console.log(`    [ahead] column i=${si}: ${cov}/${tot} covered at t+1`);
+    }
+    const lastTick = posesPerTick[posesPerTick.length - 1];
+    console.log(`    [lane] start ${start.i},${start.k} goal ${goalCell.i},${goalCell.k} found=${found} best=${bestNode} bestScore=${bestScore.toFixed(2)} startScore=${scoreOf(startIdx).toFixed(2)} reach=${reach}`);
+  }
   // Walk the plan back out, then turn it into waypoints.
   const path = [];
   let cur = found;
@@ -782,14 +928,21 @@ function runOnce(seed, opts = {}) {
           const pose = planFutures[ai]?.[nowIdx];
           return pose && Math.hypot(pose.x - a.x, pose.z - a.z) > 1.2;
         });
-      if ((!lanePlanPath || lagTime > 1 || nearEnd || drifted) && t >= lanePlanCooldown) {
+      // Order matters: the cooldown is checked FIRST, because `drifted` walks
+      // every collector and this branch used to run on every step of the sim.
+      if (t >= lanePlanCooldown && (!lanePlanPath || lagTime > 1 || nearEnd || drifted)) {
         const plan = lanePlan(world, p, laneGoal);
         lanePlanAt = t;
         lanePlanDirty = false;
         lanePlanPath = plan;
         lanePlanIdx = 0;
         lagTime = 0;
-        lanePlanCooldown = t + (plan ? 0 : 1.0);
+        // A plan is 110 s long; 2 s is four planning ticks, so this keeps the
+        // reaction time the plan was designed around without reprising the work.
+        // A one-step plan is "hold here until the cone passes": re-test it on the
+        // next planning tick instead of waiting out a route that never moves.
+        const stalled = !plan || plan.length < 3;
+        lanePlanCooldown = t + (stalled ? 0.5 : LANE_REPLAN);
         if (trace) {
           if (plan) console.log(`  plan ${t.toFixed(1)}s at ${p.x.toFixed(1)},${p.z.toFixed(1)} -> ${plan.length} steps (${(plan.length * LANE_TICK).toFixed(0)}s) goal ${Math.hypot(p.x - laneGoal.x, p.z - laneGoal.z).toFixed(1)}`);
           else console.log(`  NO PLAN ${t.toFixed(1)}s at ${p.x.toFixed(1)},${p.z.toFixed(1)} goal ${Math.hypot(p.x - laneGoal.x, p.z - laneGoal.z).toFixed(1)}`);
