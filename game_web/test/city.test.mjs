@@ -380,6 +380,59 @@ test("chaos is unpredictable: two seeds do not produce the same script", () => {
   assert.notEqual(run(1), run(2));
 });
 
+// ------------------------------------------------------------------ errands
+test("street errands exist on the map, pay score, and can be finished", () => {
+  const world = districtWorld(13);
+  world.patrolDefs = [];
+  world.agents = [];
+  world.start();
+  assert.ok(world.errands.length >= 3, "the district has no street errands");
+  const e = world.errands[0];
+
+  // Standing on the marker and holding interact completes it.
+  world.player.x = e.x;
+  world.player.z = e.z;
+  world.setInput({ moveX: 0, moveZ: 0, interact: true });
+  for (let i = 0; i < 90; i++) world.update(1 / 60);
+  assert.ok(e.done, "the errand never completed while standing on it");
+  assert.equal(world.errandsDone, 1);
+  assert.ok(world.errandPoints >= e.points, "the errand paid nothing");
+  assert.ok(world.events.some((ev) => ev.type === "errand"), "no errand event");
+});
+
+test("an errand's sabotage kill darkens the street", () => {
+  const world = districtWorld(21);
+  world.patrolDefs = [];
+  world.agents = [];
+  world.start();
+  const e = world.errands.find((x) => x.kind === "sabotage");
+  world.player.x = e.x;
+  world.player.z = e.z;
+  world.setInput({ moveX: 0, moveZ: 0, interact: true });
+  for (let i = 0; i < 90; i++) world.update(1 / 60);
+  assert.ok(e.done);
+  const cut = (world.cityBuilt.lamps || []).filter((l) => l.cutUntil !== undefined);
+  assert.ok(cut.length > 0, "killing the power box left every lamp on");
+});
+
+test("errands are optional: the approved beat still wins without them", () => {
+  const world = districtWorld(31);
+  world.patrolDefs = [];
+  world.agents = [];
+  world.start();
+  world.player.x = LEVEL.witness.x;
+  world.player.z = LEVEL.witness.z;
+  world.setInput({ moveX: 0, moveZ: 0, interact: true });
+  for (let i = 0; i < 90; i++) world.update(1 / 60);
+  assert.equal(world.objective, "reach_lane");
+  world.player.x = LEVEL.goal.x;
+  world.player.z = LEVEL.goal.z;
+  world.update(1 / 60);
+  assert.equal(world.phase, "won");
+  assert.equal(world.errandsDone, 0, "the run finished without touching the errands");
+  assert.ok(world.score >= 100);
+});
+
 // ------------------------------------------------------------------ weather
 test("weather drifts on its own and reports a resolved mood", () => {
   const w = new Weather({ start: "drizzle", interval: 4, allowLightning: false });

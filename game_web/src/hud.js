@@ -27,6 +27,11 @@ const TEMPLATE = `
 <div class="lv-stance" data-field="stance">Standing</div>
 <div class="lv-weather" data-field="weather">Drizzle</div>
 <div class="lv-chaos" data-field="chaos" hidden><span class="lv-label">Chaos</span><span data-field="chaosList"></span></div>
+<div class="lv-errand" data-field="errand" hidden>
+  <span class="lv-errand-label" data-field="errandLabel"></span>
+  <span class="lv-errand-bar"><i data-field="errandBar"></i></span>
+  <span class="lv-errand-tally" data-field="errandTally"></span>
+</div>
 <div class="lv-prompt" data-field="prompt" hidden><span class="lv-key">E</span><span data-field="promptText"></span><i data-field="progress"></i></div>
 <div class="lv-suspicion" data-field="suspicion" hidden>
   <div class="lv-suspicion-ring" data-field="ring"></div>
@@ -73,6 +78,14 @@ const STYLE = `
 .lv-chaos { position: absolute; right: 44px; bottom: 84px; display: flex; gap: 8px;
   align-items: baseline; font-size: 10px; letter-spacing: .12em; color: var(--amber); }
 .lv-chaos[hidden] { display: none; }
+.lv-errand { position: absolute; left: 44px; bottom: 88px; display: flex; flex-direction: column;
+  gap: 6px; width: 232px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--paper); }
+.lv-errand[hidden] { display: none; }
+.lv-errand-label { color: var(--amber); }
+.lv-errand-bar { display: block; height: 2px; background: rgba(240, 237, 229, .18); }
+.lv-errand-bar i { display: block; height: 100%; width: 0%; background: var(--amber); }
+.lv-errand-tally { color: var(--steel); }
 .lv-prompt { position: absolute; left: 50%; bottom: 132px; transform: translateX(-50%);
   display: flex; align-items: center; gap: 9px; padding: 9px 15px;
   background: color-mix(in srgb, var(--ink) 82%, transparent);
@@ -151,6 +164,13 @@ export class Hud {
     if (extra.weather) {
       const wetPct = Math.round((extra.wet ?? 0) * 100);
       f.weather.textContent = `${extra.weather} · street ${wetPct}% wet`;
+    }
+    const errand = hud.errand;
+    f.errand.hidden = !errand;
+    if (errand) {
+      f.errandLabel.textContent = errand.label;
+      f.errandBar.style.width = `${Math.round(errand.progress * 100)}%`;
+      f.errandTally.textContent = `${hud.errandsDone}/${hud.errandsTotal} street errands · ${hud.errandPoints} pts`;
     }
     const chaosCount = extra.chaos ?? 0;
     f.chaos.hidden = chaosCount <= 0;

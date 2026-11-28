@@ -83,9 +83,14 @@ npm run smoke          # drives the page, presses keys, checks the frame
   - **panic** — a pedestrian bolts and the crowd nearby follows.
   Every event is logged with position, kind and count, and the HUD names the
   most recent one.
+- **Street errands** (`src/world.js` `updateErrands`): three optional objectives
+  placed in the district — kill a block's power box (120 pts, loud), recover a
+  dropped bag (90 pts, quiet), talk to a dockhand (150 pts). Each is a pulsing
+  marker with a hold-to-complete prompt, they pay into the score, and the
+  approved beat still wins the run without them.
 - **HUD** (`src/hud.js`): objective, compass, stamina, noise, stance, suspicion,
-  prompt, timer, banners, plus weather and wet-street readout, and the chaos
-  counter. Copy stays inside M01 / EV-01..EV-06.
+  prompt, timer, banners, the weather and wet-street readout, the named chaos
+  event, and the errand progress/tally. Copy stays inside M01 / EV-01..EV-06.
 - **Banners**: briefing states the beat, "Sade talked." opens the lane,
   "Spotted." / "Heard something." / "Taken." / "Lane reached." close it out.
 

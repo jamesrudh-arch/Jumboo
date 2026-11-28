@@ -65,6 +65,13 @@ export const TUNING = {
   carDownTime: 1.25, // seconds on the ground after being hit
   chaosInterval: [11, 22], // seconds between unpredictable events
   chaosMax: 6,
+  // Street errands: optional objectives in the district. They exist so the map
+  // has something to do in it beyond the one approved beat, and they pay score.
+  errands: [
+    { id: "powerbox", label: "Kill the block's power", x: -34, z: 26, radius: 2.4, points: 120, kind: "sabotage" },
+    { id: "dropped-bag", label: "Recover the dropped bag", x: 62, z: -46, radius: 2.2, points: 90, kind: "recover" },
+    { id: "witness", label: "Talk to the dockhand", x: -86, z: -118, radius: 2.4, points: 150, kind: "talk" },
+  ],
 };
 
 function insetRect(r, pad) {
@@ -177,6 +184,10 @@ export class World {
     this.hitsTaken = 0;
     this.drownings = 0;
     this.honks = 0;
+    // Street errands reset with the run.
+    this.errands = (this.city ? TUNING.errands : []).map((e) => ({ ...e, done: false, progress: 0 }));
+    this.errandsDone = 0;
+    this.errandPoints = 0;
   }
 
   makeAgent(def, index) {
@@ -904,6 +915,52 @@ export class World {
       }
     }
     this.inWitnessZone = inWitness;
+    this.updateErrands(dt);
+  }
+
+  /**
+   * Street errands. One at a time, by proximity: stand in the marker and hold
+   * interact. They are optional, they are loud or quiet depending on the kind,
+   * and they pay into the score.
+   */
+  updateErrands(dt) {
+    if (!this.errands || !this.errands.length) return;
+    const p = this.player;
+    let nearest = null;
+    let nearestD = Infinity;
+    for (const e of this.errands) {
+      if (e.done) continue;
+      const d = dist2D(p.x, p.z, e.x, e.z);
+      if (d < e.radius + 0.4 && d < nearestD) {
+        nearest = e;
+        nearestD = d;
+      }
+      if (d > e.radius + 0.4 && e.progress > 0) e.progress = Math.max(0, e.progress - dt * 2);
+    }
+    this.activeErrand = nearest;
+    if (!nearest) return;
+    if (this.input.interact) {
+      nearest.progress = Math.min(1, nearest.progress + dt / TUNING.interactTime);
+      if (nearest.progress >= 1) {
+        nearest.done = true;
+        nearest.progress = 1;
+        this.errandsDone += 1;
+        this.errandPoints += nearest.points;
+        this.emit("errand", { id: nearest.id, label: nearest.label, kind: nearest.kind, points: nearest.points });
+        // A sabotage kill is loud; a quiet recovery is not.
+        if (nearest.kind === "sabotage") {
+          this.hearSound(nearest.x, nearest.z, 34);
+          if (this.cityBuilt) {
+            for (const l of this.cityBuilt.lamps || []) {
+              if (Math.hypot(l.x - nearest.x, l.z - nearest.z) < 30) l.cutUntil = this.time + 20;
+            }
+            this.powerCut = { x: nearest.x, z: nearest.z, radius: 30, until: this.time + 20 };
+          }
+        }
+      }
+    } else if (nearest.progress > 0) {
+      nearest.progress = Math.max(0, nearest.progress - dt * 1.6);
+    }
   }
 
   win() {
@@ -917,7 +974,7 @@ export class World {
   finaliseScore() {
     const timePenalty = Math.floor(this.time * TUNING.timePenaltyPerSecond);
     const spotPenalty = this.spottedCount * TUNING.spottedPenalty;
-    this.score = Math.max(100, TUNING.baseScore - timePenalty - spotPenalty);
+    this.score = Math.max(100, TUNING.baseScore - timePenalty - spotPenalty + (this.errandPoints || 0));
     if (this.phase === PHASE.CAUGHT) this.score = Math.max(50, Math.floor(this.score * 0.25));
     const s = this.score;
     this.rank = s >= 1300 ? "S" : s >= 1050 ? "A" : s >= 800 ? "B" : s >= 550 ? "C" : "D";
@@ -1066,6 +1123,13 @@ export class World {
       score: this.score,
       rank: this.rank,
       phaseTimer: this.phaseTimer,
+      // Street errands: the HUD shows the nearest live one and the tally.
+      errand: this.activeErrand
+        ? { label: this.activeErrand.label, progress: this.activeErrand.progress, points: this.activeErrand.points }
+        : null,
+      errandsDone: this.errandsDone || 0,
+      errandsTotal: this.errands ? this.errands.length : 0,
+      errandPoints: this.errandPoints || 0,
     };
   }
 }

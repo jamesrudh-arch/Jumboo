@@ -163,6 +163,7 @@ let marcus = null;
 let animator = null;
 let trafficViews = [];
 let pedViews = [];
+const errandMarkers = [];
 
 /** Meshes for the live traffic and the crowd (built once, then moved). */
 function buildStreetActors() {
@@ -184,6 +185,48 @@ function buildStreetActors() {
 }
 
 /** Copy simulation state onto the street actors. */
+// Errand markers: a column of light and a ring on the ground, so a district
+// objective is findable from a block away.
+function buildErrandMarkers() {
+  if (!world.errands) return;
+  for (const e of world.errands) {
+    const geo = new THREE.CylinderGeometry(1.5, 1.5, 2.4, 20, 1, true);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xe0b77e,
+      transparent: true,
+      opacity: 0.12,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const beam = new THREE.Mesh(geo, mat);
+    beam.name = `errand-${e.id}`;
+    beam.position.set(e.x, 1.2, e.z);
+    scene.add(beam);
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(1.4, 1.8, 24),
+      new THREE.MeshBasicMaterial({ color: 0xe0b77e, transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthWrite: false }),
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(e.x, 0.06, e.z);
+    scene.add(ring);
+    errandMarkers.push({ errand: e, beam, ring });
+  }
+}
+
+function syncErrandMarkers(elapsed) {
+  for (const m of errandMarkers) {
+    const live = !m.errand.done;
+    m.beam.visible = live;
+    m.ring.visible = live;
+    if (!live) continue;
+    // A slow pulse reads as "come here" without shouting.
+    const pulse = 0.5 + 0.5 * Math.sin(elapsed * 2.2);
+    m.beam.material.opacity = 0.08 + pulse * 0.1;
+    m.ring.material.opacity = 0.25 + pulse * 0.25;
+    m.ring.rotation.z = elapsed * 0.3;
+  }
+}
+
 function syncStreetActors(dt) {
   for (const mesh of trafficViews) {
     const v = mesh.userData.vehicle;
@@ -223,6 +266,7 @@ async function boot() {
     setStatus("Could not load the character asset. The lane is playable without it.", true);
   }
   buildStreetActors();
+  buildErrandMarkers();
   button.hidden = false;
   button.disabled = false;
   button.textContent = "Begin";
@@ -544,6 +588,7 @@ function frame(now) {
   view.update(dtReal, world.time, world.hud());
   cityView.update(dtReal, camera, weather);
   syncStreetActors(dtReal);
+  syncErrandMarkers(now / 1000);
 
   render(now / 1000, dtReal);
   updateHud(now);
@@ -600,9 +645,12 @@ function updateHud(now) {
   if (!banner && world.phase === PHASE.WON) {
     banner = { title: "Lane reached.", body: `${formatScore(h)} · ${h.spotted} spotted · ${fmt(h.time)}` };
   }
+  // Prompt priority: the approved beat first, then a street errand.
   const prompt = h.inWitnessZone && !world.talkedToWitness
     ? { text: "Talk to Sade", progress: h.interactProgress }
-    : null;
+    : h.errand
+      ? { text: h.errand.label, progress: h.errand.progress }
+      : null;
   const lastChaos = world.chaosEvents[world.chaosEvents.length - 1];
   hud.update(h, {
     prompt,
